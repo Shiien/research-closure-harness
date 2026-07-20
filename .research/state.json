@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "mode": "graduation",
+  "project": {
+    "question": "",
+    "long_term_agenda": "",
+    "minimum_completion": ""
+  },
+  "sprint": null,
+  "day": null,
+  "active_experiment": null,
+  "counters": {
+    "experiment": 0,
+    "idea": 0
+  },
+  "history": [],
+  "limits": {
+    "active_sprints": 1,
+    "active_experiments": 1
+  }
+}
