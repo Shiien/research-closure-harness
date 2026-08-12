@@ -95,6 +95,14 @@ The CLI keeps only repairs that actually restore compatibility, then prices each
 one by what it predicts **beyond the anomaly it was invented to absorb**. A
 repair that exposes nothing new is marked `ACCOMMODATION ONLY`.
 
+Pricing is the one place that does not restrict itself to the local Markov
+basis. A probe costs a week, so §3 enumerates only the basis; a missed
+statement here costs a claim instead, because it marks a falsifiable repair
+accommodation-only and forecloses `supported`. Since the graph fits on one
+screen (§8), every conditioning set is checked up to
+`MAX_EXHAUSTIVE_PRICING_VARS` observed variables, above which pricing falls
+back to parent sets and may under-report.
+
 Abduction is therefore not brainstorming; it is choosing among a handful of
 structural moves. This is what stops a failed run from turning into a new method
 family.

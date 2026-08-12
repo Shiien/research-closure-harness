@@ -2,6 +2,7 @@
 import argparse
 import contextlib
 import io
+import itertools
 import json
 import sys
 import tempfile
@@ -41,6 +42,19 @@ class TempPaths(unittest.TestCase):
 
 
 class TestAbduction(unittest.TestCase):
+    @staticmethod
+    def chain_graph(names, edges):
+        return {
+            "variables": {v: {"role": "r", "observed": True} for v in names},
+            "edges": [{"from": a, "to": b, "from_theory": []} for a, b in edges],
+            "assumed_absent": [], "probes": {}, "theory": {},
+        }
+
+    def one(self, candidates, detail):
+        match = [c for c in candidates if c["detail"] == detail]
+        self.assertEqual(len(match), 1, f"{detail} not among {[c['detail'] for c in candidates]}")
+        return match[0]
+
     def test_two_variable_repairs_are_all_accommodation_only(self):
         # With two variables there is nothing left for a repair to predict, so
         # every repair buys compatibility without taking on any risk.
@@ -69,6 +83,80 @@ class TestAbduction(unittest.TestCase):
         cands = cg.abduce(graph, "L", "R", ["E"], "dependency")
         flags = [c["accommodation_only"] for c in cands]
         self.assertEqual(flags, sorted(flags))
+
+    def test_a_repair_predicting_only_under_a_non_parent_conditioning_set(self):
+        # Regression: pricing used to try only parent sets as conditioning
+        # sets. On this chain the repair's new prediction needs {B}, which is a
+        # parent of neither A nor D, so the repair was priced accommodation-only
+        # and permanently foreclosed `supported` for the line.
+        graph = self.chain_graph("ABCD", [("A", "B"), ("B", "C"), ("C", "D")])
+        repair = self.one(cg.abduce(graph, "A", "C", ["B"], "dependency"), "A->C")
+        self.assertFalse(repair["accommodation_only"])
+        exposed = {(e["x"], e["y"], tuple(e["given"])) for e in repair["exposes"]}
+        self.assertIn(("A", "D", ("B",)), exposed)
+
+        # and the prediction it is credited with is a real one
+        patched = cg.apply_patch(cg.clone(graph), repair["patch"])
+        self.assertTrue(cg.d_separated(cg.edge_list(graph), "A", "D", ["B"]))
+        self.assertFalse(cg.d_separated(cg.edge_list(patched), "A", "D", ["B"]))
+
+    def test_the_cheapest_prediction_is_offered_first_as_the_debt(self):
+        graph = self.chain_graph("ABCD", [("A", "B"), ("B", "C"), ("C", "D")])
+        repair = self.one(cg.abduce(graph, "A", "C", ["B"], "dependency"), "A->C")
+        sizes = [len(e["given"]) for e in repair["exposes"]]
+        self.assertEqual(sizes, sorted(sizes))
+
+    def test_pricing_falls_back_beyond_the_one_screen_cap(self):
+        # Past the cap the cheap parent-set enumeration is used. It must still
+        # run and still find the obvious statements, just not exhaustively.
+        names = [f"V{i}" for i in range(cg.MAX_EXHAUSTIVE_PRICING_VARS + 2)]
+        edges = [(names[i], names[i + 1]) for i in range(len(names) - 1)]
+        graph = self.chain_graph(names, edges)
+        patched = cg.apply_patch(cg.clone(graph), {"add_edges": [[names[0], names[2]]]})
+        diff = cg.differing_implications(graph, patched)
+        self.assertTrue(diff)
+        for d in diff:
+            self.assertNotIn(d["x"], d["given"])
+            self.assertNotIn(d["y"], d["given"])
+
+    def test_no_falsifiable_repair_is_priced_as_accommodation_only(self):
+        # Property sweep over every DAG on 4 variables: whenever a repair is
+        # marked accommodation-only, no conditional independence statement over
+        # the observed variables may actually differ, other than the anomaly it
+        # was invented to absorb.
+        names = "ABCD"
+        pairs = list(itertools.combinations(names, 2))
+
+        def subsets(vs):
+            for r in range(len(vs) + 1):
+                yield from (list(s) for s in itertools.combinations(vs, r))
+
+        checked = 0
+        for mask in range(1 << len(pairs)):
+            edges = [p for i, p in enumerate(pairs) if mask >> i & 1]
+            if cg.find_cycle(edges):
+                continue
+            graph = self.chain_graph(names, edges)
+            for x, y in pairs:
+                for given in subsets([v for v in names if v not in (x, y)]):
+                    if not cg.d_separated(edges, x, y, given):
+                        continue
+                    for c in cg.abduce(graph, x, y, given, "dependency"):
+                        if not c["accommodation_only"]:
+                            continue
+                        checked += 1
+                        after = cg.edge_list(cg.apply_patch(cg.clone(graph), c["patch"]))
+                        for p, q in pairs:
+                            for cond in subsets([v for v in names if v not in (p, q)]):
+                                if {p, q} == {x, y} and sorted(cond) == sorted(given):
+                                    continue
+                                self.assertEqual(
+                                    cg.d_separated(edges, p, q, cond),
+                                    cg.d_separated(after, p, q, cond),
+                                    f"{c['action']} {c['detail']} on {edges} was priced "
+                                    f"accommodation-only but changes {p},{q} | {cond}",
+                                )
+        self.assertGreater(checked, 0)
 
     def test_repairs_never_introduce_a_cycle(self):
         cands = cg.abduce(example_graph(), "R", "E", ["K"], "dependency")

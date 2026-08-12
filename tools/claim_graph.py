@@ -39,6 +39,11 @@ OUTCOMES = ("positive", "negative", "unresolved")
 # theory layer. Below this, "generalisation" is a synonym for "restatement".
 MIN_SUPPORT_FOR_INDUCTION = 2
 
+# Above this many observed variables, pricing a repair stops enumerating every
+# conditioning set and falls back to parent sets. A graph this large already
+# violates the one-screen rule in docs/claim_graph_protocol.md section 8.
+MAX_EXHAUSTIVE_PRICING_VARS = 8
+
 
 # --------------------------------------------------------------------------
 # paths
@@ -337,6 +342,34 @@ def coverage_report(graph: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def pricing_conditioning_sets(
+    ea: list[tuple[str, str]], eb: list[tuple[str, str]],
+    shared: list[str], x: str, y: str,
+) -> Iterable[list[str]]:
+    """Conditioning sets to try when pricing a repair on the pair (x, y).
+
+    Enumerating implications for *probes* is deliberately restricted to the
+    local Markov basis, because a probe costs a week. Pricing a repair is a
+    different question with a different budget: it asks what the repair newly
+    predicts, and a statement missed here silently marks a falsifiable repair
+    as accommodation-only, which forecloses `supported` for the whole line.
+    Since the protocol caps a graph at one screen, enumerate every conditioning
+    set at realistic sizes and fall back to parent sets only beyond that.
+    """
+    others = [v for v in shared if v not in (x, y)]
+    if len(shared) <= MAX_EXHAUSTIVE_PRICING_VARS:
+        for r in range(len(others) + 1):
+            for combo in itertools.combinations(others, r):
+                yield list(combo)
+        return
+    coarse = {frozenset()}
+    for g in (ea, eb):
+        for v in (x, y):
+            coarse.add(frozenset(parents_of(g, v)) & set(shared))
+    for given in coarse:
+        yield sorted(given)
+
+
 def differing_implications(
     graph_a: dict[str, Any], graph_b: dict[str, Any]
 ) -> list[dict[str, Any]]:
@@ -345,17 +378,16 @@ def differing_implications(
     Used to price an amendment. An amendment that changes no other testable
     prediction has absorbed the anomaly without exposing itself to anything,
     which is curve fitting.
+
+    Ordered by the size of the conditioning set, so the cheapest statement to
+    test comes first: that is the one an amendment takes on as its debt.
     """
     ea, eb = edge_list(graph_a), edge_list(graph_b)
     shared = sorted(set(observed_vars(graph_a)) & set(observed_vars(graph_b)))
     out = []
     seen: set[tuple[str, str, tuple[str, ...]]] = set()
     for x, y in itertools.combinations(shared, 2):
-        conditioning = {frozenset()}
-        for g in (ea, eb):
-            for v in (x, y):
-                conditioning.add(frozenset(parents_of(g, v)) & set(shared))
-        for given in conditioning:
+        for given in pricing_conditioning_sets(ea, eb, shared, x, y):
             g = sorted(given)
             if x in g or y in g:
                 continue
@@ -370,6 +402,7 @@ def differing_implications(
                     {"x": x, "y": y, "given": g, "before": "independent" if sa else "dependent",
                      "after": "independent" if sb else "dependent"}
                 )
+    out.sort(key=lambda d: (len(d["given"]), d["x"], d["y"], d["given"]))
     return out
 
 
