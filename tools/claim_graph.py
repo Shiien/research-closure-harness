@@ -108,7 +108,10 @@ def design_view(graph: dict[str, Any]) -> dict[str, Any]:
             for k, v in sorted(graph.get("theory", {}).items())
             if not v.get("retired_at")
         },
-        "variables": {k: v.get("role") for k, v in sorted(graph.get("variables", {}).items())},
+        "variables": {
+            k: {"role": v.get("role"), "observed": v.get("observed", True)}
+            for k, v in sorted(graph.get("variables", {}).items())
+        },
         "edges": sorted([f"{e['from']}->{e['to']}" for e in graph.get("edges", [])]),
         "assumed_absent": sorted(
             [f"{a['from']}->{a['to']}" for a in graph.get("assumed_absent", [])]
