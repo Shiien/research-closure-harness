@@ -65,6 +65,8 @@ Better:
 
 One experiment card corresponds to one causal comparison or diagnostic chain.
 
+When one card cannot settle the sprint claim, see [claim_graph_protocol.md](claim_graph_protocol.md): it adds the set of probes that jointly determine a claim and the resolution map that composes their outcomes.
+
 It may include multiple seeds and problem instances. Those are not separate experiments unless they test different hypotheses.
 
 Required fields:
