@@ -13,6 +13,18 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+try:
+    import claim_graph as cg
+except ImportError:  # the graph layer is optional
+    _tools_dir = str(Path(__file__).resolve().parent)
+    if _tools_dir not in sys.path:
+        sys.path.insert(0, _tools_dir)
+    try:
+        import claim_graph as cg
+    except ImportError:
+        cg = None
+
+
 def discover_root() -> Path:
     """Find the active research repository.
 
@@ -35,6 +47,7 @@ def discover_root() -> Path:
 ROOT = discover_root()
 STATE_PATH = ROOT / ".research" / "state.json"
 LOG_DIR = ROOT / ".research" / "logs"
+GRAPH_PATH = ROOT / ".research" / "claim_graph.json"
 
 
 def now_iso() -> str:
@@ -131,6 +144,20 @@ def cmd_start_sprint(args: argparse.Namespace) -> int:
     }
     state["sprint"] = sprint
     append_history(state, "sprint_started", sprint)
+    if cg and GRAPH_PATH.exists():
+        graph = cg.load_graph(GRAPH_PATH)
+        blocks, _ = cg.validate(graph)
+        if blocks:
+            raise SystemExit(
+                "BLOCKED: claim graph fails validation; fix it before freezing a sprint:\n  "
+                + "\n  ".join(blocks)
+            )
+        sprint["claim_graph"] = {
+            "path": rel(GRAPH_PATH),
+            "design_hash": cg.design_hash(graph),
+            "frozen_at": now_iso(),
+        }
+        state["version"] = 2
     save_state(state)
     path = write_log(
         f"{today_str()}_sprint.md",
@@ -168,6 +195,26 @@ def cmd_close_sprint(args: argparse.Namespace) -> int:
         raise SystemExit("No active sprint.")
     if state.get("active_experiment"):
         raise SystemExit("BLOCKED: close the active experiment before closing the sprint.")
+    if cg and GRAPH_PATH.exists():
+        graph = cg.load_graph(GRAPH_PATH)
+        proposal = cg.propose_decision(graph)
+        if proposal["status"] == "determined":
+            expected = {"supported": "advance", "falsified": "terminate",
+                        "narrow": "narrow", "terminated": "terminate"}.get(proposal["then"])
+            if expected and args.decision != expected:
+                raise SystemExit(
+                    f"BLOCKED: the resolution map, frozen before results, determines "
+                    f"'{proposal['then']}' -> close as '{expected}', not '{args.decision}'. "
+                    f"To override, amend the map explicitly; do not reinterpret it silently."
+                )
+            if proposal.get("blocked_by_debt"):
+                raise SystemExit(
+                    "BLOCKED: unpaid amendment debt. The graph was repaired to fit an "
+                    "anomaly and the repair has not been tested. Close as 'narrow'."
+                )
+        else:
+            print(f"NOTE: resolution map not yet determined; probes still ready: "
+                  f"{cg.frontier(graph) or 'none'}")
     record = {
         **sprint,
         "closed_at": now_iso(),
@@ -316,6 +363,39 @@ def cmd_new_experiment(args: argparse.Namespace) -> int:
         "started_at": now_iso(),
         "status": "active",
     }
+    if cg and GRAPH_PATH.exists():
+        graph = cg.load_graph(GRAPH_PATH)
+        if not args.node:
+            raise SystemExit(
+                "BLOCKED: a claim graph exists, so every experiment must state which "
+                f"probe it runs (--node). Ready probes: {cg.frontier(graph) or 'none'}"
+            )
+        if args.node not in graph.get("probes", {}):
+            raise SystemExit(f"BLOCKED: {args.node} is not a probe in the claim graph.")
+        ready = cg.frontier(graph)
+        if args.node not in ready:
+            raise SystemExit(
+                f"BLOCKED: {args.node} is not on the ready frontier (ready: {ready or 'none'}). "
+                "Its upstream guards are unmet, so its result would not be interpretable."
+            )
+        probe = graph["probes"][args.node]
+        if graph.get("graph_type") == "causal" and probe.get("tests", {}).get("kind") == "edge":
+            declared = [c.strip() for c in args.controls.split(",") if c.strip()]
+            ok, why = cg.verify_adjustment(
+                cg.edge_list(graph), probe["tests"]["from"], probe["tests"]["to"], declared
+            )
+            if not ok:
+                rec, _ = cg.recommend_adjustment(
+                    graph, probe["tests"]["from"], probe["tests"]["to"]
+                )
+                raise SystemExit(
+                    f"BLOCKED: --controls {declared} is not a valid adjustment set: {why}. "
+                    f"Back-door criterion suggests {rec}."
+                )
+        exp["claim_graph_node"] = args.node
+        exp["controls"] = args.controls
+        exp["expected_figure"] = args.figure
+
     state["active_experiment"] = exp
     append_history(state, "experiment_started", exp)
     save_state(state)
@@ -383,6 +463,44 @@ def cmd_close_experiment(args: argparse.Namespace) -> int:
         "conclusion": args.conclusion,
         "status": "closed",
     }
+    if args.decision == "inconclusive" and not args.defect:
+        raise SystemExit(
+            "BLOCKED: an inconclusive result must name its defect class. "
+            "implementation/measurement/design defects leave the hypothesis untouched and "
+            "must not count toward claim narrowing; only 'hypothesis' does."
+        )
+    if (
+        args.decision == "inconclusive"
+        and args.defect != "hypothesis"
+        and args.outcome
+        and args.outcome != "unresolved"
+    ):
+        raise SystemExit(
+            f"BLOCKED: a {args.defect} defect leaves the hypothesis untested, so the probe "
+            f"outcome must be 'unresolved', not '{args.outcome}'. Only defect class "
+            "'hypothesis' may advance the resolution map."
+        )
+    record["defect"] = args.defect
+
+    node = exp.get("claim_graph_node")
+    if cg and node and GRAPH_PATH.exists():
+        outcome = args.outcome or {
+            "supported": "positive", "falsified": "negative",
+            "inconclusive": "unresolved", "terminated": "unresolved",
+        }[args.decision]
+        graph = cg.load_graph(GRAPH_PATH)
+        graph["probes"][node]["outcome"] = outcome
+        graph["probes"][node]["experiment_id"] = exp["id"]
+        graph["probes"][node]["defect"] = args.defect
+        cg.save_graph(graph, GRAPH_PATH)
+        proposal = cg.propose_decision(graph)
+        print(f"Claim-graph node {node} set to {outcome}.")
+        if proposal["status"] == "determined":
+            print(f"Resolution map determines: {proposal['then']}"
+                  + (f" (rung: {proposal['rung']})" if proposal.get("rung") else ""))
+        else:
+            print(f"Line still open. Ready next: {proposal['frontier'] or 'none'}")
+
     append_history(state, "experiment_closed", record)
     state["active_experiment"] = None
     save_state(state)
@@ -469,6 +587,37 @@ def guard_messages(state: dict[str, Any]) -> tuple[list[str], list[str]]:
         blocks.append("Active experiment has no kill criterion.")
     if exp and not exp.get("expected_artifact"):
         blocks.append("Active experiment has no expected artifact.")
+
+    if cg and GRAPH_PATH.exists():
+        graph = cg.load_graph(GRAPH_PATH)
+        gblocks, gwarn = cg.validate(graph)
+        blocks.extend(gblocks)
+        warnings.extend(gwarn)
+
+        frozen = (sprint or {}).get("claim_graph", {}).get("design_hash")
+        if frozen and frozen != cg.design_hash(graph):
+            blocks.append(
+                "claim graph design has drifted since the sprint was frozen. The "
+                "pre-registration no longer matches what will be reported. Record an "
+                "amendment or close the sprint."
+            )
+        if exp and exp.get("claim_graph_node"):
+            if exp["claim_graph_node"] not in cg.frontier(graph) + list(cg.outcomes_map(graph)):
+                blocks.append(
+                    f"active experiment runs {exp['claim_graph_node']}, which is not on "
+                    f"the ready frontier"
+                )
+        debts = cg.unpaid_debts(graph)
+        if debts:
+            warnings.append(
+                f"{len(debts)} unpaid amendment debt(s); this line cannot close as supported"
+            )
+        proposal = cg.propose_decision(graph)
+        if proposal["status"] == "determined":
+            warnings.append(
+                f"resolution map is already determined ({proposal['then']}); "
+                f"further probes on this line are out of scope"
+            )
     return blocks, warnings
 
 
@@ -548,6 +697,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--kill", required=True)
     sp.add_argument("--artifact", required=True)
     sp.add_argument("--hours", type=float, required=True)
+    sp.add_argument("--node", help="claim-graph probe this card runs, e.g. P2")
+    sp.add_argument("--controls", default="", help="comma-separated adjustment set")
+    sp.add_argument("--figure", default="", help="expected figure")
     sp.set_defaults(func=cmd_new_experiment)
 
     sp = sub.add_parser("close-experiment")
@@ -555,6 +707,10 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--decision", choices=["supported", "falsified", "inconclusive", "terminated"], required=True)
     sp.add_argument("--evidence", required=True)
     sp.add_argument("--conclusion", required=True)
+    sp.add_argument("--defect", choices=["implementation", "measurement", "design", "hypothesis"],
+                    help="required when --decision inconclusive")
+    sp.add_argument("--outcome", choices=["positive", "negative", "unresolved"],
+                    help="probe outcome, when the card is bound to a claim-graph node")
     sp.set_defaults(func=cmd_close_experiment)
 
     sp = sub.add_parser("add-idea")
