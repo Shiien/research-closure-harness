@@ -62,7 +62,9 @@ mkdir -p \
   "$TARGET/docs" \
   "$TARGET/.research/logs" \
   "$TARGET/.agents/skills/research-closure" \
+  "$TARGET/.agents/skills/research-handoff" \
   "$TARGET/.claude/skills/research-closure" \
+  "$TARGET/.claude/skills/research-handoff" \
   "$TARGET/.claude/hooks"
 
 cp "$SOURCE_ROOT/tools/research_closure.py" "$TARGET/tools/research_closure.py"
@@ -73,6 +75,10 @@ cp "$SOURCE_ROOT/.agents/skills/research-closure/SKILL.md" \
    "$TARGET/.agents/skills/research-closure/SKILL.md"
 cp "$SOURCE_ROOT/.claude/skills/research-closure/SKILL.md" \
    "$TARGET/.claude/skills/research-closure/SKILL.md"
+cp "$SOURCE_ROOT/.agents/skills/research-handoff/SKILL.md" \
+   "$TARGET/.agents/skills/research-handoff/SKILL.md"
+cp "$SOURCE_ROOT/.claude/skills/research-handoff/SKILL.md" \
+   "$TARGET/.claude/skills/research-handoff/SKILL.md"
 cp "$SOURCE_ROOT/.claude/hooks/closure_guard.py" \
    "$TARGET/.claude/hooks/research_closure_guard.py"
 chmod +x "$TARGET/.claude/hooks/research_closure_guard.py"

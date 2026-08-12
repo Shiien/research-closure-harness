@@ -30,7 +30,7 @@ research-closure-init
 
 ## 1. Copy this harness into the research repository
 
-Keep `AGENTS.md`, `CLAUDE.md`, `SKILL.md`, `tools/`, `templates/`, and `.research/` at repository root.
+Keep `AGENTS.md`, `CLAUDE.md`, `SKILL.md`, `HANDOFF_SKILL.md`, `tools/`, `templates/`, and `.research/` at repository root.
 
 ## 2. Record the project
 

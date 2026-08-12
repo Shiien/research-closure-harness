@@ -26,9 +26,11 @@ Options:
   -h, --help               Show this help.
 
 Installed locations:
-  Codex skill:      ~/.agents/skills/research-closure/
+  Codex skills:     ~/.agents/skills/research-closure/
+                    ~/.agents/skills/research-handoff/
   Codex guidance:   ${CODEX_HOME:-~/.codex}/AGENTS.md
-  Claude skill:     ${CLAUDE_CONFIG_DIR:-~/.claude}/skills/research-closure/
+  Claude skills:    ${CLAUDE_CONFIG_DIR:-~/.claude}/skills/research-closure/
+                    ${CLAUDE_CONFIG_DIR:-~/.claude}/skills/research-handoff/
   Claude guidance:  ${CLAUDE_CONFIG_DIR:-~/.claude}/CLAUDE.md
   Harness data:     ${XDG_DATA_HOME:-~/.local/share}/research-closure-harness/
   CLI commands:     ~/.local/bin/research-closure
@@ -90,8 +92,10 @@ PY
 
 CODEX_HOME_DIR="${CODEX_HOME:-$HOME/.codex}"
 CODEX_SKILL_DIR="$HOME/.agents/skills/research-closure"
+CODEX_HANDOFF_SKILL_DIR="$HOME/.agents/skills/research-handoff"
 CLAUDE_HOME_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 CLAUDE_SKILL_DIR="$CLAUDE_HOME_DIR/skills/research-closure"
+CLAUDE_HANDOFF_SKILL_DIR="$CLAUDE_HOME_DIR/skills/research-handoff"
 DATA_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/research-closure-harness"
 BIN_DIR="$HOME/.local/bin"
 BACKUP_ROOT="$HOME/.research-closure-backups/$TIMESTAMP"
@@ -242,12 +246,19 @@ PY
 if [[ "$UNINSTALL" -eq 1 ]]; then
   echo "Uninstalling Research Closure Harness..."
   backup_path "$CODEX_SKILL_DIR"
+  backup_path "$CODEX_HANDOFF_SKILL_DIR"
   backup_path "$CLAUDE_SKILL_DIR"
+  backup_path "$CLAUDE_HANDOFF_SKILL_DIR"
   backup_path "$CODEX_AGENTS"
   backup_path "$CLAUDE_MD"
   backup_path "$CLAUDE_SETTINGS"
 
-  run rm -rf "$CODEX_SKILL_DIR" "$CLAUDE_SKILL_DIR" "$DATA_ROOT"
+  run rm -rf \
+    "$CODEX_SKILL_DIR" \
+    "$CODEX_HANDOFF_SKILL_DIR" \
+    "$CLAUDE_SKILL_DIR" \
+    "$CLAUDE_HANDOFF_SKILL_DIR" \
+    "$DATA_ROOT"
   if [[ -L "$BIN_DIR/research-closure" || -f "$BIN_DIR/research-closure" ]]; then
     run rm -f "$BIN_DIR/research-closure"
   fi
@@ -301,6 +312,7 @@ fi
 
 for required in \
   "$HARNESS_ROOT/SKILL.md" \
+  "$HARNESS_ROOT/HANDOFF_SKILL.md" \
   "$HARNESS_ROOT/tools/research_closure.py" \
   "$HARNESS_ROOT/tools/bootstrap_repo.sh"; do
   if [[ ! -f "$required" ]]; then
@@ -313,7 +325,9 @@ echo "Installing Research Closure Harness from:"
 echo "  $HARNESS_ROOT"
 
 backup_path "$CODEX_SKILL_DIR"
+backup_path "$CODEX_HANDOFF_SKILL_DIR"
 backup_path "$CLAUDE_SKILL_DIR"
+backup_path "$CLAUDE_HANDOFF_SKILL_DIR"
 backup_path "$DATA_ROOT"
 if [[ "$INSTALL_GLOBAL_RULES" -eq 1 ]]; then
   backup_path "$CODEX_AGENTS"
@@ -333,10 +347,20 @@ run mkdir -p \
 run rm -rf "$DATA_ROOT"
 run cp -R "$HARNESS_ROOT" "$DATA_ROOT"
 
-run rm -rf "$CODEX_SKILL_DIR" "$CLAUDE_SKILL_DIR"
-run mkdir -p "$CODEX_SKILL_DIR" "$CLAUDE_SKILL_DIR"
+run rm -rf \
+  "$CODEX_SKILL_DIR" \
+  "$CODEX_HANDOFF_SKILL_DIR" \
+  "$CLAUDE_SKILL_DIR" \
+  "$CLAUDE_HANDOFF_SKILL_DIR"
+run mkdir -p \
+  "$CODEX_SKILL_DIR" \
+  "$CODEX_HANDOFF_SKILL_DIR" \
+  "$CLAUDE_SKILL_DIR" \
+  "$CLAUDE_HANDOFF_SKILL_DIR"
 run cp "$HARNESS_ROOT/SKILL.md" "$CODEX_SKILL_DIR/SKILL.md"
 run cp "$HARNESS_ROOT/SKILL.md" "$CLAUDE_SKILL_DIR/SKILL.md"
+run cp "$HARNESS_ROOT/HANDOFF_SKILL.md" "$CODEX_HANDOFF_SKILL_DIR/SKILL.md"
+run cp "$HARNESS_ROOT/HANDOFF_SKILL.md" "$CLAUDE_HANDOFF_SKILL_DIR/SKILL.md"
 
 run chmod +x \
   "$DATA_ROOT/tools/research_closure.py" \
@@ -355,6 +379,7 @@ if [[ "$INSTALL_GLOBAL_RULES" -eq 1 ]]; then
 For research planning, experiment implementation, result analysis, scope changes, or paper-progress work:
 
 - Invoke the `$research-closure` skill.
+- Invoke the `$research-handoff` skill when agent output is pasted in for interpretation, or when writing a task for an agent that does not share the current conversation.
 - In a repository containing `.research/state.json`, run `research-closure guard` before substantial work.
 - Do not open a new method family or primary experiment before the previous experiment has an explicit decision.
 - Treat new ideas as backlog items unless they directly test the frozen sprint claim.
@@ -366,6 +391,7 @@ EOF
 For research planning, experiment implementation, result analysis, scope changes, or paper-progress work:
 
 - Use the `/research-closure` skill.
+- Use the `/research-handoff` skill when agent output is pasted in for interpretation, or when writing a task for an agent that does not share the current conversation.
 - In a repository containing `.research/state.json`, run `research-closure guard` before substantial work.
 - Do not open a new method family or primary experiment before the previous experiment has an explicit decision.
 - Treat new ideas as backlog items unless they directly test the frozen sprint claim.
@@ -387,11 +413,13 @@ cat <<EOF
 
 Installation complete.
 
-Codex skill:
+Codex skills:
   $CODEX_SKILL_DIR/SKILL.md
+  $CODEX_HANDOFF_SKILL_DIR/SKILL.md
 
-Claude Code skill:
+Claude Code skills:
   $CLAUDE_SKILL_DIR/SKILL.md
+  $CLAUDE_HANDOFF_SKILL_DIR/SKILL.md
 
 Commands:
   $BIN_DIR/research-closure
