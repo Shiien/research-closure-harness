@@ -35,6 +35,27 @@ GRAPH_TYPES = ("causal", "comparative", "theoretical")
 PROVENANCE = ("deduced", "induced", "abduced")
 OUTCOMES = ("positive", "negative", "unresolved")
 
+# Public product vocabulary. Keep these names and directions visible in the
+# CLI: the three reasoning modes are a user-facing feature, not only internal
+# implementation sections.
+REASONING_MODES = (
+    (
+        "Deduction",
+        "theory + observation DAG -> testable implications -> probes",
+        "deduce",
+    ),
+    (
+        "Induction",
+        "independent closed probes -> a theory node with a new prediction",
+        "induce",
+    ),
+    (
+        "Abduction",
+        "anomaly against the DAG -> candidate structural repairs",
+        "abduce",
+    ),
+)
+
 # Minimum independent closed probes before a generalisation may enter the
 # theory layer. Below this, "generalisation" is a synonym for "restatement".
 MIN_SUPPORT_FOR_INDUCTION = 2
@@ -820,12 +841,22 @@ def cmd_validate(_: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_reasoning(_: argparse.Namespace) -> int:
+    print("THREE REASONING MODES")
+    for name, direction, command in REASONING_MODES:
+        print(f"  {name.upper()}")
+        print(f"    {direction}")
+        print(f"    command: claim_graph.py {command}")
+    return 0
+
+
 def cmd_deduce(args: argparse.Namespace) -> int:
     graph = load_graph()
     cov = coverage_report(graph)
     if args.json:
         print(json.dumps(cov, indent=2))
         return 0
+    print("DEDUCTION: theory + observation DAG -> testable implications -> probes")
     print(f"Testable implications: {len(cov['implications'])}")
     for i in cov["implications"]:
         given = f" | {', '.join(i['given'])}" if i["given"] else ""
@@ -881,6 +912,7 @@ def cmd_abduce(args: argparse.Namespace) -> int:
     x, y = [s.strip() for s in args.between.split(",")]
     given = [s.strip() for s in args.given.split(",")] if args.given else []
     anomaly = "independence" if args.independence else "dependency"
+    print("ABDUCTION: anomaly against the DAG -> candidate structural repairs")
 
     sep = d_separated(edge_list(graph), x, y, given)
     expected_conflict = sep if anomaly == "dependency" else not sep
@@ -957,6 +989,7 @@ def cmd_amend(args: argparse.Namespace) -> int:
 
 def cmd_induce(args: argparse.Namespace) -> int:
     graph = load_graph()
+    print("INDUCTION: independent closed probes -> a theory node with a new prediction")
     support = [s.strip() for s in args.support.split(",") if s.strip()]
     if len(support) < MIN_SUPPORT_FOR_INDUCTION:
         raise SystemExit(
@@ -1091,14 +1124,23 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("validate", help="run all structural checks")
     sp.set_defaults(func=cmd_validate)
 
-    sp = sub.add_parser("deduce", help="enumerate implications and coverage gaps")
+    sp = sub.add_parser(
+        "reasoning", help="show the named Deduction, Induction, and Abduction modes"
+    )
+    sp.set_defaults(func=cmd_reasoning)
+
+    sp = sub.add_parser(
+        "deduce", help="Deduction: enumerate implications and coverage gaps"
+    )
     sp.add_argument("--json", action="store_true")
     sp.set_defaults(func=cmd_deduce)
 
     sp = sub.add_parser("frontier", help="show which probes are ready to run")
     sp.set_defaults(func=cmd_frontier)
 
-    sp = sub.add_parser("abduce", help="enumerate structural repairs for an anomaly")
+    sp = sub.add_parser(
+        "abduce", help="Abduction: enumerate structural repairs for an anomaly"
+    )
     sp.add_argument("--between", required=True, metavar="X,Y")
     sp.add_argument("--given", default="")
     sp.add_argument("--independence", action="store_true",
@@ -1109,7 +1151,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--apply", required=True, metavar="CANDIDATE_ID")
     sp.set_defaults(func=cmd_amend)
 
-    sp = sub.add_parser("induce", help="promote closed results into a theory node")
+    sp = sub.add_parser(
+        "induce", help="Induction: promote closed results into a theory node"
+    )
     sp.add_argument("--id", required=True)
     sp.add_argument("--statement", required=True)
     sp.add_argument("--support", required=True, help="comma-separated closed experiment ids")

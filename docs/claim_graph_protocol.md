@@ -26,14 +26,29 @@ missing object: the set, plus the rule that composes its outcomes.
 
 ```
 theory layer        M-nodes: the mechanism believed
-    | entails             target of induction and abduction
+    | DEDUCTION: entails observable structure
 observation layer   variables, directed edges, absence assumptions
-    | tested_by           product of deduction
+    | DEDUCTION: derives testable implications
 probe layer         P-nodes, each bound to one experiment card
+    | INDUCTION: independent closed results support a generalisation
+    `----------------------------------------------------------> theory layer
+
+observation anomaly -- ABDUCTION --> candidate structural repairs
 ```
 
 Keeping theory and observation in one layer is the mistake that makes deduction
 impossible, because deduction *is* the step from the first to the second.
+
+These names are part of the public model, not merely implementation labels:
+
+- **Deduction** moves downward from theory and the observation DAG to
+  observable implications and probes.
+- **Induction** moves upward from multiple independent closed probes to a
+  theory node that must make at least one new prediction.
+- **Abduction** moves sideways from an anomaly that conflicts with the DAG to a
+  finite, auditable set of candidate structural repairs.
+
+Run `claim_graph.py reasoning` to display the same three-mode map in the CLI.
 
 There is one graph per sprint claim, at `.research/claim_graph.json`. Its design
 is hashed at `start-sprint`; outcomes are appended as work proceeds.

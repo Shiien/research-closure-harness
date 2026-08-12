@@ -264,6 +264,32 @@ class TestSprintDecisionIsComputed(RepoCase):
 
 
 class TestGraphCliRunsFromAnywhere(RepoCase):
+    def test_reasoning_modes_are_explicitly_named(self):
+        proc = self.assertOk(self.run_graph("reasoning"))
+        self.assertIn("THREE REASONING MODES", proc.stdout)
+        self.assertIn("DEDUCTION", proc.stdout)
+        self.assertIn("INDUCTION", proc.stdout)
+        self.assertIn("ABDUCTION", proc.stdout)
+        self.assertIn("claim_graph.py deduce", proc.stdout)
+        self.assertIn("claim_graph.py induce", proc.stdout)
+        self.assertIn("claim_graph.py abduce", proc.stdout)
+
+    def test_reasoning_commands_label_their_output(self):
+        self.install_graph()
+        proc = self.assertOk(self.run_graph("deduce"))
+        self.assertTrue(proc.stdout.startswith("DEDUCTION:"), proc.stdout)
+
+        proc = self.assertOk(self.run_graph(
+            "abduce", "--between", "L,R", "--given", "E",
+        ))
+        self.assertTrue(proc.stdout.startswith("ABDUCTION:"), proc.stdout)
+
+        proc = self.assertOk(self.run_graph(
+            "induce", "--id", "M2", "--statement", "E also predicts R",
+            "--support", "EXP-001,EXP-002", "--entails", "E->R",
+        ))
+        self.assertTrue(proc.stdout.startswith("INDUCTION:"), proc.stdout)
+
     def test_graph_cli_discovers_the_repository(self):
         self.install_graph()
         self.assertOk(self.run_graph("validate"))

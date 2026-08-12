@@ -19,6 +19,27 @@ It supports:
 
 For the complete methodology, see [docs/protocol.md](docs/protocol.md).
 
+### Three named reasoning modes
+
+The optional claim graph makes three forms of scientific reasoning explicit
+and auditable:
+
+| Mode | Direction | CLI |
+|---|---|---|
+| **Deduction** | theory and observation DAG → testable implications → probes | `claim_graph.py deduce` |
+| **Induction** | independent closed probes → theory node with a new prediction | `claim_graph.py induce` |
+| **Abduction** | anomaly against the DAG → candidate structural repairs | `claim_graph.py abduce` |
+
+Display this map at any time with:
+
+```bash
+python tools/claim_graph.py reasoning
+```
+
+These are named transitions between theory, observations, and probes—not labels
+added after the evidence is known. Their candidate sets, selections, amendments,
+and decisions remain part of the audit trail.
+
 ### Core principles
 
 1. Keep only **one active project question** at a time.
@@ -220,6 +241,25 @@ To uninstall:
 - **机械检查**：通过无第三方依赖的 Python CLI。
 
 完整方法说明见 [docs/protocol.md](docs/protocol.md)。
+
+### 三种显式命名的推理模式
+
+可选的 claim graph 将三种科学推理作为显式、可审计的核心能力：
+
+| 模式 | 推理方向 | CLI |
+|---|---|---|
+| **Deduction（演绎）** | 理论与观测 DAG → 可检验含义 → probes | `claim_graph.py deduce` |
+| **Induction（归纳）** | 多个独立且已关闭的 probes → 产生新预测的理论节点 | `claim_graph.py induce` |
+| **Abduction（溯因）** | 与 DAG 冲突的异常 → 候选结构修复 | `claim_graph.py abduce` |
+
+可以随时显示这张推理地图：
+
+```bash
+python tools/claim_graph.py reasoning
+```
+
+它们是理论、观测和 probes 之间预先定义的转换，而不是看到证据后追加的标签。
+候选集合、选择、修正和决策都会保留在审计轨迹中。
 
 ### 核心原则
 
