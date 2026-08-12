@@ -13,7 +13,7 @@ the following loop:
 It supports:
 
 - **Codex** through the repository-level `AGENTS.md`;
-- **Claude Code** through `CLAUDE.md`, a skill, and an optional hook;
+- **Claude Code** through `CLAUDE.md`, two skills, and an optional hook;
 - **researcher self-management** through daily, experiment, weekly, and sprint templates;
 - **mechanical checks** through a dependency-free Python CLI.
 
@@ -122,9 +122,12 @@ Complete `templates/weekly_review.md` and choose exactly one outcome:
 ```text
 AGENTS.md                         Persistent project rules for Codex
 CLAUDE.md                         Persistent project rules for Claude Code
-SKILL.md                          Human-readable canonical skill
+SKILL.md                          Canonical skill: research-closure
+HANDOFF_SKILL.md                  Canonical skill: research-handoff
 .agents/skills/research-closure/  Repository skill for Codex
+.agents/skills/research-handoff/  Repository skill for Codex
 .claude/skills/research-closure/  Repository skill for Claude Code
+.claude/skills/research-handoff/  Repository skill for Claude Code
 .research/state.json              CLI state
 .research/logs/                   Daily and experiment logs
 templates/                        Research planning and decision templates
@@ -177,9 +180,9 @@ Or install directly from a zip file:
 
 The default installation provides:
 
-- Codex user skill: `~/.agents/skills/research-closure/`;
+- Codex user skills: `~/.agents/skills/research-closure/` and `~/.agents/skills/research-handoff/`;
 - Codex global rules: `${CODEX_HOME:-~/.codex}/AGENTS.md`;
-- Claude Code user skill: `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/research-closure/`;
+- Claude Code user skills: `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/research-closure/` and `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/research-handoff/`;
 - Claude Code global rules: `${CLAUDE_CONFIG_DIR:-~/.claude}/CLAUDE.md`;
 - CLI: `~/.local/bin/research-closure`;
 - repository initialization command: `~/.local/bin/research-closure-init`.
@@ -209,7 +212,7 @@ To uninstall:
 它同时支持：
 
 - **Codex**：通过仓库根目录的 `AGENTS.md`；
-- **Claude Code**：通过 `CLAUDE.md`、Skill 和可选 hook；
+- **Claude Code**：通过 `CLAUDE.md`、两个 Skill 和可选 hook；
 - **研究者自我管理**：通过每日、实验、每周和 sprint 模板；
 - **机械检查**：通过无第三方依赖的 Python CLI。
 
@@ -317,9 +320,12 @@ python tools/research_closure.py guard
 ```text
 AGENTS.md                         Codex 的持续项目规则
 CLAUDE.md                         Claude Code 的持续项目规则
-SKILL.md                          技能的可读主副本
+SKILL.md                          research-closure 技能主副本
+HANDOFF_SKILL.md                  research-handoff 技能主副本
 .agents/skills/research-closure/  Codex 仓库级 skill
+.agents/skills/research-handoff/  Codex 仓库级 skill
 .claude/skills/research-closure/  Claude Code 仓库级 skill
+.claude/skills/research-handoff/  Claude Code 仓库级 skill
 .research/state.json              CLI 状态
 .research/logs/                   每日与实验日志
 templates/                        研究计划与决策模板
@@ -371,9 +377,9 @@ examples/continual_option_learning/
 
 默认安装以下内容：
 
-- Codex 用户 skill：`~/.agents/skills/research-closure/`；
+- Codex 用户 skill：`~/.agents/skills/research-closure/` 与 `~/.agents/skills/research-handoff/`；
 - Codex 全局规则：`${CODEX_HOME:-~/.codex}/AGENTS.md`；
-- Claude Code 用户 skill：`${CLAUDE_CONFIG_DIR:-~/.claude}/skills/research-closure/`；
+- Claude Code 用户 skill：`${CLAUDE_CONFIG_DIR:-~/.claude}/skills/research-closure/` 与 `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/research-handoff/`；
 - Claude Code 全局规则：`${CLAUDE_CONFIG_DIR:-~/.claude}/CLAUDE.md`；
 - CLI：`~/.local/bin/research-closure`；
 - 仓库初始化命令：`~/.local/bin/research-closure-init`。
