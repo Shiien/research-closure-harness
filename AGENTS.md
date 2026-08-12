@@ -99,6 +99,11 @@ At the beginning of a substantial task, state:
 - `Today's deliverable`
 - `Out of scope`
 
+If `.research/claim_graph.json` exists, run `python tools/claim_graph.py frontier` and also state:
+
+- `Ready frontier` — the probes whose guards are satisfied
+- `Resolution map` — determined (with its verdict) or still open
+
 At the end, state:
 
 - `Artifact produced`

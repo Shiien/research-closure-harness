@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "claim_id": "SC-001",
+  "claim": "Across controlled excitation levels, log condition number predicts affine recovery error more reliably than predictive loss.",
+  "graph_type": "causal",
+  "max_probes": 5,
+  "max_amendments": 2,
+
+  "theory": {
+    "M1": {
+      "statement": "Excitation determines how well the representation is identified; conditioning is the observable face of that identifiability, and recovery error is its consequence.",
+      "provenance": "deduced",
+      "supported_by": [],
+      "entails": ["E->K", "K->R"],
+      "added_at": "2026-01-05T09:00:00+00:00"
+    }
+  },
+
+  "variables": {
+    "E": {"name": "behaviour-policy excitation", "role": "intervention", "observed": true},
+    "K": {"name": "log condition number", "role": "candidate_predictor", "observed": true},
+    "L": {"name": "predictive loss", "role": "rival_predictor", "observed": true},
+    "R": {"name": "affine recovery error", "role": "outcome", "observed": true}
+  },
+
+  "edges": [
+    {"from": "E", "to": "K", "from_theory": ["M1"]},
+    {"from": "E", "to": "L", "from_theory": ["M1"]},
+    {"from": "K", "to": "R", "from_theory": ["M1"]}
+  ],
+
+  "assumed_absent": [
+    {"from": "L", "to": "R",
+     "justification": "Predictive loss is taken to be a downstream symptom of excitation, not an independent cause of recovery error. This is the load-bearing assumption of the whole claim."}
+  ],
+
+  "probes": {
+    "P1": {
+      "tests": {"kind": "edge", "from": "K", "to": "R"},
+      "metric": "spearman_rho(log_cond, recovery_error)",
+      "prereg": "rho > 0.5 over 30 instances x 5 seeds",
+      "controls": ["E"],
+      "guards_in": [],
+      "experiment_id": null,
+      "outcome": null
+    },
+    "P2": {
+      "tests": {"kind": "independence", "x": "L", "y": "R", "given": ["E"]},
+      "metric": "partial_spearman(L, R | E)",
+      "prereg": "|partial rho| < 0.2; failure to reject is not evidence of absence and is reported as such",
+      "controls": ["E"],
+      "guards_in": ["P1==positive"],
+      "experiment_id": null,
+      "outcome": null
+    },
+    "P3": {
+      "tests": {"kind": "comparison", "stronger": "K", "weaker": "L", "on": "R"},
+      "metric": "held-out predictive R2, K vs L, matched sample size",
+      "prereg": "K beats L on >= 4 of 5 seeds",
+      "controls": ["E"],
+      "guards_in": ["P1==positive", "P2==positive"],
+      "experiment_id": null,
+      "outcome": null
+    }
+  },
+
+  "resolution": [
+    {"when": {"P1": "negative"},
+     "then": "falsified",
+     "skip": ["P2", "P3"],
+     "note": "If conditioning does not track recovery at all, the comparison against predictive loss is moot."},
+
+    {"when": {"P1": "positive", "P2": "negative"},
+     "then": "narrow",
+     "rung": "causal->predictive",
+     "depends_on_assumption": "L->R",
+     "skip": ["P3"],
+     "note": "Predictive loss carries independent signal, so conditioning cannot be claimed as the mechanism. The association survives; the causal reading does not."},
+
+    {"when": {"P1": "positive", "P2": "positive", "P3": "negative"},
+     "then": "narrow",
+     "rung": "comparative->association",
+     "note": "Conditioning tracks recovery but does not beat the rival predictor. The claim drops its comparative clause."},
+
+    {"when": {"P1": "positive", "P2": "positive", "P3": "positive"},
+     "then": "supported",
+     "note": "Scope is the tested excitation range only; extrapolation beyond it is a separate claim."}
+  ],
+
+  "amendments": []
+}

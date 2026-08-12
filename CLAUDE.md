@@ -8,6 +8,8 @@ At the start of every session:
 2. Read the active sprint and experiment logs in `.research/logs/`.
 3. Run `python tools/research_closure.py guard`.
 4. State the frozen claim, today's deliverable, and what is out of scope.
+5. If `.research/claim_graph.json` exists, run `python tools/claim_graph.py frontier` and
+   also state the ready frontier and whether the resolution map is already determined.
 
 ## Hard workflow constraints
 

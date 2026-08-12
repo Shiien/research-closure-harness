@@ -35,6 +35,7 @@ Installed locations:
   Harness data:     ${XDG_DATA_HOME:-~/.local/share}/research-closure-harness/
   CLI commands:     ~/.local/bin/research-closure
                     ~/.local/bin/research-closure-init
+                    ~/.local/bin/research-closure-graph
 EOF
 }
 
@@ -265,6 +266,9 @@ if [[ "$UNINSTALL" -eq 1 ]]; then
   if [[ -L "$BIN_DIR/research-closure-init" || -f "$BIN_DIR/research-closure-init" ]]; then
     run rm -f "$BIN_DIR/research-closure-init"
   fi
+  if [[ -L "$BIN_DIR/research-closure-graph" || -f "$BIN_DIR/research-closure-graph" ]]; then
+    run rm -f "$BIN_DIR/research-closure-graph"
+  fi
   remove_managed_block "$CODEX_AGENTS"
   remove_managed_block "$CLAUDE_MD"
   remove_claude_hook_setting
@@ -314,6 +318,7 @@ for required in \
   "$HARNESS_ROOT/SKILL.md" \
   "$HARNESS_ROOT/HANDOFF_SKILL.md" \
   "$HARNESS_ROOT/tools/research_closure.py" \
+  "$HARNESS_ROOT/tools/claim_graph.py" \
   "$HARNESS_ROOT/tools/bootstrap_repo.sh"; do
   if [[ ! -f "$required" ]]; then
     echo "Invalid harness source; missing: $required" >&2
@@ -364,11 +369,13 @@ run cp "$HARNESS_ROOT/HANDOFF_SKILL.md" "$CLAUDE_HANDOFF_SKILL_DIR/SKILL.md"
 
 run chmod +x \
   "$DATA_ROOT/tools/research_closure.py" \
+  "$DATA_ROOT/tools/claim_graph.py" \
   "$DATA_ROOT/tools/bootstrap_repo.sh" \
   "$DATA_ROOT/.claude/hooks/closure_guard.py"
 
 run ln -sfn "$DATA_ROOT/tools/research_closure.py" "$BIN_DIR/research-closure"
 run ln -sfn "$DATA_ROOT/tools/bootstrap_repo.sh" "$BIN_DIR/research-closure-init"
+run ln -sfn "$DATA_ROOT/tools/claim_graph.py" "$BIN_DIR/research-closure-graph"
 
 if [[ "$INSTALL_GLOBAL_RULES" -eq 1 ]]; then
   CODEX_BLOCK="$(mktemp)"
@@ -424,6 +431,7 @@ Claude Code skills:
 Commands:
   $BIN_DIR/research-closure
   $BIN_DIR/research-closure-init
+  $BIN_DIR/research-closure-graph
 
 Initialize a repository:
   cd /path/to/repository

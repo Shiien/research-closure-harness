@@ -132,8 +132,10 @@ HANDOFF_SKILL.md                  Canonical skill: research-handoff
 .research/logs/                   Daily and experiment logs
 templates/                        Research planning and decision templates
 tools/research_closure.py         Dependency-free CLI
+tools/claim_graph.py              Dependency-free claim-graph CLI (optional layer)
 .claude/hooks/closure_guard.py    Optional mechanical gate for Claude Code
 docs/protocol.md                  Complete research-closure protocol
+docs/claim_graph_protocol.md      Claim-graph extension: probe sets and resolution maps
 examples/continual_option_learning/
                                   Worked example for a research project
 ```
@@ -185,7 +187,8 @@ The default installation provides:
 - Claude Code user skills: `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/research-closure/` and `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/research-handoff/`;
 - Claude Code global rules: `${CLAUDE_CONFIG_DIR:-~/.claude}/CLAUDE.md`;
 - CLI: `~/.local/bin/research-closure`;
-- repository initialization command: `~/.local/bin/research-closure-init`.
+- repository initialization command: `~/.local/bin/research-closure-init`;
+- claim-graph CLI: `~/.local/bin/research-closure-graph`.
 
 Optionally install the global Claude Code `PreToolUse` hook:
 
@@ -330,8 +333,10 @@ HANDOFF_SKILL.md                  research-handoff 技能主副本
 .research/logs/                   每日与实验日志
 templates/                        研究计划与决策模板
 tools/research_closure.py         无依赖 CLI
+tools/claim_graph.py              无依赖 claim graph CLI（可选层）
 .claude/hooks/closure_guard.py    Claude Code 可选机械门禁
 docs/protocol.md                  完整研究 closure 协议
+docs/claim_graph_protocol.md      claim graph 扩展：探针集合与 resolution map
 examples/continual_option_learning/
                                   研究项目示例
 ```
@@ -382,7 +387,8 @@ examples/continual_option_learning/
 - Claude Code 用户 skill：`${CLAUDE_CONFIG_DIR:-~/.claude}/skills/research-closure/` 与 `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/research-handoff/`；
 - Claude Code 全局规则：`${CLAUDE_CONFIG_DIR:-~/.claude}/CLAUDE.md`；
 - CLI：`~/.local/bin/research-closure`；
-- 仓库初始化命令：`~/.local/bin/research-closure-init`。
+- 仓库初始化命令：`~/.local/bin/research-closure-init`；
+- claim graph CLI：`~/.local/bin/research-closure-graph`。
 
 可选安装 Claude Code 的全局 `PreToolUse` hook：
 

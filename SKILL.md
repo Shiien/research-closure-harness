@@ -36,6 +36,13 @@ Today's deliverable:
 Out of scope:
 ```
 
+If `.research/claim_graph.json` exists, also run `python tools/claim_graph.py frontier` and add:
+
+```text
+Ready frontier:
+Resolution map: determined (<verdict>) | open
+```
+
 If there is no frozen claim, do not create a large implementation. Help define a 7–14 day claim first.
 
 ## New-experiment gate
