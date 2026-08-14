@@ -1,7 +1,7 @@
-"""End-to-end CLI behaviour, with and without a claim graph.
+"""End-to-end CLI behaviour against the claim-graph engine.
 
 Every command runs as a subprocess against a scratch repository, so these tests
-exercise the real entry points including the optional `claim_graph` import.
+exercise the real entry points including the mandatory `claim_graph` import.
 """
 import json
 import os
@@ -62,44 +62,57 @@ class RepoCase(unittest.TestCase):
         )
 
 
-class TestWithoutClaimGraph(RepoCase):
-    """A repository that never creates a graph must behave exactly as before."""
+class TestGraphIsTheEngine(RepoCase):
+    """The claim graph is mandatory: nothing of substance works without it."""
 
-    def test_guard_blocks_only_on_the_missing_sprint(self):
+    def test_guard_blocks_without_a_graph_and_without_a_sprint(self):
         proc = self.run_cli("guard")
         self.assertEqual(proc.returncode, 2)
         self.assertIn("BLOCK: No active sprint claim.", proc.stdout)
+        self.assertIn("No claim graph at", proc.stdout)
 
-    def test_guard_passes_once_a_sprint_is_frozen(self):
-        self.assertOk(self.start_sprint())
-        proc = self.assertOk(self.run_cli("guard"))
-        self.assertIn("PASS: work may proceed within the frozen claim.", proc.stdout)
-        self.assertNotIn("claim graph", proc.stdout)
+    def test_start_sprint_requires_the_graph(self):
+        proc = self.start_sprint()
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("no claim graph at", proc.stderr)
+        self.assertIn("engine", proc.stderr)
 
-    def test_sprint_records_no_graph_metadata(self):
-        self.assertOk(self.start_sprint())
-        self.assertNotIn("claim_graph", self.state()["sprint"])
-        self.assertEqual(self.state()["version"], 1)
+    def test_next_guides_the_first_events(self):
+        proc = self.assertOk(self.run_cli("next"))
+        self.assertIn("set-project", proc.stdout)
+        self.assertIn("claim_graph.py init", proc.stdout)
 
-    def test_new_and_close_experiment_need_no_node(self):
-        self.assertOk(self.start_sprint())
-        proc = self.assertOk(self.new_experiment())
-        self.assertIn("Experiment opened: EXP-001", proc.stdout)
-        proc = self.assertOk(self.run_cli(
-            "close-experiment", "--id", "EXP-001", "--decision", "supported",
-            "--evidence", "results.csv", "--conclusion", "c",
-        ))
-        self.assertIn("Decision: supported", proc.stdout)
-        self.assertNotIn("Claim-graph node", proc.stdout)
-        self.assertIsNone(self.state()["active_experiment"])
+    def test_day_commands_are_gone_and_state_is_v3(self):
+        proc = self.run_cli("start-day", "--deliverable", "x")
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("invalid choice", proc.stderr)
+        proc = self.run_cli("close-day", "--artifact", "x", "--decision", "d")
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("invalid choice", proc.stderr)
+        self.assertNotIn("day", self.state())
+        self.assertEqual(self.state()["version"], 3)
 
-    def test_close_sprint_is_not_constrained(self):
-        self.assertOk(self.start_sprint())
-        proc = self.assertOk(self.run_cli(
-            "close-sprint", "--decision", "advance", "--evidence", "e",
-            "--conclusion", "c",
-        ))
-        self.assertIn("Sprint closed.", proc.stdout)
+    def test_v1_state_migrates_to_v3(self):
+        (self.repo / ".research" / "state.json").write_text(json.dumps({
+            "version": 1,
+            "mode": "graduation",
+            "project": {"question": "", "long_term_agenda": "", "minimum_completion": ""},
+            "sprint": None,
+            "day": {"date": "2026-01-01", "deliverable": "stale"},
+            "active_experiment": None,
+            "counters": {"experiment": 0, "idea": 0},
+            "history": [{"at": "t0", "event": "project_set", "payload": {}}],
+            "events": [{"at": "t1", "event": "graph_init", "payload": {}}],
+            "limits": {"active_sprints": 1, "active_experiments": 1},
+        }))
+        self.assertOk(self.run_cli("status"))
+        state = self.state()
+        self.assertEqual(state["version"], 3)
+        self.assertNotIn("day", state)
+        self.assertNotIn("history", state)
+        # history and a pre-existing event log are merged, not clobbered
+        self.assertEqual([e["event"] for e in state["events"]],
+                         ["project_set", "graph_init"])
 
 
 class TestGraphAwareCli(RepoCase):
@@ -112,8 +125,8 @@ class TestGraphAwareCli(RepoCase):
         frozen = self.state()["sprint"]["claim_graph"]
         expected = self.assertOk(self.run_graph("hash")).stdout.strip()
         self.assertEqual(frozen["design_hash"], expected)
-        self.assertEqual(frozen["path"], ".research/claim_graph.json")
-        self.assertEqual(self.state()["version"], 2)
+        self.assertEqual(frozen["path"], os.path.join(".research", "claim_graph.json"))
+        self.assertEqual(self.state()["version"], 3)
 
     def test_start_sprint_refuses_an_invalid_graph(self):
         graph = self.graph()
@@ -122,6 +135,13 @@ class TestGraphAwareCli(RepoCase):
         proc = self.start_sprint()
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("claim graph fails validation", proc.stderr)
+
+    def test_guard_passes_once_a_sprint_is_frozen(self):
+        self.assertOk(self.start_sprint())
+        proc = self.assertOk(self.run_cli("guard"))
+        self.assertIn("PASS: work may proceed within the frozen claim.", proc.stdout)
+        self.assertIn("Ready frontier: ['P1']", proc.stdout)
+        self.assertIn("Next event:", proc.stdout)
 
     def test_guard_detects_design_drift(self):
         self.assertOk(self.start_sprint())
@@ -180,6 +200,15 @@ class TestGraphAwareCli(RepoCase):
         self.assertIn("Ready next: ['P2']", proc.stdout)
         self.assertEqual(self.graph()["probes"]["P1"]["outcome"], "positive")
         self.assertEqual(self.graph()["probes"]["P1"]["experiment_id"], "EXP-001")
+
+    def test_close_sprint_with_an_open_map_is_not_constrained(self):
+        self.assertOk(self.start_sprint())
+        proc = self.assertOk(self.run_cli(
+            "close-sprint", "--decision", "advance", "--evidence", "e",
+            "--conclusion", "c",
+        ))
+        self.assertIn("resolution map not yet determined", proc.stdout)
+        self.assertIn("Sprint closed.", proc.stdout)
 
 
 class TestDefectClassDoesNotCostAClaim(RepoCase):
@@ -263,6 +292,187 @@ class TestSprintDecisionIsComputed(RepoCase):
         self.assertIn("resolution map is already determined (falsified)", proc.stdout)
 
 
+class TestEventDrivenCli(RepoCase):
+    """`next` derives the event chain from state + frontier; `events` shows it."""
+
+    def test_next_drives_the_full_event_chain(self):
+        self.assertOk(self.run_cli(
+            "set-project", "--question", "q", "--agenda", "a", "--minimum", "m",
+        ))
+        self.install_graph()
+        proc = self.assertOk(self.run_cli("next"))
+        self.assertIn("start-sprint", proc.stdout)
+
+        self.assertOk(self.start_sprint())
+        proc = self.assertOk(self.run_cli("next"))
+        self.assertIn("new-experiment --node P1", proc.stdout)
+
+        self.assertOk(self.new_experiment("--node", "P1", "--controls", "E"))
+        proc = self.assertOk(self.run_cli("next"))
+        self.assertIn("close-experiment --id EXP-001", proc.stdout)
+        self.assertOk(self.run_cli(
+            "close-experiment", "--id", "EXP-001", "--decision", "supported",
+            "--evidence", "e", "--conclusion", "c",
+        ))
+
+        def run_probe(node, exp_id):
+            self.assertOk(self.new_experiment("--node", node))
+            self.assertOk(self.run_cli(
+                "close-experiment", "--id", exp_id, "--decision", "supported",
+                "--evidence", "e", "--conclusion", "c",
+            ))
+
+        run_probe("P2", "EXP-002")
+        run_probe("P3", "EXP-003")
+        # P1 -> P2 -> P3 all positive: the map determines `supported` -> advance.
+        proc = self.assertOk(self.run_cli("next"))
+        self.assertIn("close-sprint --decision advance", proc.stdout)
+
+    def test_events_command_lists_the_log(self):
+        self.assertOk(self.run_cli(
+            "set-project", "--question", "q", "--agenda", "a", "--minimum", "m",
+        ))
+        self.install_graph()
+        self.assertOk(self.start_sprint())
+        proc = self.assertOk(self.run_cli("events"))
+        self.assertIn("EVENT LOG", proc.stdout)
+        self.assertIn("project_set", proc.stdout)
+        self.assertIn("sprint_started", proc.stdout)
+        self.assertEqual(len(self.state()["events"]), 2)
+
+    def test_graph_authoring_events_land_in_the_state_log(self):
+        self.assertOk(self.run_graph("init", "--claim", "c"))
+        self.assertOk(self.run_graph(
+            "add-variable", "--id", "X", "--name", "x", "--role", "intervention",
+        ))
+        proc = self.assertOk(self.run_cli("events", "--json"))
+        events = json.loads(proc.stdout)
+        names = [e["event"] for e in events]
+        self.assertIn("graph_init", names)
+        self.assertIn("graph_variable_added", names)
+
+
+class TestGraphAuthoring(RepoCase):
+    """The graph can be built entirely from the CLI, validated at every step."""
+
+    def test_authoring_commands_build_a_valid_graph(self):
+        self.assertOk(self.run_graph("init", "--claim", "K predicts R"))
+        for vid, name, role in [
+            ("E", "excitation", "intervention"),
+            ("K", "condition", "candidate_predictor"),
+            ("R", "recovery", "outcome"),
+        ]:
+            self.assertOk(self.run_graph(
+                "add-variable", "--id", vid, "--name", name, "--role", role,
+            ))
+        self.assertOk(self.run_graph("add-edge", "--from", "E", "--to", "K"))
+        self.assertOk(self.run_graph("add-edge", "--from", "K", "--to", "R"))
+        self.assertOk(self.run_graph(
+            "add-probe", "--id", "P1",
+            "--tests", '{"kind":"edge","from":"K","to":"R"}',
+            "--metric", "rho", "--prereg", "rho>0.5", "--controls", "E",
+        ))
+        self.assertOk(self.run_graph(
+            "add-resolution", "--when", '{"P1":"positive"}', "--then", "supported",
+        ))
+        self.assertOk(self.run_graph("validate"))
+        proc = self.assertOk(self.run_graph("frontier"))
+        self.assertIn("P1  READY", proc.stdout)
+
+    def test_add_edge_requires_declared_variables(self):
+        self.assertOk(self.run_graph("init", "--claim", "c"))
+        proc = self.run_graph("add-edge", "--from", "X", "--to", "Y")
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("not a declared variable", proc.stderr)
+
+    def test_add_probe_rejects_an_undefined_guard(self):
+        self.assertOk(self.run_graph("init", "--claim", "c"))
+        self.assertOk(self.run_graph(
+            "add-variable", "--id", "X", "--name", "x", "--role", "outcome",
+        ))
+        proc = self.run_graph(
+            "add-probe", "--id", "P1",
+            "--tests", '{"kind":"independence","x":"X","y":"X","given":[]}',
+            "--metric", "m", "--prereg", "p", "--guards", "P9==positive",
+        )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("references undefined probe P9", proc.stderr)
+
+    def test_add_resolution_rejects_an_undefined_probe(self):
+        self.assertOk(self.run_graph("init", "--claim", "c"))
+        proc = self.run_graph(
+            "add-resolution", "--when", '{"P9":"positive"}', "--then", "supported",
+        )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("undefined probe P9", proc.stderr)
+
+
+class TestDashboard(RepoCase):
+    """The interactive HTML dashboard embeds the graph, state and derived status."""
+
+    def test_dashboard_renders_the_graph_and_state(self):
+        self.assertOk(self.run_cli(
+            "set-project", "--question", "q", "--agenda", "a", "--minimum", "m",
+        ))
+        self.install_graph()
+        self.assertOk(self.start_sprint())
+        self.assertOk(self.new_experiment("--node", "P1", "--controls", "E"))
+        proc = self.assertOk(self.run_cli(
+            "dashboard", "--no-open", "--out", "dash.html",
+        ))
+        self.assertIn("Dashboard written", proc.stdout)
+        html = (self.repo / "dash.html").read_text(encoding="utf-8")
+        self.assertIn("Research Closure Dashboard", html)
+        self.assertIn("K predicts R", html)          # sprint claim embedded
+        self.assertIn('"P1": {', html)               # probe data embedded
+        self.assertIn("probeStatus", html)           # the interactive JS is present
+        self.assertIn('\\n"', html)                  # JS escapes survive Python (raw template)
+        self.assertIn("Next events", html)
+        self.assertIn("Resolution map", html)
+        # the dashboard is now the unified scrubbable page (snapshot journal)
+        self.assertIn("const PAYLOADS", html)
+        self.assertIn("show(stages.length - 1)", html)   # opens at latest
+        self.assertIn('id="slider"', html)
+
+    def test_snapshots_are_recorded_on_each_mutation(self):
+        self.assertOk(self.run_cli(
+            "set-project", "--question", "q", "--agenda", "a", "--minimum", "m",
+        ))
+        self.install_graph()
+        self.assertOk(self.start_sprint())
+        self.assertOk(self.new_experiment("--node", "P1", "--controls", "E"))
+        snap_dir = self.repo / ".research" / "snapshots"
+        states = sorted(snap_dir.glob("*_state.json"))
+        # init, set-project, start-sprint, new-experiment
+        self.assertGreaterEqual(len(states), 4)
+        self.assertTrue(any("project_set" in s.name for s in states))
+        self.assertTrue(any("sprint_started" in s.name for s in states))
+        self.assertTrue(any("experiment_started" in s.name for s in states))
+        # graph snapshots accompany the state snapshots once the graph exists
+        # (init/set-project predate the graph; it is copied in by the test)
+        self.assertGreaterEqual(len(list(snap_dir.glob("*_graph.json"))), 2)
+        # snapshots must be chronologically ordered even within one second
+        events = [f.name.split("_", 3)[3].split("_state")[0] for f in states]
+        wanted = ["init", "project_set", "sprint_started", "experiment_started"]
+        positions = [events.index(e) for e in wanted]
+        self.assertEqual(positions, sorted(positions), events)
+        # and the scrubber frames come from the journal
+        proc = self.assertOk(self.run_cli("dashboard", "--no-open", "--out", "dash2.html"))
+        self.assertIn("frames, opens at latest", proc.stdout)
+
+    def test_dashboard_without_a_graph_is_still_rendered(self):
+        proc = self.assertOk(self.run_cli("dashboard", "--no-open", "--out", "dash.html"))
+        html = (self.repo / "dash.html").read_text(encoding="utf-8")
+        self.assertIn("No claim graph in this repository yet", html)
+        self.assertIn("claim_graph.py init", html)
+
+    def test_guard_mentions_the_dashboard(self):
+        self.install_graph()
+        self.assertOk(self.start_sprint())
+        proc = self.assertOk(self.run_cli("guard"))
+        self.assertIn("dashboard", proc.stdout)
+
+
 class TestGraphCliRunsFromAnywhere(RepoCase):
     def test_reasoning_modes_are_explicitly_named(self):
         proc = self.assertOk(self.run_graph("reasoning"))
@@ -296,9 +506,11 @@ class TestGraphCliRunsFromAnywhere(RepoCase):
         proc = self.assertOk(self.run_graph("frontier"))
         self.assertIn("P1  READY", proc.stdout)
 
+    @unittest.skipIf(sys.platform == "win32",
+                     "symlinks require elevated privileges on Windows")
     def test_import_survives_a_symlinked_entry_point(self):
         # `install_research_closure_global.sh` links ~/.local/bin/research-closure
-        # at tools/research_closure.py; the optional import must still resolve.
+        # at tools/research_closure.py; the import must still resolve.
         bin_dir = self.repo / "bin"
         bin_dir.mkdir()
         link = bin_dir / "research-closure"

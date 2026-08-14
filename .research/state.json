@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 3,
   "mode": "graduation",
   "project": {
     "question": "",
@@ -7,13 +7,796 @@
     "minimum_completion": ""
   },
   "sprint": null,
-  "day": null,
   "active_experiment": null,
   "counters": {
     "experiment": 0,
     "idea": 0
   },
-  "history": [],
+  "events": [
+    {
+      "at": "2026-08-14T11:21:00+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:21:00+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:21:34+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:21:34+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:23:14+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:23:14+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:42:51+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:42:52+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:43:18+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:43:18+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:43:48+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:43:49+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:45:19+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:45:19+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:46:36+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:46:36+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:47:53+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:47:53+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:48:30+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:48:30+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:49:25+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T11:49:25+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:11:41+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:11:41+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:13:12+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:13:12+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:22:27+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:22:27+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:24:47+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:24:47+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:31:45+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:31:45+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:34:10+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:34:10+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:43:19+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:43:19+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:49:21+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:49:21+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:50:59+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:50:59+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:54:07+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:54:07+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T13:03:03+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T13:03:03+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T13:03:52+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T13:03:52+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T13:10:13+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T13:10:13+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:03+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:03+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T13:12:48+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T13:12:48+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T13:21:08+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T13:21:08+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T14:38:24+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T14:38:24+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T14:41:08+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T14:41:08+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
+    }
+  ],
   "limits": {
     "active_sprints": 1,
     "active_experiments": 1

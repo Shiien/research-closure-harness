@@ -1,0 +1,342 @@
+{
+  "version": 3,
+  "mode": "graduation",
+  "project": {
+    "question": "When can a learned representation support stable and reusable option discovery?",
+    "long_term_agenda": "Continual option learning: construct, retain, adapt, and retire reusable temporal abstractions for changing tasks.",
+    "minimum_completion": "A self-contained technical chapter with one formal separation and one validated diagnostic."
+  },
+  "sprint": {
+    "claim": "Across controlled excitation levels, log condition number predicts affine recovery error more reliably than predictive loss.",
+    "artifact": "A four-page note, results.csv, and one three-panel main figure.",
+    "started_at": "2026-08-14T13:11:57+08:00",
+    "ends_at": "2026-08-28T13:11:57+08:00",
+    "status": "active",
+    "claim_graph": {
+      "path": ".research\\claim_graph.json",
+      "design_hash": "25f3db706fee8613",
+      "frozen_at": "2026-08-14T13:11:57+08:00"
+    }
+  },
+  "active_experiment": {
+    "id": "EXP-003",
+    "question": "Does conditioning beat predictive loss on held-out prediction?",
+    "hypothesis": "K dominates L on held-out recovery prediction at matched sample size.",
+    "intervention": "Train both predictors on the same runs; compare held-out R2.",
+    "measurement": "Held-out predictive R2, K vs L, matched sample size.",
+    "kill_criterion": "Stop the comparative claim if K wins on fewer than 4 of 5 seeds.",
+    "expected_artifact": "results/p3.csv, figures/p3.pdf",
+    "time_budget_hours": 10.0,
+    "started_at": "2026-08-14T13:11:57+08:00",
+    "status": "active",
+    "claim_graph_node": "P3",
+    "controls": "",
+    "expected_figure": ""
+  },
+  "counters": {
+    "experiment": 3,
+    "idea": 1
+  },
+  "events": [
+    {
+      "at": "2026-08-14T13:11:54+08:00",
+      "event": "project_set",
+      "payload": {
+        "question": "When can a learned representation support stable and reusable option discovery?",
+        "long_term_agenda": "Continual option learning: construct, retain, adapt, and retire reusable temporal abstractions for changing tasks.",
+        "minimum_completion": "A self-contained technical chapter with one formal separation and one validated diagnostic."
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:54+08:00",
+      "event": "graph_init",
+      "payload": {
+        "claim_id": "SC-001",
+        "claim": "Across controlled excitation levels, log condition number predicts affine recovery error more reliably than predictive loss.",
+        "graph_type": "causal",
+        "force": false
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:54+08:00",
+      "event": "graph_variable_added",
+      "payload": {
+        "id": "E",
+        "role": "intervention",
+        "observed": true
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:55+08:00",
+      "event": "graph_variable_added",
+      "payload": {
+        "id": "K",
+        "role": "candidate_predictor",
+        "observed": true
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:55+08:00",
+      "event": "graph_variable_added",
+      "payload": {
+        "id": "L",
+        "role": "rival_predictor",
+        "observed": true
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:55+08:00",
+      "event": "graph_variable_added",
+      "payload": {
+        "id": "R",
+        "role": "outcome",
+        "observed": true
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:55+08:00",
+      "event": "graph_edge_added",
+      "payload": {
+        "from": "E",
+        "to": "K"
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:55+08:00",
+      "event": "graph_edge_added",
+      "payload": {
+        "from": "E",
+        "to": "L"
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:55+08:00",
+      "event": "graph_edge_added",
+      "payload": {
+        "from": "K",
+        "to": "R"
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:55+08:00",
+      "event": "graph_absent_added",
+      "payload": {
+        "from": "L",
+        "to": "R"
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:56+08:00",
+      "event": "graph_probe_added",
+      "payload": {
+        "id": "P1",
+        "kind": "edge",
+        "guards_in": []
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:56+08:00",
+      "event": "graph_probe_added",
+      "payload": {
+        "id": "P2",
+        "kind": "independence",
+        "guards_in": [
+          "P1==positive"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:56+08:00",
+      "event": "graph_probe_added",
+      "payload": {
+        "id": "P3",
+        "kind": "comparison",
+        "guards_in": [
+          "P1==positive",
+          "P2==positive"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:56+08:00",
+      "event": "graph_resolution_added",
+      "payload": {
+        "when": {
+          "P1": "negative"
+        },
+        "then": "falsified"
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:56+08:00",
+      "event": "graph_resolution_added",
+      "payload": {
+        "when": {
+          "P1": "positive",
+          "P2": "negative"
+        },
+        "then": "narrow"
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:56+08:00",
+      "event": "graph_resolution_added",
+      "payload": {
+        "when": {
+          "P1": "positive",
+          "P2": "positive",
+          "P3": "negative"
+        },
+        "then": "narrow"
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:56+08:00",
+      "event": "graph_resolution_added",
+      "payload": {
+        "when": {
+          "P1": "positive",
+          "P2": "positive",
+          "P3": "positive"
+        },
+        "then": "supported"
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:57+08:00",
+      "event": "sprint_started",
+      "payload": {
+        "claim": "Across controlled excitation levels, log condition number predicts affine recovery error more reliably than predictive loss.",
+        "artifact": "A four-page note, results.csv, and one three-panel main figure.",
+        "started_at": "2026-08-14T13:11:57+08:00",
+        "ends_at": "2026-08-28T13:11:57+08:00",
+        "status": "active",
+        "claim_graph": {
+          "path": ".research\\claim_graph.json",
+          "design_hash": "25f3db706fee8613",
+          "frozen_at": "2026-08-14T13:11:57+08:00"
+        }
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:57+08:00",
+      "event": "idea_backlogged",
+      "payload": {
+        "id": "IDEA-001",
+        "idea": "Try a variational identifiability objective for the representation.",
+        "reason_not_now": "Does not test the current frozen claim; it changes the representation family.",
+        "revisit": "After the current sprint closes.",
+        "created_at": "2026-08-14T13:11:57+08:00"
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:57+08:00",
+      "event": "experiment_started",
+      "payload": {
+        "id": "EXP-001",
+        "question": "Does condition number predict affine recovery across excitation levels?",
+        "hypothesis": "Rank correlation is positive and stable across seeds.",
+        "intervention": "Vary behaviour-policy excitation only.",
+        "measurement": "Spearman correlation between log condition number and recovery error.",
+        "kill_criterion": "Stop using this quantity if correlation remains near zero across 30 instances and 5 seeds.",
+        "expected_artifact": "results/p1.csv, figures/p1.pdf",
+        "time_budget_hours": 8.0,
+        "started_at": "2026-08-14T13:11:57+08:00",
+        "status": "active",
+        "claim_graph_node": "P1",
+        "controls": "E",
+        "expected_figure": ""
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:57+08:00",
+      "event": "experiment_closed",
+      "payload": {
+        "id": "EXP-001",
+        "question": "Does condition number predict affine recovery across excitation levels?",
+        "hypothesis": "Rank correlation is positive and stable across seeds.",
+        "intervention": "Vary behaviour-policy excitation only.",
+        "measurement": "Spearman correlation between log condition number and recovery error.",
+        "kill_criterion": "Stop using this quantity if correlation remains near zero across 30 instances and 5 seeds.",
+        "expected_artifact": "results/p1.csv, figures/p1.pdf",
+        "time_budget_hours": 8.0,
+        "started_at": "2026-08-14T13:11:57+08:00",
+        "status": "closed",
+        "claim_graph_node": "P1",
+        "controls": "E",
+        "expected_figure": "",
+        "closed_at": "2026-08-14T13:11:57+08:00",
+        "decision": "supported",
+        "evidence": "results/p1.csv,figures/p1.pdf",
+        "conclusion": "Conditioning tracks recovery within the tested excitation range.",
+        "defect": null
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:57+08:00",
+      "event": "experiment_started",
+      "payload": {
+        "id": "EXP-002",
+        "question": "Does predictive loss carry signal beyond excitation?",
+        "hypothesis": "Predictive loss is inert given excitation.",
+        "intervention": "Condition on excitation; test partial association.",
+        "measurement": "Partial Spearman of predictive loss vs recovery error given excitation.",
+        "kill_criterion": "Treat as inert if |partial rho| < 0.2 on 30 instances x 5 seeds.",
+        "expected_artifact": "results/p2.csv, figures/p2.pdf",
+        "time_budget_hours": 6.0,
+        "started_at": "2026-08-14T13:11:57+08:00",
+        "status": "active",
+        "claim_graph_node": "P2",
+        "controls": "",
+        "expected_figure": ""
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:57+08:00",
+      "event": "experiment_closed",
+      "payload": {
+        "id": "EXP-002",
+        "question": "Does predictive loss carry signal beyond excitation?",
+        "hypothesis": "Predictive loss is inert given excitation.",
+        "intervention": "Condition on excitation; test partial association.",
+        "measurement": "Partial Spearman of predictive loss vs recovery error given excitation.",
+        "kill_criterion": "Treat as inert if |partial rho| < 0.2 on 30 instances x 5 seeds.",
+        "expected_artifact": "results/p2.csv, figures/p2.pdf",
+        "time_budget_hours": 6.0,
+        "started_at": "2026-08-14T13:11:57+08:00",
+        "status": "closed",
+        "claim_graph_node": "P2",
+        "controls": "",
+        "expected_figure": "",
+        "closed_at": "2026-08-14T13:11:57+08:00",
+        "decision": "supported",
+        "evidence": "results/p2.csv,figures/p2.pdf",
+        "conclusion": "Predictive loss carries no measurable signal given excitation.",
+        "defect": null
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:57+08:00",
+      "event": "experiment_started",
+      "payload": {
+        "id": "EXP-003",
+        "question": "Does conditioning beat predictive loss on held-out prediction?",
+        "hypothesis": "K dominates L on held-out recovery prediction at matched sample size.",
+        "intervention": "Train both predictors on the same runs; compare held-out R2.",
+        "measurement": "Held-out predictive R2, K vs L, matched sample size.",
+        "kill_criterion": "Stop the comparative claim if K wins on fewer than 4 of 5 seeds.",
+        "expected_artifact": "results/p3.csv, figures/p3.pdf",
+        "time_budget_hours": 10.0,
+        "started_at": "2026-08-14T13:11:57+08:00",
+        "status": "active",
+        "claim_graph_node": "P3",
+        "controls": "",
+        "expected_figure": ""
+      }
+    }
+  ],
+  "limits": {
+    "active_sprints": 1,
+    "active_experiments": 1
+  }
+}

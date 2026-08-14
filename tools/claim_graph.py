@@ -85,10 +85,25 @@ ROOT = discover_root()
 GRAPH_PATH = ROOT / ".research" / "claim_graph.json"
 CANDIDATES_PATH = ROOT / ".research" / "candidates.json"
 LOG_DIR = ROOT / ".research" / "logs"
+STATE_PATH = ROOT / ".research" / "state.json"
 
 
 def now_iso() -> str:
     return datetime.now().astimezone().isoformat(timespec="seconds")
+
+
+def append_state_event(event: str, payload: dict[str, Any]) -> None:
+    """Append to the unified event log in .research/state.json (best effort)."""
+    if not STATE_PATH.exists():
+        return
+    try:
+        state = json.loads(STATE_PATH.read_text())
+        state.setdefault("events", []).append(
+            {"at": now_iso(), "event": event, "payload": payload}
+        )
+        STATE_PATH.write_text(json.dumps(state, indent=2) + "\n")
+    except Exception:
+        pass
 
 
 def load_graph(path: Path | None = None) -> dict[str, Any]:
@@ -820,8 +835,179 @@ def cmd_init(args: argparse.Namespace) -> int:
     graph["claim"] = args.claim
     graph["graph_type"] = args.type
     save_graph(graph)
+    append_state_event("graph_init", {"claim_id": args.claim_id, "claim": args.claim,
+                                      "graph_type": args.type, "force": args.force})
     print(f"Claim graph created: {GRAPH_PATH}")
     print(f"Design hash: {design_hash(graph)}")
+    print("Next: author the design with add-variable / add-edge / add-absent / "
+          "add-probe / add-resolution, then run validate.")
+    return 0
+
+
+# --------------------------------------------------------------------------
+# authoring: build the design from the CLI (each add validates before saving)
+# --------------------------------------------------------------------------
+
+RESOLUTION_THENS = ("supported", "falsified", "narrow", "terminated")
+PROBE_KINDS = ("edge", "independence", "comparison")
+
+
+def require_variable(graph: dict[str, Any], vid: str) -> None:
+    if vid not in graph.get("variables", {}):
+        raise SystemExit(
+            f"BLOCKED: {vid} is not a declared variable. Add it first: "
+            f"claim_graph.py add-variable --id {vid} --name '<name>' --role '<role>'"
+        )
+
+
+def commit(graph: dict[str, Any], event: str, detail: dict[str, Any], message: str) -> None:
+    """Validate, save and log; a change that would leave an invalid graph is refused."""
+    blocks, _ = validate(graph)
+    if blocks:
+        raise SystemExit(
+            "BLOCKED: this change would leave the graph invalid:\n  " + "\n  ".join(blocks)
+        )
+    save_graph(graph)
+    append_state_event(event, detail)
+    print(f"{message} New design hash: {design_hash(graph)}")
+
+
+def cmd_add_variable(args: argparse.Namespace) -> int:
+    graph = load_graph()
+    if args.id in graph.get("variables", {}):
+        raise SystemExit(f"BLOCKED: variable {args.id} already exists.")
+    observed = not args.latent
+    graph.setdefault("variables", {})[args.id] = {
+        "name": args.name, "role": args.role, "observed": observed,
+    }
+    commit(graph, "graph_variable_added", {"id": args.id, "role": args.role,
+                                           "observed": observed},
+           f"Variable {args.id} added.")
+    return 0
+
+
+def cmd_add_edge(args: argparse.Namespace) -> int:
+    graph = load_graph()
+    require_variable(graph, args.from_)
+    require_variable(graph, args.to)
+    if args.from_ == args.to:
+        raise SystemExit("BLOCKED: self-loops are not allowed.")
+    for e in graph.get("edges", []):
+        if e["from"] == args.from_ and e["to"] == args.to:
+            raise SystemExit(f"BLOCKED: edge {args.from_}->{args.to} already exists.")
+    for a in graph.get("assumed_absent", []):
+        if a["from"] == args.from_ and a["to"] == args.to:
+            raise SystemExit(
+                f"BLOCKED: {args.from_}->{args.to} is listed as assumed absent; "
+                f"remove that assumption before asserting the edge."
+            )
+    entry = {"from": args.from_, "to": args.to, "from_theory": []}
+    if args.theory:
+        if args.theory not in graph.get("theory", {}):
+            raise SystemExit(
+                f"BLOCKED: no theory node {args.theory}. Create one with claim_graph.py "
+                f"induce, or omit --theory."
+            )
+        entry["from_theory"] = [args.theory]
+    graph.setdefault("edges", []).append(entry)
+    commit(graph, "graph_edge_added", {"from": args.from_, "to": args.to},
+           f"Edge {args.from_}->{args.to} added.")
+    return 0
+
+
+def cmd_add_absent(args: argparse.Namespace) -> int:
+    graph = load_graph()
+    require_variable(graph, args.from_)
+    require_variable(graph, args.to)
+    for e in graph.get("edges", []):
+        if e["from"] == args.from_ and e["to"] == args.to:
+            raise SystemExit(
+                f"BLOCKED: {args.from_}->{args.to} is already an asserted edge; "
+                f"an edge cannot also be assumed absent."
+            )
+    graph.setdefault("assumed_absent", []).append(
+        {"from": args.from_, "to": args.to, "justification": args.justification}
+    )
+    commit(graph, "graph_absent_added", {"from": args.from_, "to": args.to},
+           f"Absence assumption {args.from_}->{args.to} recorded.")
+    return 0
+
+
+def cmd_add_probe(args: argparse.Namespace) -> int:
+    graph = load_graph()
+    if args.id in graph.get("probes", {}):
+        raise SystemExit(f"BLOCKED: probe {args.id} already exists.")
+    try:
+        tests = json.loads(args.tests)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"BLOCKED: --tests is not valid JSON: {exc}") from exc
+    if not isinstance(tests, dict) or tests.get("kind") not in PROBE_KINDS:
+        raise SystemExit(f"BLOCKED: --tests.kind must be one of {PROBE_KINDS}.")
+    kind = tests["kind"]
+    if kind == "edge":
+        require_variable(graph, tests.get("from", ""))
+        require_variable(graph, tests.get("to", ""))
+    elif kind == "independence":
+        require_variable(graph, tests.get("x", ""))
+        require_variable(graph, tests.get("y", ""))
+        for g in tests.get("given", []):
+            require_variable(graph, g)
+    else:  # comparison
+        for n in ("stronger", "weaker", "on"):
+            require_variable(graph, tests.get(n, ""))
+    guards = [g.strip() for g in args.guards.split(",") if g.strip()]
+    for g in guards:
+        dep, _ = parse_guard(g)  # raises on malformed
+        if dep not in graph.get("probes", {}):
+            raise SystemExit(f"BLOCKED: guard {g!r} references undefined probe {dep}.")
+    controls = [c.strip() for c in args.controls.split(",") if c.strip()]
+    graph.setdefault("probes", {})[args.id] = {
+        "tests": tests,
+        "metric": args.metric,
+        "prereg": args.prereg,
+        "controls": controls,
+        "guards_in": guards,
+    }
+    commit(graph, "graph_probe_added", {"id": args.id, "kind": kind, "guards_in": guards},
+           f"Probe {args.id} added.")
+    return 0
+
+
+def cmd_add_resolution(args: argparse.Namespace) -> int:
+    graph = load_graph()
+    try:
+        when = json.loads(args.when)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"BLOCKED: --when is not valid JSON: {exc}") from exc
+    if not isinstance(when, dict) or not when:
+        raise SystemExit(
+            "BLOCKED: --when must be a non-empty JSON object, "
+            "e.g. '{\"P1\": \"positive\"}'."
+        )
+    for pid, want in when.items():
+        if pid not in graph.get("probes", {}):
+            raise SystemExit(f"BLOCKED: resolution rule references undefined probe {pid}.")
+        if want not in OUTCOMES:
+            raise SystemExit(
+                f"BLOCKED: resolution rule wants unknown outcome {want!r} for {pid}; "
+                f"one of {OUTCOMES}."
+            )
+    rule: dict[str, Any] = {"when": when, "then": args.then}
+    if args.rung:
+        rule["rung"] = args.rung
+    if args.depends_on:
+        rule["depends_on_assumption"] = args.depends_on
+    skip = [s.strip() for s in args.skip.split(",") if s.strip()]
+    for pid in skip:
+        if pid not in graph.get("probes", {}):
+            raise SystemExit(f"BLOCKED: --skip references undefined probe {pid}.")
+    if skip:
+        rule["skip"] = skip
+    if args.note:
+        rule["note"] = args.note
+    graph.setdefault("resolution", []).append(rule)
+    commit(graph, "graph_resolution_added", {"when": when, "then": args.then},
+           f"Resolution rule {when} -> {args.then} added.")
     return 0
 
 
@@ -973,6 +1159,8 @@ def cmd_amend(args: argparse.Namespace) -> int:
     if blocks:
         raise SystemExit("BLOCKED: the amended graph fails validation:\n  " + "\n  ".join(blocks))
     save_graph(graph)
+    append_state_event("amendment_applied", {"id": cand["action"], "detail": cand["detail"],
+                                             "motivating_anomaly": cands.get("context")})
     print(f"Amendment applied: {cand['action']} {cand['detail']}")
     print(f"New design hash: {design_hash(graph)}")
     if owed:
@@ -1023,6 +1211,8 @@ def cmd_induce(args: argparse.Namespace) -> int:
         "added_at": now_iso(),
     }
     save_graph(graph)
+    append_state_event("theory_node_added", {"id": args.id, "provenance": "induced",
+                                             "supported_by": support, "entails": entails})
     print(f"Theory node {args.id} added (induced from {support}).")
     print(f"Untested entailments carried forward: {[e for e in entails if e not in covered]}")
     print(f"New design hash: {design_hash(graph)}")
@@ -1037,6 +1227,7 @@ def cmd_retire(args: argparse.Namespace) -> int:
     node["retired_at"] = now_iso()
     node["retired_reason"] = args.reason
     save_graph(graph)
+    append_state_event("theory_node_retired", {"id": args.id, "reason": args.reason})
     print(f"Theory node {args.id} retired. Reason recorded.")
     return 0
 
@@ -1058,6 +1249,8 @@ def cmd_resolve(args: argparse.Namespace) -> int:
     if args.defect:
         probe["defect"] = args.defect
     save_graph(graph)
+    append_state_event("probe_resolved", {"probe": args.probe, "outcome": args.outcome,
+                                          "experiment": args.experiment, "defect": args.defect})
     print(f"{args.probe} resolved: {args.outcome}"
           + (f" (defect: {args.defect})" if args.defect else ""))
 
@@ -1099,6 +1292,11 @@ def cmd_select(args: argparse.Namespace) -> int:
         "graph_design_hash": result["candidates"]["graph_design_hash"],
         **result["selection"],
     }, indent=2) + "\n")
+    append_state_event("selection_recorded", {
+        "kind": result["candidates"]["kind"],
+        "candidate_set_hash": result["candidates"]["candidate_set_hash"],
+        "selected": result["selection"].get("selected"),
+    })
     print(f"Selection recorded: {path}")
     print(f"Selected: {result['selection'].get('selected')}")
     print("Rejected candidates and their reasons are now part of the audit trail.")
@@ -1120,6 +1318,47 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--type", choices=GRAPH_TYPES, default="causal")
     sp.add_argument("--force", action="store_true")
     sp.set_defaults(func=cmd_init)
+
+    sp = sub.add_parser("add-variable", help="declare a variable in the observation layer")
+    sp.add_argument("--id", required=True)
+    sp.add_argument("--name", required=True)
+    sp.add_argument("--role", required=True,
+                    help="e.g. intervention / outcome / candidate_predictor / latent")
+    sp.add_argument("--latent", action="store_true", help="unobserved variable")
+    sp.set_defaults(func=cmd_add_variable)
+
+    sp = sub.add_parser("add-edge", help="assert a directed edge between variables")
+    sp.add_argument("--from", dest="from_", required=True)
+    sp.add_argument("--to", required=True)
+    sp.add_argument("--theory", default="", help="theory node that entails this edge")
+    sp.set_defaults(func=cmd_add_edge)
+
+    sp = sub.add_parser("add-absent", help="record an assumed-absent edge")
+    sp.add_argument("--from", dest="from_", required=True)
+    sp.add_argument("--to", required=True)
+    sp.add_argument("--justification", required=True)
+    sp.set_defaults(func=cmd_add_absent)
+
+    sp = sub.add_parser("add-probe", help="bind a probe (experiment target) to the graph")
+    sp.add_argument("--id", required=True)
+    sp.add_argument("--tests", required=True,
+                    help='JSON, e.g. {"kind":"edge","from":"K","to":"R"} or '
+                         '{"kind":"independence","x":"L","y":"R","given":["E"]}')
+    sp.add_argument("--metric", required=True)
+    sp.add_argument("--prereg", required=True)
+    sp.add_argument("--controls", default="", help="comma-separated adjustment set")
+    sp.add_argument("--guards", default="", help="comma-separated, e.g. P1==positive")
+    sp.set_defaults(func=cmd_add_probe)
+
+    sp = sub.add_parser("add-resolution", help="add a resolution-map rule")
+    sp.add_argument("--when", required=True,
+                    help='JSON, e.g. {"P1":"positive","P2":"negative"}')
+    sp.add_argument("--then", required=True, choices=RESOLUTION_THENS)
+    sp.add_argument("--rung", default="", help="claim-lowering rung, e.g. causal->predictive")
+    sp.add_argument("--depends-on", default="", help="assumption this rule rests on")
+    sp.add_argument("--skip", default="", help="comma-separated probe ids to skip when this fires")
+    sp.add_argument("--note", default="")
+    sp.set_defaults(func=cmd_add_resolution)
 
     sp = sub.add_parser("validate", help="run all structural checks")
     sp.set_defaults(func=cmd_validate)

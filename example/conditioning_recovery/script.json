@@ -1,0 +1,247 @@
+{
+  "name": "conditioning_recovery",
+  "description": "Half-finished causal study: conditioning vs predictive loss as predictors of affine recovery. Sprint frozen; P1 and P2 resolved positive; EXP-003 is open on P3 (the handoff point); one idea backlogged.",
+  "steps": [
+    {
+      "cli": "research_closure",
+      "cmd": "set-project",
+      "note": "Level 0/1: long-term agenda and the project question.",
+      "args": {
+        "--question": "When can a learned representation support stable and reusable option discovery?",
+        "--agenda": "Continual option learning: construct, retain, adapt, and retire reusable temporal abstractions for changing tasks.",
+        "--minimum": "A self-contained technical chapter with one formal separation and one validated diagnostic."
+      }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "init",
+      "note": "The claim graph is the engine: init, then author the design with add-*.",
+      "args": {
+        "--claim": "Across controlled excitation levels, log condition number predicts affine recovery error more reliably than predictive loss."
+      }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-variable",
+      "args": { "--id": "E", "--name": "behaviour-policy excitation", "--role": "intervention" }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-variable",
+      "args": { "--id": "K", "--name": "log condition number", "--role": "candidate_predictor" }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-variable",
+      "args": { "--id": "L", "--name": "predictive loss", "--role": "rival_predictor" }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-variable",
+      "args": { "--id": "R", "--name": "affine recovery error", "--role": "outcome" }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-edge",
+      "note": "Intervention structure: excitation drives both candidate predictors.",
+      "args": { "--from": "E", "--to": "K" }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-edge",
+      "args": { "--from": "E", "--to": "L" }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-edge",
+      "note": "The core asserted edge: conditioning tracks recovery.",
+      "args": { "--from": "K", "--to": "R" }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-absent",
+      "note": "The load-bearing absence assumption of the whole claim.",
+      "args": {
+        "--from": "L",
+        "--to": "R",
+        "--justification": "Predictive loss is taken to be a downstream symptom of excitation, not an independent cause of recovery error."
+      }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-probe",
+      "note": "P1: does conditioning track recovery at all?",
+      "args": {
+        "--id": "P1",
+        "--tests": "{\"kind\":\"edge\",\"from\":\"K\",\"to\":\"R\"}",
+        "--metric": "spearman_rho(log_cond, recovery_error)",
+        "--prereg": "rho > 0.5 over 30 instances x 5 seeds",
+        "--controls": "E"
+      }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-probe",
+      "note": "P2: is the rival predictor inert once excitation is conditioned on?",
+      "args": {
+        "--id": "P2",
+        "--tests": "{\"kind\":\"independence\",\"x\":\"L\",\"y\":\"R\",\"given\":[\"E\"]}",
+        "--metric": "partial_spearman(L, R | E)",
+        "--prereg": "|partial rho| < 0.2; failure to reject is not evidence of absence and is reported as such",
+        "--controls": "E",
+        "--guards": "P1==positive"
+      }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-probe",
+      "note": "P3: does conditioning beat the rival on held-out prediction?",
+      "args": {
+        "--id": "P3",
+        "--tests": "{\"kind\":\"comparison\",\"stronger\":\"K\",\"weaker\":\"L\",\"on\":\"R\"}",
+        "--metric": "held-out predictive R2, K vs L, matched sample size",
+        "--prereg": "K beats L on >= 4 of 5 seeds",
+        "--controls": "E",
+        "--guards": "P1==positive,P2==positive"
+      }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-resolution",
+      "note": "Pre-registered verdicts: the map is frozen before any result exists.",
+      "args": {
+        "--when": "{\"P1\":\"negative\"}",
+        "--then": "falsified",
+        "--skip": "P2,P3",
+        "--note": "If conditioning does not track recovery at all, the comparison against predictive loss is moot."
+      }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-resolution",
+      "args": {
+        "--when": "{\"P1\":\"positive\",\"P2\":\"negative\"}",
+        "--then": "narrow",
+        "--rung": "causal->predictive",
+        "--depends-on": "L->R",
+        "--skip": "P3",
+        "--note": "Predictive loss carries independent signal, so conditioning cannot be claimed as the mechanism. The association survives; the causal reading does not."
+      }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-resolution",
+      "args": {
+        "--when": "{\"P1\":\"positive\",\"P2\":\"positive\",\"P3\":\"negative\"}",
+        "--then": "narrow",
+        "--rung": "comparative->association",
+        "--note": "Conditioning tracks recovery but does not beat the rival predictor. The claim drops its comparative clause."
+      }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-resolution",
+      "args": {
+        "--when": "{\"P1\":\"positive\",\"P2\":\"positive\",\"P3\":\"positive\"}",
+        "--then": "supported",
+        "--note": "Scope is the tested excitation range only; extrapolation beyond it is a separate claim."
+      }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "validate",
+      "note": "Design complete and structurally sound; ready frontier is [P1]."
+    },
+    {
+      "cli": "research_closure",
+      "cmd": "start-sprint",
+      "note": "Freeze the claim and the design hash; from here the design must not drift.",
+      "args": {
+        "--claim": "Across controlled excitation levels, log condition number predicts affine recovery error more reliably than predictive loss.",
+        "--artifact": "A four-page note, results.csv, and one three-panel main figure.",
+        "--days": 14
+      }
+    },
+    {
+      "cli": "research_closure",
+      "cmd": "add-idea",
+      "note": "New ideas go to the backlog by default.",
+      "args": {
+        "--idea": "Try a variational identifiability objective for the representation.",
+        "--reason": "Does not test the current frozen claim; it changes the representation family.",
+        "--revisit": "After the current sprint closes."
+      }
+    },
+    {
+      "cli": "research_closure",
+      "cmd": "new-experiment",
+      "note": "EXP-001 on P1: the only ready probe at freeze time.",
+      "args": {
+        "--question": "Does condition number predict affine recovery across excitation levels?",
+        "--hypothesis": "Rank correlation is positive and stable across seeds.",
+        "--intervention": "Vary behaviour-policy excitation only.",
+        "--measurement": "Spearman correlation between log condition number and recovery error.",
+        "--kill": "Stop using this quantity if correlation remains near zero across 30 instances and 5 seeds.",
+        "--artifact": "results/p1.csv, figures/p1.pdf",
+        "--hours": 8,
+        "--node": "P1",
+        "--controls": "E"
+      }
+    },
+    {
+      "cli": "research_closure",
+      "cmd": "close-experiment",
+      "note": "P1 set to positive; the map stays open and the frontier advances to P2.",
+      "args": {
+        "--id": "EXP-001",
+        "--decision": "supported",
+        "--evidence": "results/p1.csv,figures/p1.pdf",
+        "--conclusion": "Conditioning tracks recovery within the tested excitation range."
+      }
+    },
+    {
+      "cli": "research_closure",
+      "cmd": "new-experiment",
+      "note": "EXP-002 on P2: admitted only because P1 is positive.",
+      "args": {
+        "--question": "Does predictive loss carry signal beyond excitation?",
+        "--hypothesis": "Predictive loss is inert given excitation.",
+        "--intervention": "Condition on excitation; test partial association.",
+        "--measurement": "Partial Spearman of predictive loss vs recovery error given excitation.",
+        "--kill": "Treat as inert if |partial rho| < 0.2 on 30 instances x 5 seeds.",
+        "--artifact": "results/p2.csv, figures/p2.pdf",
+        "--hours": 6,
+        "--node": "P2"
+      }
+    },
+    {
+      "cli": "research_closure",
+      "cmd": "close-experiment",
+      "note": "P2 set to positive: the absence assumption L->R survives a test.",
+      "args": {
+        "--id": "EXP-002",
+        "--decision": "supported",
+        "--evidence": "results/p2.csv,figures/p2.pdf",
+        "--conclusion": "Predictive loss carries no measurable signal given excitation."
+      }
+    },
+    {
+      "cli": "research_closure",
+      "cmd": "new-experiment",
+      "note": "EXP-003 on P3 is OPEN — this is the handoff point. Nothing has been closed on P3 yet.",
+      "args": {
+        "--question": "Does conditioning beat predictive loss on held-out prediction?",
+        "--hypothesis": "K dominates L on held-out recovery prediction at matched sample size.",
+        "--intervention": "Train both predictors on the same runs; compare held-out R2.",
+        "--measurement": "Held-out predictive R2, K vs L, matched sample size.",
+        "--kill": "Stop the comparative claim if K wins on fewer than 4 of 5 seeds.",
+        "--artifact": "results/p3.csv, figures/p3.pdf",
+        "--hours": 10,
+        "--node": "P3"
+      }
+    },
+    {
+      "comment": "Replay stops here: EXP-003 is open on P3. Run `research_closure.py next` in the materialised directory to see the expected next event, or open the dashboard."
+    }
+  ]
+}

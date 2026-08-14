@@ -1,0 +1,172 @@
+{
+  "version": 3,
+  "mode": "graduation",
+  "project": {
+    "question": "Does representation conditioning predict recovery under excitation?",
+    "long_term_agenda": "Option learning in changing reinforcement-learning tasks.",
+    "minimum_completion": "A four-page technical note."
+  },
+  "sprint": {
+    "claim": "Log condition number predicts affine recovery under controlled excitation.",
+    "artifact": "note.md",
+    "started_at": "2026-08-14T13:12:00+08:00",
+    "ends_at": "2026-08-28T13:12:00+08:00",
+    "status": "active",
+    "claim_graph": {
+      "path": ".research\\claim_graph.json",
+      "design_hash": "4f2bc11d221ab3cc",
+      "frozen_at": "2026-08-14T13:12:00+08:00"
+    }
+  },
+  "active_experiment": {
+    "id": "EXP-001",
+    "question": "Does conditioning predict recovery?",
+    "hypothesis": "Positive rank correlation across seeds.",
+    "intervention": "Vary excitation only.",
+    "measurement": "Spearman correlation.",
+    "kill_criterion": "Stop if rho < 0.2 across the grid.",
+    "expected_artifact": "results.csv",
+    "time_budget_hours": 4.0,
+    "started_at": "2026-08-14T13:12:00+08:00",
+    "status": "active",
+    "claim_graph_node": "P1",
+    "controls": "E",
+    "expected_figure": ""
+  },
+  "counters": {
+    "experiment": 1,
+    "idea": 0
+  },
+  "events": [
+    {
+      "at": "2026-08-14T13:11:58+08:00",
+      "event": "project_set",
+      "payload": {
+        "question": "Does representation conditioning predict recovery under excitation?",
+        "long_term_agenda": "Option learning in changing reinforcement-learning tasks.",
+        "minimum_completion": "A four-page technical note."
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:58+08:00",
+      "event": "graph_init",
+      "payload": {
+        "claim_id": "SC-001",
+        "claim": "Log condition number predicts affine recovery under controlled excitation.",
+        "graph_type": "causal",
+        "force": false
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:58+08:00",
+      "event": "graph_variable_added",
+      "payload": {
+        "id": "E",
+        "role": "intervention",
+        "observed": true
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:58+08:00",
+      "event": "graph_variable_added",
+      "payload": {
+        "id": "K",
+        "role": "candidate_predictor",
+        "observed": true
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:59+08:00",
+      "event": "graph_variable_added",
+      "payload": {
+        "id": "R",
+        "role": "outcome",
+        "observed": true
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:59+08:00",
+      "event": "graph_edge_added",
+      "payload": {
+        "from": "E",
+        "to": "K"
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:59+08:00",
+      "event": "graph_edge_added",
+      "payload": {
+        "from": "K",
+        "to": "R"
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:59+08:00",
+      "event": "graph_probe_added",
+      "payload": {
+        "id": "P1",
+        "kind": "edge",
+        "guards_in": []
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:59+08:00",
+      "event": "graph_resolution_added",
+      "payload": {
+        "when": {
+          "P1": "positive"
+        },
+        "then": "supported"
+      }
+    },
+    {
+      "at": "2026-08-14T13:11:59+08:00",
+      "event": "graph_resolution_added",
+      "payload": {
+        "when": {
+          "P1": "negative"
+        },
+        "then": "falsified"
+      }
+    },
+    {
+      "at": "2026-08-14T13:12:00+08:00",
+      "event": "sprint_started",
+      "payload": {
+        "claim": "Log condition number predicts affine recovery under controlled excitation.",
+        "artifact": "note.md",
+        "started_at": "2026-08-14T13:12:00+08:00",
+        "ends_at": "2026-08-28T13:12:00+08:00",
+        "status": "active",
+        "claim_graph": {
+          "path": ".research\\claim_graph.json",
+          "design_hash": "4f2bc11d221ab3cc",
+          "frozen_at": "2026-08-14T13:12:00+08:00"
+        }
+      }
+    },
+    {
+      "at": "2026-08-14T13:12:00+08:00",
+      "event": "experiment_started",
+      "payload": {
+        "id": "EXP-001",
+        "question": "Does conditioning predict recovery?",
+        "hypothesis": "Positive rank correlation across seeds.",
+        "intervention": "Vary excitation only.",
+        "measurement": "Spearman correlation.",
+        "kill_criterion": "Stop if rho < 0.2 across the grid.",
+        "expected_artifact": "results.csv",
+        "time_budget_hours": 4.0,
+        "started_at": "2026-08-14T13:12:00+08:00",
+        "status": "active",
+        "claim_graph_node": "P1",
+        "controls": "E",
+        "expected_figure": ""
+      }
+    }
+  ],
+  "limits": {
+    "active_sprints": 1,
+    "active_experiments": 1
+  }
+}
