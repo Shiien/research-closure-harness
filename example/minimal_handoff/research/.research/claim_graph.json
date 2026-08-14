@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "claim_id": "SC-001",
+  "claim": "Log condition number predicts affine recovery under controlled excitation.",
+  "graph_type": "causal",
+  "max_probes": 5,
+  "max_amendments": 2,
+  "theory": {},
+  "variables": {
+    "E": {
+      "name": "excitation",
+      "role": "intervention",
+      "observed": true
+    },
+    "K": {
+      "name": "log condition number",
+      "role": "candidate_predictor",
+      "observed": true
+    },
+    "R": {
+      "name": "recovery error",
+      "role": "outcome",
+      "observed": true
+    }
+  },
+  "edges": [
+    {
+      "from": "E",
+      "to": "K",
+      "from_theory": []
+    },
+    {
+      "from": "K",
+      "to": "R",
+      "from_theory": []
+    }
+  ],
+  "assumed_absent": [],
+  "probes": {
+    "P1": {
+      "tests": {
+        "kind": "edge",
+        "from": "K",
+        "to": "R"
+      },
+      "metric": "spearman_rho(K, R)",
+      "prereg": "rho > 0.4 over 10 instances x 3 seeds",
+      "controls": [
+        "E"
+      ],
+      "guards_in": []
+    }
+  },
+  "resolution": [
+    {
+      "when": {
+        "P1": "positive"
+      },
+      "then": "supported"
+    },
+    {
+      "when": {
+        "P1": "negative"
+      },
+      "then": "falsified"
+    }
+  ],
+  "amendments": []
+}

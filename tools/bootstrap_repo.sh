@@ -71,6 +71,8 @@ cp "$SOURCE_ROOT/tools/research_closure.py" "$TARGET/tools/research_closure.py"
 chmod +x "$TARGET/tools/research_closure.py"
 cp "$SOURCE_ROOT/tools/claim_graph.py" "$TARGET/tools/claim_graph.py"
 chmod +x "$TARGET/tools/claim_graph.py"
+cp "$SOURCE_ROOT/tools/research_replay.py" "$TARGET/tools/research_replay.py"
+chmod +x "$TARGET/tools/research_replay.py"
 cp -R "$SOURCE_ROOT/templates/." "$TARGET/templates/"
 cp "$SOURCE_ROOT/docs/protocol.md" "$TARGET/docs/research_closure_protocol.md"
 cp "$SOURCE_ROOT/docs/claim_graph_protocol.md" \

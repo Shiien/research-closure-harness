@@ -1,0 +1,108 @@
+{
+  "name": "minimal_handoff",
+  "description": "The smallest possible mid-flight state: project recorded, a tiny causal graph frozen, the first experiment open on P1, nothing closed yet. Use it to test resume/import paths end to end.",
+  "steps": [
+    {
+      "cli": "research_closure",
+      "cmd": "set-project",
+      "note": "Minimum viable charter.",
+      "args": {
+        "--question": "Does representation conditioning predict recovery under excitation?",
+        "--agenda": "Option learning in changing reinforcement-learning tasks.",
+        "--minimum": "A four-page technical note."
+      }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "init",
+      "note": "One mechanism, one edge, one probe.",
+      "args": {
+        "--claim": "Log condition number predicts affine recovery under controlled excitation."
+      }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-variable",
+      "args": { "--id": "E", "--name": "excitation", "--role": "intervention" }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-variable",
+      "args": { "--id": "K", "--name": "log condition number", "--role": "candidate_predictor" }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-variable",
+      "args": { "--id": "R", "--name": "recovery error", "--role": "outcome" }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-edge",
+      "args": { "--from": "E", "--to": "K" }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-edge",
+      "args": { "--from": "K", "--to": "R" }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-probe",
+      "args": {
+        "--id": "P1",
+        "--tests": "{\"kind\":\"edge\",\"from\":\"K\",\"to\":\"R\"}",
+        "--metric": "spearman_rho(K, R)",
+        "--prereg": "rho > 0.4 over 10 instances x 3 seeds",
+        "--controls": "E"
+      }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-resolution",
+      "note": "The map is minimal but present: a positive P1 supports, a negative falsifies.",
+      "args": {
+        "--when": "{\"P1\":\"positive\"}",
+        "--then": "supported"
+      }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "add-resolution",
+      "args": {
+        "--when": "{\"P1\":\"negative\"}",
+        "--then": "falsified"
+      }
+    },
+    {
+      "cli": "claim_graph",
+      "cmd": "validate",
+      "note": "Structurally sound; ready frontier is [P1]."
+    },
+    {
+      "cli": "research_closure",
+      "cmd": "start-sprint",
+      "note": "Freeze the claim.",
+      "args": {
+        "--claim": "Log condition number predicts affine recovery under controlled excitation.",
+        "--artifact": "note.md",
+        "--days": 14
+      }
+    },
+    {
+      "cli": "research_closure",
+      "cmd": "new-experiment",
+      "note": "EXP-001 is OPEN on P1 — the handoff point: no probe closed yet.",
+      "args": {
+        "--question": "Does conditioning predict recovery?",
+        "--hypothesis": "Positive rank correlation across seeds.",
+        "--intervention": "Vary excitation only.",
+        "--measurement": "Spearman correlation.",
+        "--kill": "Stop if rho < 0.2 across the grid.",
+        "--artifact": "results.csv",
+        "--hours": 4,
+        "--node": "P1",
+        "--controls": "E"
+      }
+    }
+  ]
+}

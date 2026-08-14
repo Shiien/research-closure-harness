@@ -319,6 +319,7 @@ for required in \
   "$HARNESS_ROOT/HANDOFF_SKILL.md" \
   "$HARNESS_ROOT/tools/research_closure.py" \
   "$HARNESS_ROOT/tools/claim_graph.py" \
+  "$HARNESS_ROOT/tools/research_replay.py" \
   "$HARNESS_ROOT/tools/bootstrap_repo.sh"; do
   if [[ ! -f "$required" ]]; then
     echo "Invalid harness source; missing: $required" >&2
@@ -370,12 +371,14 @@ run cp "$HARNESS_ROOT/HANDOFF_SKILL.md" "$CLAUDE_HANDOFF_SKILL_DIR/SKILL.md"
 run chmod +x \
   "$DATA_ROOT/tools/research_closure.py" \
   "$DATA_ROOT/tools/claim_graph.py" \
+  "$DATA_ROOT/tools/research_replay.py" \
   "$DATA_ROOT/tools/bootstrap_repo.sh" \
   "$DATA_ROOT/.claude/hooks/closure_guard.py"
 
 run ln -sfn "$DATA_ROOT/tools/research_closure.py" "$BIN_DIR/research-closure"
 run ln -sfn "$DATA_ROOT/tools/bootstrap_repo.sh" "$BIN_DIR/research-closure-init"
 run ln -sfn "$DATA_ROOT/tools/claim_graph.py" "$BIN_DIR/research-closure-graph"
+run ln -sfn "$DATA_ROOT/tools/research_replay.py" "$BIN_DIR/research-closure-replay"
 
 if [[ "$INSTALL_GLOBAL_RULES" -eq 1 ]]; then
   CODEX_BLOCK="$(mktemp)"

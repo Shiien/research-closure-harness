@@ -104,6 +104,31 @@ outcome. Below the graph: the resolution map with which rules currently fire,
 the guard verdict, the next events, the state table and the full event log.
 `guard` also prints the dashboard command whenever a claim graph exists.
 
+### Research replay: half-finished research is readable and continuable
+
+`tools/research_replay.py` makes any half-finished research a first-class
+object — a script, a directory, or a scrubbable story:
+
+```bash
+# script -> fresh research directory (any prefix is a reproducible intermediate state)
+python tools/research_replay.py run --script example/minimal_handoff/script.json --out /tmp/continued
+
+# half-finished research directory -> script that rebuilds the same snapshot
+python tools/research_replay.py export --dir /path/to/research --out /tmp/rebuild.json
+python tools/research_replay.py run --script /tmp/rebuild.json --out /tmp/resumed
+
+# script -> step-by-step replay with a scrubber over per-step dashboards
+python tools/research_replay.py timeline --script example/conditioning_recovery/script.json --out /tmp/replay.html
+```
+
+The `example/` directory ships two worked examples, each as an annotated event
+script plus its materialised half-finished research directory (see
+[example/README.md](example/README.md)): `conditioning_recovery/` (sprint
+frozen, two probes positive, an experiment open on the third) and
+`minimal_handoff/` (the smallest possible mid-flight state). Use cases:
+cross-session/cross-agent continuation, migration and backup recovery, teaching
+and demo, and audit — the event log is the chronological source of truth.
+
 Open an experiment:
 
 ```bash
@@ -198,6 +223,8 @@ HANDOFF_SKILL.md                  Canonical skill: research-handoff
 templates/                        Research planning and decision templates
 tools/research_closure.py         Dependency-free lifecycle CLI (event-driven)
 tools/claim_graph.py              Dependency-free claim-graph CLI (the engine)
+tools/research_replay.py          Replay: script<->directory, step-by-step timeline
+example/                          Annotated event scripts + materialised half-finished research
 .claude/hooks/closure_guard.py    Optional mechanical gate for Claude Code
 docs/protocol.md                  Complete research-closure protocol
 docs/claim_graph_protocol.md      Claim-graph protocol: probes and resolution maps
@@ -366,6 +393,29 @@ positive、negative、unresolved、skipped/waiting），支持拖拽平移与滚
 resolution map（哪些规则当前已触发）、guard 判定、下一个事件、状态表与完整
 事件日志。只要存在 claim graph，`guard` 也会打印 dashboard 命令。
 
+### Research 回放：进行到一半的研究可读、可续、可回放
+
+`tools/research_replay.py` 让任何"进行到一半的研究"成为一等公民——脚本、
+目录或可拖动的故事：
+
+```bash
+# 脚本 -> 全新研究目录（脚本的任意前缀都是可复现的中间状态）
+python tools/research_replay.py run --script example/minimal_handoff/script.json --out /tmp/continued
+
+# 半成品研究目录 -> 重建同一快照的脚本
+python tools/research_replay.py export --dir /path/to/research --out /tmp/rebuild.json
+python tools/research_replay.py run --script /tmp/rebuild.json --out /tmp/resumed
+
+# 脚本 -> 逐步回放：带进度条、逐帧展示每步的 dashboard
+python tools/research_replay.py timeline --script example/conditioning_recovery/script.json --out /tmp/replay.html
+```
+
+`example/` 目录内置两个带注释的事件脚本 + 对应的物化半成品研究目录（见
+[example/README.md](example/README.md)）：`conditioning_recovery/`（sprint
+已冻结、两个探针 positive、第三个探针上有未关闭的实验）与 `minimal_handoff/`
+（最小的中途状态）。适用场景：跨会话/跨 agent 续传、迁移与备份恢复、教学与
+演示、审计——事件日志就是按时间排序的事实来源。
+
 开启实验：
 
 ```bash
@@ -459,6 +509,8 @@ HANDOFF_SKILL.md                  research-handoff 技能主副本
 templates/                        研究计划与决策模板
 tools/research_closure.py         无依赖生命周期 CLI（事件驱动）
 tools/claim_graph.py              无依赖 claim graph CLI（引擎）
+tools/research_replay.py          回放：脚本<->目录互转、逐步时间线
+example/                          带注释的事件脚本 + 物化的半成品研究
 .claude/hooks/closure_guard.py    Claude Code 可选机械门禁
 docs/protocol.md                  完整研究 closure 协议
 docs/claim_graph_protocol.md      claim graph 协议：探针集合与 resolution map
