@@ -14,14 +14,17 @@ It supports:
 
 - **Codex** through the repository-level `AGENTS.md`;
 - **Claude Code** through `CLAUDE.md`, two skills, and an optional hook;
-- **researcher self-management** through daily, experiment, weekly, and sprint templates;
+- **researcher self-management** through experiment, weekly, and sprint templates;
 - **mechanical checks** through a dependency-free Python CLI.
 
 For the complete methodology, see [docs/protocol.md](docs/protocol.md).
 
-### Three named reasoning modes
+### The claim-graph engine
 
-The optional claim graph makes three forms of scientific reasoning explicit
+The claim graph — theory layer, observation DAG, probes, and the pre-registered
+resolution map — is the **engine** of the harness, not an optional add-on. A
+sprint cannot be frozen, an experiment cannot be opened, and a result cannot be
+recorded without it. It makes three forms of scientific reasoning explicit
 and auditable:
 
 | Mode | Direction | CLI |
@@ -63,14 +66,27 @@ python tools/research_closure.py set-project \
   --agenda "Continual option learning" \
   --question "When can a learned representation support stable option discovery?" \
   --minimum "A complete four-to-six-page technical note"
+python tools/claim_graph.py init --claim "A conditioning quantity predicts affine representation recovery under controlled excitation."
+python tools/claim_graph.py add-variable --id E --name "behaviour-policy excitation" --role intervention
+python tools/claim_graph.py add-variable --id K --name "log condition number" --role candidate_predictor
+python tools/claim_graph.py add-variable --id R --name "affine recovery error" --role outcome
+python tools/claim_graph.py add-edge --from E --to K
+python tools/claim_graph.py add-edge --from K --to R
+python tools/claim_graph.py add-probe --id P1 \
+  --tests '{"kind":"edge","from":"K","to":"R"}' \
+  --metric "spearman_rho" --prereg "rho > 0.5" --controls E
+python tools/claim_graph.py add-resolution --when '{"P1":"positive"}' --then supported
+python tools/claim_graph.py validate
 python tools/research_closure.py start-sprint \
   --claim "A conditioning quantity predicts affine representation recovery under controlled excitation." \
   --days 14 \
   --artifact "A four-page technical note with one main figure"
-python tools/research_closure.py start-day \
-  --deliverable "Produce the first conditioning-vs-recovery scatter plot"
-python tools/research_closure.py status
+python tools/research_closure.py next
 ```
+
+The harness is event-driven: `next` always tells you the event it expects
+(sets the project, authors the graph, freezes the sprint, opens the experiment
+on the ready probe, closes it, closes the sprint), and `events` shows the log.
 
 Open an experiment:
 
@@ -82,7 +98,8 @@ python tools/research_closure.py new-experiment \
   --measurement "Spearman correlation between log condition number and recovery error." \
   --kill "Stop using this quantity if correlation remains near zero across 30 instances and 5 seeds." \
   --artifact "results.csv and conditioning_recovery.pdf" \
-  --hours 8
+  --hours 8 \
+  --node P1
 ```
 
 Close the experiment:
@@ -95,12 +112,22 @@ python tools/research_closure.py close-experiment \
   --conclusion "Conditioning predicts recovery under controlled excitation."
 ```
 
-Close the day:
+The harness is event-driven: after each event, `next` tells you the event it
+expects (open the next ready probe, or close the sprint once the resolution map
+determines a verdict):
 
 ```bash
-python tools/research_closure.py close-day \
-  --artifact "figures/conditioning_recovery.pdf" \
-  --decision "Keep the claim; next isolate estimator variance."
+python tools/research_closure.py next
+python tools/research_closure.py events
+```
+
+Close the sprint only as the frozen resolution map determines:
+
+```bash
+python tools/research_closure.py close-sprint \
+  --decision advance \
+  --evidence "results/conditioning.csv" \
+  --conclusion "All probes supported the claim within the tested range."
 ```
 
 Check whether the current project violates closure rules:
@@ -111,21 +138,22 @@ python tools/research_closure.py guard
 
 ### Recommended workflow
 
-#### At the start of each day
+#### At the start of a session
 
-1. Run `status`.
-2. Run `start-day`.
-3. Record exactly one deliverable for the day.
+1. Run `status` and `guard`.
+2. Run `frontier` and `next` — the claim graph decides which probe may run.
+3. Open an experiment on the ready probe (`new-experiment --node Pn`).
 4. Ask Codex or Claude Code to read the current state before making changes.
 
 #### Before any new experiment
 
-Create an experiment card first. Do not ask an agent to “try another variant”
-without closing the current experiment.
+Create an experiment card first, bound to a ready probe. Do not ask an agent to
+“try another variant” without closing the current experiment.
 
-#### At the end of each day
+#### At the end of a session
 
-Run `close-day` and point it to a real, inspectable file.
+Close the experiment with the CLI and let the harness compute the verdict
+(`close-experiment`); end with a real, inspectable artifact and a written decision.
 
 #### Once per week
 
@@ -149,14 +177,14 @@ HANDOFF_SKILL.md                  Canonical skill: research-handoff
 .agents/skills/research-handoff/  Repository skill for Codex
 .claude/skills/research-closure/  Repository skill for Claude Code
 .claude/skills/research-handoff/  Repository skill for Claude Code
-.research/state.json              CLI state
-.research/logs/                   Daily and experiment logs
+.research/state.json              CLI state and event log
+.research/logs/                   Sprint, experiment and decision logs
 templates/                        Research planning and decision templates
-tools/research_closure.py         Dependency-free CLI
-tools/claim_graph.py              Dependency-free claim-graph CLI (optional layer)
+tools/research_closure.py         Dependency-free lifecycle CLI (event-driven)
+tools/claim_graph.py              Dependency-free claim-graph CLI (the engine)
 .claude/hooks/closure_guard.py    Optional mechanical gate for Claude Code
 docs/protocol.md                  Complete research-closure protocol
-docs/claim_graph_protocol.md      Claim-graph extension: probe sets and resolution maps
+docs/claim_graph_protocol.md      Claim-graph protocol: probes and resolution maps
 examples/continual_option_learning/
                                   Worked example for a research project
 ```
@@ -237,14 +265,16 @@ To uninstall:
 
 - **Codex**：通过仓库根目录的 `AGENTS.md`；
 - **Claude Code**：通过 `CLAUDE.md`、两个 Skill 和可选 hook；
-- **研究者自我管理**：通过每日、实验、每周和 sprint 模板；
+- **研究者自我管理**：通过实验、每周和 sprint 模板；
 - **机械检查**：通过无第三方依赖的 Python CLI。
 
 完整方法说明见 [docs/protocol.md](docs/protocol.md)。
 
-### 三种显式命名的推理模式
+### Claim graph 引擎
 
-可选的 claim graph 将三种科学推理作为显式、可审计的核心能力：
+Claim graph（理论层、观测 DAG、探针和预注册的 resolution map）是整个
+harness 的**引擎**，而不是可选的附加功能：没有它就无法冻结 sprint、开启实验
+或记录结果。它将三种科学推理作为显式、可审计的核心能力：
 
 | 模式 | 推理方向 | CLI |
 |---|---|---|
@@ -284,14 +314,27 @@ python tools/research_closure.py set-project \
   --agenda "持续选项学习" \
   --question "学习到的表示何时能支持稳定的选项发现？" \
   --minimum "一份完整的四至六页技术报告"
+python tools/claim_graph.py init --claim "在受控激励条件下，某个条件量能够预测仿射表示恢复。"
+python tools/claim_graph.py add-variable --id E --name "行为策略激励" --role intervention
+python tools/claim_graph.py add-variable --id K --name "对数条件数" --role candidate_predictor
+python tools/claim_graph.py add-variable --id R --name "仿射恢复误差" --role outcome
+python tools/claim_graph.py add-edge --from E --to K
+python tools/claim_graph.py add-edge --from K --to R
+python tools/claim_graph.py add-probe --id P1 \
+  --tests '{"kind":"edge","from":"K","to":"R"}' \
+  --metric "spearman_rho" --prereg "rho > 0.5" --controls E
+python tools/claim_graph.py add-resolution --when '{"P1":"positive"}' --then supported
+python tools/claim_graph.py validate
 python tools/research_closure.py start-sprint \
   --claim "在受控激励条件下，某个条件量能够预测仿射表示恢复。" \
   --days 14 \
   --artifact "包含一张主图的四页技术报告"
-python tools/research_closure.py start-day \
-  --deliverable "生成第一张条件量与恢复误差的散点图"
-python tools/research_closure.py status
+python tools/research_closure.py next
 ```
+
+Harness 是事件驱动的：`next` 始终告诉你它期待的下一个事件（设置项目、创作
+claim graph、冻结 sprint、在就绪探针上开实验、关闭实验、关闭 sprint），
+`events` 显示完整事件日志。
 
 开启实验：
 
@@ -303,7 +346,8 @@ python tools/research_closure.py new-experiment \
   --measurement "对数条件数与恢复误差之间的 Spearman 相关。" \
   --kill "如果在 30 个实例和 5 个随机种子上相关性仍接近零，则停止使用该指标。" \
   --artifact "results.csv and conditioning_recovery.pdf" \
-  --hours 8
+  --hours 8 \
+  --node P1
 ```
 
 关闭实验：
@@ -316,12 +360,21 @@ python tools/research_closure.py close-experiment \
   --conclusion "在受控激励条件下，条件量能够预测恢复误差。"
 ```
 
-结束当天工作：
+Harness 是事件驱动的：每个事件之后，`next` 会告诉你它期待的下一个事件
+（开启下一个就绪探针，或当 resolution map 判定后关闭 sprint）：
 
 ```bash
-python tools/research_closure.py close-day \
-  --artifact "figures/conditioning_recovery.pdf" \
-  --decision "保留当前主张；下一步只隔离估计器方差。"
+python tools/research_closure.py next
+python tools/research_closure.py events
+```
+
+按冻结的 resolution map 关闭 sprint：
+
+```bash
+python tools/research_closure.py close-sprint \
+  --decision advance \
+  --evidence "results/conditioning.csv" \
+  --conclusion "所有探针都在测试范围内支持了该主张。"
 ```
 
 检查当前项目是否违反 closure 规则：
@@ -332,20 +385,22 @@ python tools/research_closure.py guard
 
 ### 推荐工作流
 
-#### 每天开始时
+#### 会话开始时
 
-1. 运行 `status`。
-2. 运行 `start-day`。
-3. 当天只记录一个 deliverable。
+1. 运行 `status` 和 `guard`。
+2. 运行 `frontier` 和 `next` —— 由 claim graph 决定接下来运行哪个探针。
+3. 在就绪探针上开启实验（`new-experiment --node Pn`）。
 4. 让 Codex 或 Claude Code 在修改前先读取当前状态。
 
 #### 开始任何新实验前
 
-先创建 experiment card。当前实验尚未关闭时，不要直接让 agent“再试一个变体”。
+先创建绑定到就绪探针的 experiment card。当前实验尚未关闭时，不要直接让
+agent“再试一个变体”。
 
-#### 每天结束时
+#### 会话结束时
 
-运行 `close-day`，并指向一个真实、可检查的文件。
+用 CLI 关闭实验并让 harness 计算结论（`close-experiment`）；结束时留下一个
+真实、可检查的产物和书面决策。
 
 #### 每周一次
 
@@ -369,14 +424,14 @@ HANDOFF_SKILL.md                  research-handoff 技能主副本
 .agents/skills/research-handoff/  Codex 仓库级 skill
 .claude/skills/research-closure/  Claude Code 仓库级 skill
 .claude/skills/research-handoff/  Claude Code 仓库级 skill
-.research/state.json              CLI 状态
-.research/logs/                   每日与实验日志
+.research/state.json              CLI 状态与事件日志
+.research/logs/                   Sprint、实验与决策日志
 templates/                        研究计划与决策模板
-tools/research_closure.py         无依赖 CLI
-tools/claim_graph.py              无依赖 claim graph CLI（可选层）
+tools/research_closure.py         无依赖生命周期 CLI（事件驱动）
+tools/claim_graph.py              无依赖 claim graph CLI（引擎）
 .claude/hooks/closure_guard.py    Claude Code 可选机械门禁
 docs/protocol.md                  完整研究 closure 协议
-docs/claim_graph_protocol.md      claim graph 扩展：探针集合与 resolution map
+docs/claim_graph_protocol.md      claim graph 协议：探针集合与 resolution map
 examples/continual_option_learning/
                                   研究项目示例
 ```

@@ -1,10 +1,13 @@
 # Claim Graph Protocol
 
-An extension to `docs/protocol.md`. The base protocol closes one experiment at a
-time. This layer handles the case it does not cover: a claim that no single
-experiment can settle.
+The claim graph is the **engine** of the Research Closure Harness.
+`docs/protocol.md` defines the methodology (levels, decision taxonomy,
+claim-lowering ladder); this document defines the mechanism: probe sets, the
+ready frontier, and the resolution map that composes probe outcomes into a
+computed claim decision. A sprint cannot be frozen, an experiment cannot be
+opened, and a result cannot be recorded without it.
 
-## 1. Why the base protocol runs out
+## 1. Why one experiment card is not enough
 
 The base protocol has four levels — agenda, project question, sprint claim,
 implementation choices — and Level 3 is explicitly the noise floor: optimizer,

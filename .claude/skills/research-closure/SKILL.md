@@ -22,28 +22,29 @@ Frozen claim
 
 ## Start-of-task protocol
 
-Read `.research/state.json`, then run:
+Read `.research/state.json` and `.research/claim_graph.json` (the claim graph is the
+engine), then run:
 
 ```bash
 python tools/research_closure.py guard
+python tools/claim_graph.py frontier
+python tools/research_closure.py next
 ```
 
 Report:
 
 ```text
 Frozen claim:
-Today's deliverable:
+Session deliverable:
 Out of scope:
+Ready frontier:      (the probes whose guards are satisfied)
+Resolution map:      determined (<verdict>) | open
 ```
 
-If `.research/claim_graph.json` exists, also run `python tools/claim_graph.py frontier` and add:
-
-```text
-Ready frontier:
-Resolution map: determined (<verdict>) | open
-```
-
-If there is no frozen claim, do not create a large implementation. Help define a 7–14 day claim first.
+If there is no frozen claim, do not create a large implementation. Help define a 7–14
+day claim first, then author the claim graph (`claim_graph.py init --claim "..."`,
+then `add-variable` / `add-edge` / `add-absent` / `add-probe` / `add-resolution`,
+then `validate`) before `start-sprint`.
 
 ## New-experiment gate
 
@@ -57,6 +58,7 @@ Measurement:
 Expected artifact:
 Kill criterion:
 Time budget:
+Claim-graph probe:   (the P-node this experiment runs; must be on the ready frontier)
 ```
 
 Reject vague tasks such as:

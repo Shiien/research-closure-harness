@@ -439,8 +439,9 @@ Initialize a repository:
 
 Then:
   research-closure set-project --agenda "..." --question "..." --minimum "..."
+  research-closure-graph init --claim "..." && research-closure-graph validate
   research-closure start-sprint --claim "..." --days 14 --artifact "..."
-  research-closure start-day --deliverable "..."
+  research-closure next
 
 EOF
 

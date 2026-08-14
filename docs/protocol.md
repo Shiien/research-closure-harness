@@ -63,9 +63,11 @@ Better:
 
 ## 3. Experiment design rule
 
-One experiment card corresponds to one causal comparison or diagnostic chain.
-
-When one card cannot settle the sprint claim, see [claim_graph_protocol.md](claim_graph_protocol.md): it adds the set of probes that jointly determine a claim and the resolution map that composes their outcomes.
+The claim graph ([claim_graph_protocol.md](claim_graph_protocol.md)) is the
+engine: every sprint claim decomposes into a set of probes and a pre-registered
+resolution map that composes their outcomes into the claim-level verdict. One
+experiment card corresponds to one probe, i.e. one causal comparison or
+diagnostic chain.
 
 It may include multiple seeds and problem instances. Those are not separate experiments unless they test different hypotheses.
 
@@ -120,20 +122,25 @@ Do not discard valid evidence merely because it does not support the original st
 
 ---
 
-## 6. Daily closure
+## 6. Session closure (event-driven)
 
-At the beginning of a day:
+The harness is event-driven: there is no daily bookkeeping. Every command fires
+one event (`project_set`, `sprint_started`, `experiment_started`,
+`experiment_closed`, `sprint_closed`, ...) recorded in `.research/state.json`;
+`next` derives the event the harness expects from the state and the probe
+frontier, and `events` shows the log. A session can still be planned around the
+question:
 
-> What exact uncertainty will be smaller tonight?
+> What exact uncertainty will be smaller by the end of this session?
 
-At the end:
+At the end of a session:
 
 - name the artifact;
 - state what the evidence says;
-- make a decision;
+- close the experiment with the CLI and let the harness compute the verdict;
 - name only one next action.
 
-A day can be successful with a negative result.
+A session can be successful with a negative result.
 
 ---
 

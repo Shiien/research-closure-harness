@@ -7,9 +7,11 @@ At the start of every session:
 1. Read `.research/state.json`.
 2. Read the active sprint and experiment logs in `.research/logs/`.
 3. Run `python tools/research_closure.py guard`.
-4. State the frozen claim, today's deliverable, and what is out of scope.
-5. If `.research/claim_graph.json` exists, run `python tools/claim_graph.py frontier` and
-   also state the ready frontier and whether the resolution map is already determined.
+4. Run `python tools/claim_graph.py frontier` — the claim graph is the engine, and the
+   ready frontier is what decides which probe may run next.
+5. Run `python tools/research_closure.py next` to see the event the harness expects.
+6. State the frozen claim, this session's deliverable, and what is out of scope, plus
+   the ready frontier and whether the resolution map is already determined.
 
 ## Hard workflow constraints
 
@@ -87,4 +89,6 @@ Before ending a productive session, require:
 - a decision;
 - the next smallest action.
 
-Use `python tools/research_closure.py close-day` whenever possible.
+Close the active experiment with the CLI and let the harness compute the verdict:
+`python tools/research_closure.py close-experiment ...`, then check
+`python tools/research_closure.py next` for what the harness expects next.

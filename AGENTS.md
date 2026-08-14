@@ -9,19 +9,22 @@ Before substantial work, read:
 1. `.research/state.json`
 2. the current sprint log under `.research/logs/`
 3. the active experiment card, if any
-4. `docs/protocol.md`
+4. `.research/claim_graph.json` — the claim graph is the engine: it must exist and validate before a sprint can be frozen
+5. `docs/protocol.md`
 
 Run:
 
 ```bash
 python tools/research_closure.py guard
+python tools/claim_graph.py frontier
+python tools/research_closure.py next
 ```
 
-If the guard reports a blocking violation, do not begin a new method, experiment family, benchmark, or research question. Help resolve the violation first.
+The guard reports blocking violations; `frontier` shows which probe is ready to run; `next` shows the event the harness expects from you. If the guard reports a blocking violation, do not begin a new method, experiment family, benchmark, or research question. Help resolve the violation first.
 
 ## Non-negotiable workflow
 
-Every task must map to the current frozen claim.
+Every task must map to the current frozen claim and to a probe of the claim graph.
 
 Before implementing a new experiment, identify:
 
@@ -33,7 +36,7 @@ Before implementing a new experiment, identify:
 - kill criterion
 - time budget
 
-If no active experiment card exists, create one with the CLI before implementation.
+Every experiment must name the claim-graph probe it runs (`new-experiment --node Pn`). If no active experiment card exists, create one with the CLI before implementation. If the claim graph does not exist yet, author it first: `claim_graph.py init --claim "..."`, then `add-variable` / `add-edge` / `add-absent` / `add-probe` / `add-resolution`, then `validate`.
 
 After obtaining results, do not immediately create another variant. First:
 
@@ -96,10 +99,10 @@ The researcher is in the final PhD year. Therefore:
 At the beginning of a substantial task, state:
 
 - `Frozen claim`
-- `Today's deliverable`
+- `Session deliverable`
 - `Out of scope`
 
-If `.research/claim_graph.json` exists, run `python tools/claim_graph.py frontier` and also state:
+Also state (run `python tools/claim_graph.py frontier` if the claim graph exists — it is mandatory once a sprint is frozen):
 
 - `Ready frontier` — the probes whose guards are satisfied
 - `Resolution map` — determined (with its verdict) or still open

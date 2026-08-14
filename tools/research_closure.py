@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Research Closure Harness CLI.
+"""Research Closure Harness CLI (claim-graph engine).
+
+The claim graph (`.research/claim_graph.json`) is the engine: a sprint cannot be
+frozen, an experiment cannot be opened, and a result cannot be recorded without
+it. This CLI drives the lifecycle state machine on top of the graph.
+
+The system is event-driven: every command fires one event (project_set,
+sprint_started, experiment_started, ...) recorded in `.research/state.json`,
+and `guard` / `next` derive the next event to fire from the state and the
+graph's ready frontier.
 
 No third-party dependencies.
 """
@@ -15,14 +24,27 @@ from typing import Any
 
 try:
     import claim_graph as cg
-except ImportError:  # the graph layer is optional
+except ImportError:
     _tools_dir = str(Path(__file__).resolve().parent)
     if _tools_dir not in sys.path:
         sys.path.insert(0, _tools_dir)
     try:
         import claim_graph as cg
-    except ImportError:
-        cg = None
+    except ImportError as exc:
+        raise SystemExit(
+            "BLOCKED: tools/claim_graph.py is missing. The claim graph is the "
+            "engine of this harness and must live next to research_closure.py."
+        ) from exc
+
+STATE_VERSION = 3
+
+# claim-level verdict (resolution map) -> close-sprint decision value
+DECISION_MAP = {
+    "supported": "advance",
+    "falsified": "terminate",
+    "narrow": "narrow",
+    "terminated": "terminate",
+}
 
 
 def discover_root() -> Path:
@@ -54,17 +76,23 @@ def now_iso() -> str:
     return datetime.now().astimezone().isoformat(timespec="seconds")
 
 
-def today_str() -> str:
-    return datetime.now().astimezone().date().isoformat()
-
-
 def load_state() -> dict[str, Any]:
     if not STATE_PATH.exists():
         raise SystemExit("State not found. Run: python tools/research_closure.py init")
     try:
-        return json.loads(STATE_PATH.read_text())
+        state = json.loads(STATE_PATH.read_text())
     except json.JSONDecodeError as exc:
         raise SystemExit(f"Invalid state file: {exc}") from exc
+    if state.get("version", 0) < STATE_VERSION:
+        # v3: day bookkeeping is gone; the history field is the event log.
+        state.pop("day", None)
+        if "history" in state:
+            state.setdefault("events", []).extend(state.pop("history"))
+        state.setdefault("events", [])
+        state["events"].sort(key=lambda e: e.get("at", ""))
+        state["version"] = STATE_VERSION
+        save_state(state)
+    return state
 
 
 def save_state(state: dict[str, Any]) -> None:
@@ -72,8 +100,8 @@ def save_state(state: dict[str, Any]) -> None:
     STATE_PATH.write_text(json.dumps(state, indent=2) + "\n")
 
 
-def append_history(state: dict[str, Any], event: str, payload: dict[str, Any]) -> None:
-    state.setdefault("history", []).append(
+def append_event(state: dict[str, Any], event: str, payload: dict[str, Any]) -> None:
+    state.setdefault("events", []).append(
         {"at": now_iso(), "event": event, "payload": payload}
     )
 
@@ -92,6 +120,15 @@ def rel(path: Path) -> str:
         return str(path)
 
 
+def load_graph_or_exit() -> dict[str, Any]:
+    if not GRAPH_PATH.exists():
+        raise SystemExit(
+            f"BLOCKED: no claim graph at {rel(GRAPH_PATH)}. The claim graph is the "
+            f"engine of this harness. Run: claim_graph.py init --claim '<the claim>'"
+        )
+    return cg.load_graph(GRAPH_PATH)
+
+
 def cmd_init(_: argparse.Namespace) -> int:
     STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -99,18 +136,18 @@ def cmd_init(_: argparse.Namespace) -> int:
         print(f"State already exists: {rel(STATE_PATH)}")
         return 0
     state = {
-        "version": 1,
+        "version": STATE_VERSION,
         "mode": "graduation",
         "project": {"question": "", "long_term_agenda": "", "minimum_completion": ""},
         "sprint": None,
-        "day": None,
         "active_experiment": None,
         "counters": {"experiment": 0, "idea": 0},
-        "history": [],
+        "events": [],
         "limits": {"active_sprints": 1, "active_experiments": 1},
     }
     save_state(state)
     print(f"Initialized {rel(STATE_PATH)}")
+    print("Next: set-project, then claim_graph.py init --claim '<the sprint claim>'")
     return 0
 
 
@@ -121,7 +158,7 @@ def cmd_set_project(args: argparse.Namespace) -> int:
         "long_term_agenda": args.agenda,
         "minimum_completion": args.minimum,
     }
-    append_history(state, "project_set", state["project"])
+    append_event(state, "project_set", state["project"])
     save_state(state)
     print("Project charter recorded.")
     return 0
@@ -133,6 +170,24 @@ def cmd_start_sprint(args: argparse.Namespace) -> int:
         raise SystemExit(
             "BLOCKED: an active sprint already exists. Close or explicitly revise it first."
         )
+    graph = load_graph_or_exit()
+    blocks, _ = cg.validate(graph)
+    if blocks:
+        raise SystemExit(
+            "BLOCKED: claim graph fails validation; fix it before freezing a sprint:\n  "
+            + "\n  ".join(blocks)
+        )
+    if not graph.get("probes"):
+        raise SystemExit(
+            "BLOCKED: the claim graph has no probes. Author variables, edges and "
+            "probes first: claim_graph.py add-variable / add-edge / add-probe."
+        )
+    if not graph.get("resolution"):
+        print("WARNING: the claim graph has no resolution map; close-sprint decisions "
+              "will not be machine-checked.")
+    if graph.get("claim") and graph["claim"] != args.claim:
+        print(f"WARNING: claim graph claim ({graph['claim']!r}) differs from the sprint "
+              f"claim ({args.claim!r}). The design hash will freeze as-is.")
     start = datetime.now().astimezone()
     end = start + timedelta(days=args.days)
     sprint = {
@@ -141,26 +196,17 @@ def cmd_start_sprint(args: argparse.Namespace) -> int:
         "started_at": start.isoformat(timespec="seconds"),
         "ends_at": end.isoformat(timespec="seconds"),
         "status": "active",
-    }
-    state["sprint"] = sprint
-    append_history(state, "sprint_started", sprint)
-    if cg and GRAPH_PATH.exists():
-        graph = cg.load_graph(GRAPH_PATH)
-        blocks, _ = cg.validate(graph)
-        if blocks:
-            raise SystemExit(
-                "BLOCKED: claim graph fails validation; fix it before freezing a sprint:\n  "
-                + "\n  ".join(blocks)
-            )
-        sprint["claim_graph"] = {
+        "claim_graph": {
             "path": rel(GRAPH_PATH),
             "design_hash": cg.design_hash(graph),
             "frozen_at": now_iso(),
-        }
-        state["version"] = 2
+        },
+    }
+    state["sprint"] = sprint
+    append_event(state, "sprint_started", sprint)
     save_state(state)
     path = write_log(
-        f"{today_str()}_sprint.md",
+        f"{start.date().isoformat()}_sprint.md",
         f"""# Sprint
 
 ## Frozen claim
@@ -170,6 +216,11 @@ def cmd_start_sprint(args: argparse.Namespace) -> int:
 ## Required artifact
 
 {args.artifact}
+
+## Claim graph
+
+Path: {rel(GRAPH_PATH)}
+Design hash: {sprint['claim_graph']['design_hash']} (frozen at {sprint['claim_graph']['frozen_at']})
 
 ## Start
 
@@ -195,26 +246,24 @@ def cmd_close_sprint(args: argparse.Namespace) -> int:
         raise SystemExit("No active sprint.")
     if state.get("active_experiment"):
         raise SystemExit("BLOCKED: close the active experiment before closing the sprint.")
-    if cg and GRAPH_PATH.exists():
-        graph = cg.load_graph(GRAPH_PATH)
-        proposal = cg.propose_decision(graph)
-        if proposal["status"] == "determined":
-            expected = {"supported": "advance", "falsified": "terminate",
-                        "narrow": "narrow", "terminated": "terminate"}.get(proposal["then"])
-            if expected and args.decision != expected:
-                raise SystemExit(
-                    f"BLOCKED: the resolution map, frozen before results, determines "
-                    f"'{proposal['then']}' -> close as '{expected}', not '{args.decision}'. "
-                    f"To override, amend the map explicitly; do not reinterpret it silently."
-                )
-            if proposal.get("blocked_by_debt"):
-                raise SystemExit(
-                    "BLOCKED: unpaid amendment debt. The graph was repaired to fit an "
-                    "anomaly and the repair has not been tested. Close as 'narrow'."
-                )
-        else:
-            print(f"NOTE: resolution map not yet determined; probes still ready: "
-                  f"{cg.frontier(graph) or 'none'}")
+    graph = load_graph_or_exit()
+    proposal = cg.propose_decision(graph)
+    if proposal["status"] == "determined":
+        expected = DECISION_MAP.get(proposal["then"])
+        if expected and args.decision != expected:
+            raise SystemExit(
+                f"BLOCKED: the resolution map, frozen before results, determines "
+                f"'{proposal['then']}' -> close as '{expected}', not '{args.decision}'. "
+                f"To override, amend the map explicitly; do not reinterpret it silently."
+            )
+        if proposal.get("blocked_by_debt"):
+            raise SystemExit(
+                "BLOCKED: unpaid amendment debt. The graph was repaired to fit an "
+                "anomaly and the repair has not been tested. Close as 'narrow'."
+            )
+    else:
+        print(f"NOTE: resolution map not yet determined; probes still ready: "
+              f"{cg.frontier(graph) or 'none'}")
     record = {
         **sprint,
         "closed_at": now_iso(),
@@ -222,11 +271,11 @@ def cmd_close_sprint(args: argparse.Namespace) -> int:
         "evidence": args.evidence,
         "conclusion": args.conclusion,
     }
-    append_history(state, "sprint_closed", record)
+    append_event(state, "sprint_closed", record)
     state["sprint"] = None
     save_state(state)
     path = write_log(
-        f"{today_str()}_sprint_decision.md",
+        f"{today_logname()}_sprint_decision.md",
         f"""# Sprint Decision
 
 ## Claim
@@ -250,94 +299,8 @@ def cmd_close_sprint(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_start_day(args: argparse.Namespace) -> int:
-    state = load_state()
-    if not state.get("sprint"):
-        raise SystemExit("BLOCKED: start a sprint before starting a research day.")
-    if state.get("day"):
-        raise SystemExit("BLOCKED: an active day already exists. Close it first.")
-    day = {
-        "date": today_str(),
-        "deliverable": args.deliverable,
-        "started_at": now_iso(),
-    }
-    state["day"] = day
-    append_history(state, "day_started", day)
-    save_state(state)
-    path = write_log(
-        f"{today_str()}_daily.md",
-        f"""# Daily Closure
-
-## Frozen claim
-
-{state['sprint']['claim']}
-
-## Today's single deliverable
-
-{args.deliverable}
-
-## Out of scope
-
-Anything not needed to produce the deliverable.
-""",
-    )
-    print(f"Day started. Log: {rel(path)}")
-    return 0
-
-
-def validate_artifacts(paths_csv: str) -> tuple[list[str], list[str]]:
-    raw = [p.strip() for p in paths_csv.split(",") if p.strip()]
-    existing, missing = [], []
-    for p in raw:
-        path = Path(p)
-        if not path.is_absolute():
-            path = ROOT / path
-        (existing if path.exists() else missing).append(p)
-    return existing, missing
-
-
-def cmd_close_day(args: argparse.Namespace) -> int:
-    state = load_state()
-    day = state.get("day")
-    if not day:
-        raise SystemExit("No active day.")
-    existing, missing = validate_artifacts(args.artifact)
-    if missing and not args.allow_missing:
-        raise SystemExit(
-            "BLOCKED: artifact path(s) do not exist: "
-            + ", ".join(missing)
-            + "\nUse --allow-missing only for a written negative-result decision."
-        )
-    record = {
-        **day,
-        "closed_at": now_iso(),
-        "artifact": args.artifact,
-        "artifact_existing": existing,
-        "artifact_missing": missing,
-        "decision": args.decision,
-    }
-    append_history(state, "day_closed", record)
-    state["day"] = None
-    save_state(state)
-    path = LOG_DIR / f"{day['date']}_daily.md"
-    with path.open("a") as f:
-        f.write(
-            f"""
-## Artifact
-
-{args.artifact}
-
-## Evidence-backed decision
-
-{args.decision}
-
-## Closed at
-
-{record['closed_at']}
-"""
-        )
-    print(f"Day closed. Log: {rel(path)}")
-    return 0
+def today_logname() -> str:
+    return datetime.now().astimezone().date().isoformat()
 
 
 def cmd_new_experiment(args: argparse.Namespace) -> int:
@@ -349,6 +312,34 @@ def cmd_new_experiment(args: argparse.Namespace) -> int:
         raise SystemExit(
             f"BLOCKED: {active} is still active. Close it before opening a new primary experiment."
         )
+    graph = load_graph_or_exit()
+    if not args.node:
+        raise SystemExit(
+            "BLOCKED: every experiment must state which probe it runs (--node). "
+            f"Ready probes: {cg.frontier(graph) or 'none'}"
+        )
+    if args.node not in graph.get("probes", {}):
+        raise SystemExit(f"BLOCKED: {args.node} is not a probe in the claim graph.")
+    ready = cg.frontier(graph)
+    if args.node not in ready:
+        raise SystemExit(
+            f"BLOCKED: {args.node} is not on the ready frontier (ready: {ready or 'none'}). "
+            "Its upstream guards are unmet, so its result would not be interpretable."
+        )
+    probe = graph["probes"][args.node]
+    if graph.get("graph_type") == "causal" and probe.get("tests", {}).get("kind") == "edge":
+        declared = [c.strip() for c in args.controls.split(",") if c.strip()]
+        ok, why = cg.verify_adjustment(
+            cg.edge_list(graph), probe["tests"]["from"], probe["tests"]["to"], declared
+        )
+        if not ok:
+            rec, _ = cg.recommend_adjustment(
+                graph, probe["tests"]["from"], probe["tests"]["to"]
+            )
+            raise SystemExit(
+                f"BLOCKED: --controls {declared} is not a valid adjustment set: {why}. "
+                f"Back-door criterion suggests {rec}."
+            )
     state["counters"]["experiment"] += 1
     exp_id = f"EXP-{state['counters']['experiment']:03d}"
     exp = {
@@ -362,42 +353,12 @@ def cmd_new_experiment(args: argparse.Namespace) -> int:
         "time_budget_hours": args.hours,
         "started_at": now_iso(),
         "status": "active",
+        "claim_graph_node": args.node,
+        "controls": args.controls,
+        "expected_figure": args.figure,
     }
-    if cg and GRAPH_PATH.exists():
-        graph = cg.load_graph(GRAPH_PATH)
-        if not args.node:
-            raise SystemExit(
-                "BLOCKED: a claim graph exists, so every experiment must state which "
-                f"probe it runs (--node). Ready probes: {cg.frontier(graph) or 'none'}"
-            )
-        if args.node not in graph.get("probes", {}):
-            raise SystemExit(f"BLOCKED: {args.node} is not a probe in the claim graph.")
-        ready = cg.frontier(graph)
-        if args.node not in ready:
-            raise SystemExit(
-                f"BLOCKED: {args.node} is not on the ready frontier (ready: {ready or 'none'}). "
-                "Its upstream guards are unmet, so its result would not be interpretable."
-            )
-        probe = graph["probes"][args.node]
-        if graph.get("graph_type") == "causal" and probe.get("tests", {}).get("kind") == "edge":
-            declared = [c.strip() for c in args.controls.split(",") if c.strip()]
-            ok, why = cg.verify_adjustment(
-                cg.edge_list(graph), probe["tests"]["from"], probe["tests"]["to"], declared
-            )
-            if not ok:
-                rec, _ = cg.recommend_adjustment(
-                    graph, probe["tests"]["from"], probe["tests"]["to"]
-                )
-                raise SystemExit(
-                    f"BLOCKED: --controls {declared} is not a valid adjustment set: {why}. "
-                    f"Back-door criterion suggests {rec}."
-                )
-        exp["claim_graph_node"] = args.node
-        exp["controls"] = args.controls
-        exp["expected_figure"] = args.figure
-
     state["active_experiment"] = exp
-    append_history(state, "experiment_started", exp)
+    append_event(state, "experiment_started", exp)
     save_state(state)
     path = write_log(
         f"{exp_id}.md",
@@ -406,6 +367,10 @@ def cmd_new_experiment(args: argparse.Namespace) -> int:
 ## Frozen sprint claim
 
 {state['sprint']['claim']}
+
+## Claim-graph probe
+
+{args.node} (guards: {probe.get('guards_in', []) or 'none'})
 
 ## Research question
 
@@ -444,7 +409,7 @@ Pending.
 Pending.
 """,
     )
-    print(f"Experiment opened: {exp_id}. Card: {rel(path)}")
+    print(f"Experiment opened: {exp_id} on probe {args.node}. Card: {rel(path)}")
     return 0
 
 
@@ -483,25 +448,24 @@ def cmd_close_experiment(args: argparse.Namespace) -> int:
     record["defect"] = args.defect
 
     node = exp.get("claim_graph_node")
-    if cg and node and GRAPH_PATH.exists():
-        outcome = args.outcome or {
-            "supported": "positive", "falsified": "negative",
-            "inconclusive": "unresolved", "terminated": "unresolved",
-        }[args.decision]
-        graph = cg.load_graph(GRAPH_PATH)
-        graph["probes"][node]["outcome"] = outcome
-        graph["probes"][node]["experiment_id"] = exp["id"]
-        graph["probes"][node]["defect"] = args.defect
-        cg.save_graph(graph, GRAPH_PATH)
-        proposal = cg.propose_decision(graph)
-        print(f"Claim-graph node {node} set to {outcome}.")
-        if proposal["status"] == "determined":
-            print(f"Resolution map determines: {proposal['then']}"
-                  + (f" (rung: {proposal['rung']})" if proposal.get("rung") else ""))
-        else:
-            print(f"Line still open. Ready next: {proposal['frontier'] or 'none'}")
+    graph = load_graph_or_exit()
+    outcome = args.outcome or {
+        "supported": "positive", "falsified": "negative",
+        "inconclusive": "unresolved", "terminated": "unresolved",
+    }[args.decision]
+    graph["probes"][node]["outcome"] = outcome
+    graph["probes"][node]["experiment_id"] = exp["id"]
+    graph["probes"][node]["defect"] = args.defect
+    cg.save_graph(graph, GRAPH_PATH)
+    proposal = cg.propose_decision(graph)
+    print(f"Claim-graph node {node} set to {outcome}.")
+    if proposal["status"] == "determined":
+        print(f"Resolution map determines: {proposal['then']}"
+              + (f" (rung: {proposal['rung']})" if proposal.get("rung") else ""))
+    else:
+        print(f"Line still open. Ready next: {proposal['frontier'] or 'none'}")
 
-    append_history(state, "experiment_closed", record)
+    append_event(state, "experiment_closed", record)
     state["active_experiment"] = None
     save_state(state)
     path = LOG_DIR / f"{args.id}.md"
@@ -540,7 +504,7 @@ def cmd_add_idea(args: argparse.Namespace) -> int:
         "revisit": args.revisit or "",
         "created_at": now_iso(),
     }
-    append_history(state, "idea_backlogged", record)
+    append_event(state, "idea_backlogged", record)
     save_state(state)
     path = write_log(
         f"{idea_id}.md",
@@ -579,20 +543,22 @@ def guard_messages(state: dict[str, Any]) -> tuple[list[str], list[str]]:
                 warnings.append("Sprint deadline has passed; close or explicitly revise it.")
         except Exception:
             warnings.append("Sprint end date could not be parsed.")
-    day = state.get("day")
-    if day and day.get("date") != today_str():
-        warnings.append("An old daily session remains open.")
-    exp = state.get("active_experiment")
-    if exp and not exp.get("kill_criterion"):
-        blocks.append("Active experiment has no kill criterion.")
-    if exp and not exp.get("expected_artifact"):
-        blocks.append("Active experiment has no expected artifact.")
 
-    if cg and GRAPH_PATH.exists():
+    if not GRAPH_PATH.exists():
+        blocks.append(
+            f"No claim graph at {rel(GRAPH_PATH)}. The claim graph is the engine; run "
+            "claim_graph.py init --claim '<the claim>' and author probes before freezing a sprint."
+        )
+    else:
         graph = cg.load_graph(GRAPH_PATH)
         gblocks, gwarn = cg.validate(graph)
         blocks.extend(gblocks)
         warnings.extend(gwarn)
+        if not graph.get("probes"):
+            blocks.append(
+                "The claim graph has no probes. Author variables, edges and probes with "
+                "claim_graph.py add-variable / add-edge / add-probe before freezing a sprint."
+            )
 
         frozen = (sprint or {}).get("claim_graph", {}).get("design_hash")
         if frozen and frozen != cg.design_hash(graph):
@@ -601,10 +567,16 @@ def guard_messages(state: dict[str, Any]) -> tuple[list[str], list[str]]:
                 "pre-registration no longer matches what will be reported. Record an "
                 "amendment or close the sprint."
             )
-        if exp and exp.get("claim_graph_node"):
-            if exp["claim_graph_node"] not in cg.frontier(graph) + list(cg.outcomes_map(graph)):
+        exp = state.get("active_experiment")
+        if exp:
+            if not exp.get("kill_criterion"):
+                blocks.append("Active experiment has no kill criterion.")
+            if not exp.get("expected_artifact"):
+                blocks.append("Active experiment has no expected artifact.")
+            node = exp.get("claim_graph_node")
+            if node and node not in cg.frontier(graph) + list(cg.outcomes_map(graph)):
                 blocks.append(
-                    f"active experiment runs {exp['claim_graph_node']}, which is not on "
+                    f"active experiment runs {node}, which is not on "
                     f"the ready frontier"
                 )
         debts = cg.unpaid_debts(graph)
@@ -621,41 +593,128 @@ def guard_messages(state: dict[str, Any]) -> tuple[list[str], list[str]]:
     return blocks, warnings
 
 
+def next_events(state: dict[str, Any], graph: dict[str, Any] | None) -> list[str]:
+    """The event chain the state and the graph permit next, primary first."""
+    out: list[str] = []
+    project = state.get("project", {})
+    if not project.get("question"):
+        out.append("set-project --question '<the project question>' "
+                   "--agenda '<long-term agenda>' --minimum '<minimum completion>'")
+    if graph is None:
+        out.append("claim_graph.py init --claim '<the sprint claim>'")
+        return out
+    if not graph.get("probes"):
+        out.append("author the claim graph: claim_graph.py add-variable --id X --name '...' "
+                   "--role '<intervention|outcome|...>'  (then add-edge, add-probe, add-resolution)")
+        return out
+    sprint = state.get("sprint")
+    if not sprint:
+        out.append("start-sprint --claim '<the frozen claim>' --artifact '<required artifact>' [--days 14]")
+        return out
+    exp = state.get("active_experiment")
+    if exp:
+        out.append(
+            f"close-experiment --id {exp['id']} "
+            "--decision <supported|falsified|inconclusive|terminated> "
+            "--evidence '<artifact paths>' --conclusion '<what the evidence says>'"
+        )
+        return out
+    proposal = cg.propose_decision(graph)
+    if proposal["status"] == "determined":
+        expected = DECISION_MAP.get(proposal["then"], "<decide>")
+        out.append(f"close-sprint --decision {expected} --evidence '<paths>' --conclusion '<summary>'")
+    else:
+        ready = cg.frontier(graph)
+        if ready:
+            out.append(
+                f"new-experiment --node {ready[0]} --question '<q>' --hypothesis '<h>' "
+                "--intervention '<i>' --measurement '<m>' --kill '<kill criterion>' "
+                "--artifact '<expected artifact>' --hours <budget>"
+            )
+        else:
+            out.append(
+                "claim_graph.py frontier  # nothing is ready: the line is resolved, "
+                "blocked by unmet guards, or waiting on an amendment"
+            )
+    return out
+
+
 def cmd_guard(_: argparse.Namespace) -> int:
     state = load_state()
     blocks, warnings = guard_messages(state)
     print("RESEARCH CLOSURE GUARD")
     if state.get("sprint"):
         print(f"Frozen claim: {state['sprint']['claim']}")
-    if state.get("day"):
-        print(f"Today's deliverable: {state['day']['deliverable']}")
     if state.get("active_experiment"):
         print(f"Active experiment: {state['active_experiment']['id']}")
     for msg in warnings:
         print(f"WARNING: {msg}")
     for msg in blocks:
         print(f"BLOCK: {msg}")
+    graph = cg.load_graph(GRAPH_PATH) if GRAPH_PATH.exists() else None
+    if graph:
+        print(f"Ready frontier: {cg.frontier(graph) or 'none'}")
+    if state.get("sprint") or graph is None or not graph.get("probes"):
+        print(f"Next event: {next_events(state, graph)[0]}")
     if blocks:
         return 2
     print("PASS: work may proceed within the frozen claim.")
     return 0
 
 
+def cmd_next(_: argparse.Namespace) -> int:
+    state = load_state()
+    graph = cg.load_graph(GRAPH_PATH) if GRAPH_PATH.exists() else None
+    print("NEXT EVENTS")
+    for i, ev in enumerate(next_events(state, graph), 1):
+        print(f"  {i}. {ev}")
+    return 0
+
+
+def cmd_events(args: argparse.Namespace) -> int:
+    state = load_state()
+    events = state.get("events", [])
+    if args.json:
+        print(json.dumps(events, indent=2))
+        return 0
+    print(f"EVENT LOG ({len(events)} events)")
+    for e in events:
+        payload = json.dumps(e.get("payload", {}), ensure_ascii=False, separators=(",", ":"))
+        if len(payload) > 100:
+            payload = payload[:97] + "..."
+        print(f"  {e.get('at')}  {e.get('event')}  {payload}")
+    return 0
+
+
 def cmd_status(_: argparse.Namespace) -> int:
     state = load_state()
-    print(json.dumps({
+    out: dict[str, Any] = {
+        "version": state.get("version"),
         "mode": state.get("mode"),
         "project": state.get("project"),
         "sprint": state.get("sprint"),
-        "day": state.get("day"),
         "active_experiment": state.get("active_experiment"),
         "backlogged_ideas": state.get("counters", {}).get("idea", 0),
-    }, indent=2))
+        "events": len(state.get("events", [])),
+    }
+    if GRAPH_PATH.exists():
+        try:
+            graph = cg.load_graph(GRAPH_PATH)
+            proposal = cg.propose_decision(graph)
+            out["claim_graph"] = {
+                "design_hash": cg.design_hash(graph),
+                "ready_frontier": cg.frontier(graph),
+                "resolution": proposal["status"],
+                "then": proposal.get("then"),
+            }
+        except SystemExit as exc:
+            out["claim_graph"] = {"error": str(exc)}
+    print(json.dumps(out, indent=2))
     return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Research Closure Harness")
+    p = argparse.ArgumentParser(description="Research Closure Harness (claim-graph engine)")
     sub = p.add_subparsers(dest="command", required=True)
 
     sp = sub.add_parser("init")
@@ -678,16 +737,6 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--evidence", required=True)
     sp.add_argument("--conclusion", required=True)
     sp.set_defaults(func=cmd_close_sprint)
-
-    sp = sub.add_parser("start-day")
-    sp.add_argument("--deliverable", required=True)
-    sp.set_defaults(func=cmd_start_day)
-
-    sp = sub.add_parser("close-day")
-    sp.add_argument("--artifact", required=True)
-    sp.add_argument("--decision", required=True)
-    sp.add_argument("--allow-missing", action="store_true")
-    sp.set_defaults(func=cmd_close_day)
 
     sp = sub.add_parser("new-experiment")
     sp.add_argument("--question", required=True)
@@ -721,6 +770,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("guard")
     sp.set_defaults(func=cmd_guard)
+
+    sp = sub.add_parser("next", help="show the next events the harness expects")
+    sp.set_defaults(func=cmd_next)
+
+    sp = sub.add_parser("events", help="show the event log")
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_events)
 
     sp = sub.add_parser("status")
     sp.set_defaults(func=cmd_status)

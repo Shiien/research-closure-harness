@@ -41,7 +41,29 @@ python tools/research_closure.py set-project \
   --minimum "A self-contained technical chapter with one formal separation and one validated diagnostic."
 ```
 
-## 3. Start only the first sprint
+## 3. Author the claim graph (the engine)
+
+```bash
+python tools/claim_graph.py init --claim "Under controlled excitation, a conditioning quantity predicts affine representation recovery more reliably than predictive loss."
+python tools/claim_graph.py add-variable --id E --name "behaviour-policy excitation" --role intervention
+python tools/claim_graph.py add-variable --id K --name "log condition number" --role candidate_predictor
+python tools/claim_graph.py add-variable --id L --name "predictive loss" --role rival_predictor
+python tools/claim_graph.py add-variable --id R --name "affine recovery error" --role outcome
+python tools/claim_graph.py add-edge --from E --to K
+python tools/claim_graph.py add-edge --from E --to L
+python tools/claim_graph.py add-edge --from K --to R
+python tools/claim_graph.py add-absent --from L --to R --justification "Predictive loss is a downstream symptom of excitation, not an independent cause of recovery error."
+python tools/claim_graph.py add-probe --id P1 --tests '{"kind":"edge","from":"K","to":"R"}' --metric "spearman_rho(log_cond, recovery_error)" --prereg "rho > 0.5 over 30 instances x 5 seeds" --controls E
+python tools/claim_graph.py add-probe --id P2 --tests '{"kind":"independence","x":"L","y":"R","given":["E"]}' --metric "partial_spearman(L, R | E)" --prereg "|partial rho| < 0.2" --controls E --guards "P1==positive"
+python tools/claim_graph.py add-probe --id P3 --tests '{"kind":"comparison","stronger":"K","weaker":"L","on":"R"}' --metric "held-out predictive R2, K vs L" --prereg "K beats L on >= 4 of 5 seeds" --controls E --guards "P1==positive,P2==positive"
+python tools/claim_graph.py add-resolution --when '{"P1":"negative"}' --then falsified --skip P2,P3 --note "If conditioning does not track recovery at all, the comparison is moot."
+python tools/claim_graph.py add-resolution --when '{"P1":"positive","P2":"positive","P3":"positive"}' --then supported
+python tools/claim_graph.py validate
+```
+
+Each `add-*` command validates before saving, so an invalid design never sticks.
+
+## 4. Freeze the sprint
 
 ```bash
 python tools/research_closure.py start-sprint \
@@ -50,29 +72,35 @@ python tools/research_closure.py start-sprint \
   --artifact "A four-page note, results.csv, and one three-panel main figure."
 ```
 
-## 4. Create today's deliverable
-
-```bash
-python tools/research_closure.py start-day \
-  --deliverable "Make the current recovery experiment reproducible and produce the first scatter plot."
-```
-
 ## 5. Ask Codex or Claude Code
 
 ```text
 Read AGENTS.md/CLAUDE.md and the current .research state.
-Run the closure guard.
-Help me complete today's single deliverable.
+Run the closure guard, the probe frontier, and the next-event command.
+Help me complete the next event the harness expects.
 Do not introduce a new research direction or method family.
 At the end, identify the artifact, evidence, decision, and next smallest action.
 ```
 
-## 6. End the day even when the result is negative
+## 6. Close the experiment even when the result is negative
 
 ```bash
-python tools/research_closure.py close-day \
-  --artifact "results/pilot.csv,figures/pilot.pdf" \
-  --decision "The estimator is too noisy at current sample size; keep the claim and repair only the estimator."
+python tools/research_closure.py close-experiment \
+  --id EXP-001 \
+  --decision supported \
+  --evidence "results/pilot.csv,figures/pilot.pdf" \
+  --conclusion "The estimator tracks recovery within the tested excitation range."
 ```
 
-The first goal is not to feel organized. The first goal is to complete one full claim–test–decision cycle.
+```bash
+python tools/research_closure.py close-experiment \
+  --id EXP-001 \
+  --decision inconclusive \
+  --defect measurement \
+  --evidence "results/pilot.csv" \
+  --conclusion "The estimator is too noisy at current sample size; keep the claim and repair only the estimator."
+```
+
+The first goal is not to feel organized. The first goal is to complete one full
+claim–test–decision cycle. The harness is event-driven: `next` always tells you
+what it expects next, and `events` shows the log.
