@@ -908,11 +908,28 @@ const EDGE_STYLE = {
   "guard":       { stroke:"#7dd3fc", width:1.4, dash:"2 4", marker:"arr-guard" }
 };
 const MARKERS = [
-  ['arr-edge', "#64748b"], ['arr-theory', "#a78bfa"],
-  ['arr-absent', "#ef4444"], ['arr-guard', "#7dd3fc"]
-].map(p => '<marker id="' + p[0] + '" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="' + p[1] + '"/></marker>').join("");
+  ["arr-edge", "#64748b"], ["arr-theory", "#a78bfa"],
+  ["arr-absent", "#ef4444"], ["arr-guard", "#7dd3fc"]
+];
 
+const SVGNS = "http://www.w3.org/2000/svg";
 const svg = $("dag");
+function svgEl(tag, attrs) {
+  const el = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+function svgText(x, y, content, attrs) {
+  const t = svgEl("text", Object.assign({
+    x: x, y: y, "text-anchor": "middle", "dominant-baseline": "central",
+    fill: "#e2e8f0", "font-size": "13", "font-weight": "600"
+  }, attrs || {}));
+  t.textContent = content;
+  return t;
+}
+function clearNode(node) {
+  while (node.firstChild) node.removeChild(node.firstChild);
+}
 function edgePath(e) {
   const a = layout.byId[e.a], b = layout.byId[e.b];
   if (!a || !b) return "";
@@ -920,26 +937,11 @@ function edgePath(e) {
   const dx = (x2 - x1) * 0.35;
   return "M" + x1 + "," + y1 + " C" + (x1 + dx) + "," + y1 + " " + (x2 - dx) + "," + y2 + " " + x2 + "," + y2;
 }
-function nodeSvg(n) {
-  if (n.kind === "theory")
-    return '<rect x="' + n.x + '" y="' + n.y + '" width="' + n.w + '" height="' + n.h + '" rx="9" fill="#2e1065" stroke="#a78bfa" stroke-width="1.5"/>' + nodeText(n);
-  if (n.kind === "variable") {
-    if (n.latent)
-      return '<ellipse cx="' + (n.x + n.w / 2) + '" cy="' + (n.y + n.h / 2) + '" rx="' + n.w / 2 + '" ry="' + n.h / 2 + '" fill="#1e293b" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5 3"/>' + nodeText(n);
-    return '<rect x="' + n.x + '" y="' + n.y + '" width="' + n.w + '" height="' + n.h + '" rx="7" fill="#082f49" stroke="#38bdf8" stroke-width="1.5"/>' + nodeText(n);
-  }
-  const st = ST[n.status] || ST.waiting;
-  const badge = st.badge ? '<text x="' + (n.x + n.w - 8) + '" y="' + (n.y + 10) + '" text-anchor="end" font-size="9" fill="#7dd3fc" font-weight="700">' + esc(st.badge) + '</text>' : "";
-  return '<rect x="' + n.x + '" y="' + n.y + '" width="' + n.w + '" height="' + n.h + '" rx="10" fill="' + st.fill + '" stroke="' + st.stroke + '" stroke-width="2"/>' + nodeText(n) + badge;
-}
-function nodeText(n) {
-  return '<text x="' + (n.x + n.w / 2) + '" y="' + (n.y + n.h / 2) + '" text-anchor="middle" dominant-baseline="central" fill="#e2e8f0" font-size="13" font-weight="600">' + esc(n.label) + '</text>';
-}
 
 function renderDag() {
   const empty = $("dag-empty");
   if (!G || !layout.nodes.length) {
-    svg.innerHTML = "";
+    clearNode(svg);
     const noGraph = !G;
     const title = noGraph
       ? "No claim graph in this repository yet"
@@ -960,20 +962,72 @@ function renderDag() {
   let W = 0, H = 0;
   for (const n of layout.nodes) { W = Math.max(W, n.x + n.w); H = Math.max(H, n.y + n.h); }
   W += 40; H += 50;
-  let parts = ['<defs>' + MARKERS + '</defs>'];
+  clearNode(svg);
+
+  const defs = svgEl("defs", {});
+  for (const mk of MARKERS) {
+    const marker = svgEl("marker", {
+      id: mk[0], viewBox: "0 0 10 10", refX: "9", refY: "5",
+      markerWidth: "7", markerHeight: "7", orient: "auto-start-reverse",
+    });
+    marker.appendChild(svgEl("path", { d: "M0,0L10,5L0,10z", fill: mk[1] }));
+    defs.appendChild(marker);
+  }
+  svg.appendChild(defs);
+
+  const viewport = svgEl("g", { id: "viewport" });
+  svg.appendChild(viewport);
+
   for (const e of layout.edges) {
     const st = EDGE_STYLE[e.kind];
-    const cls = e.kind === "absent" ? ' stroke-dasharray="' + st.dash + '"' : (st.dash ? ' stroke-dasharray="' + st.dash + '"' : "");
-    parts.push('<path d="' + edgePath(e) + '" fill="none" stroke="' + st.stroke + '" stroke-width="' + st.width + '" marker-end="url(#' + st.marker + ')"' + cls + ' data-edge="1" data-kind="' + e.kind + '" data-detail="' + esc(e.detail || e.label || "") + '"/>');
+    const path = svgEl("path", {
+      d: edgePath(e), fill: "none", stroke: st.stroke,
+      "stroke-width": st.width, "marker-end": "url(#" + st.marker + ")",
+    });
+    if (st.dash) path.setAttribute("stroke-dasharray", st.dash);
+    path.setAttribute("data-edge", "1");
+    path.setAttribute("data-kind", e.kind);
+    path.setAttribute("data-detail", e.detail || e.label || "");
+    viewport.appendChild(path);
     if (e.kind === "absent") {
       const a = layout.byId[e.a], b = layout.byId[e.b];
-      parts.push('<text x="' + ((a.x + a.w + b.x) / 2) + '" y="' + ((a.y + b.y + b.h) / 2) + '" text-anchor="middle" font-size="13" fill="#f87171" font-weight="700">&#10007;</text>');
+      viewport.appendChild(svgText((a.x + a.w + b.x) / 2, (a.y + b.y + b.h) / 2, "\u2717",
+        { "font-size": "13", fill: "#f87171", "font-weight": "700" }));
     }
   }
-  for (const n of layout.nodes)
-    parts.push('<g data-node="' + n.id + '" data-kind="' + n.kind + '" data-detail="' + esc(n.detail) + '" data-probe="' + (n.kind === "probe" ? n.id : "") + '">' + nodeSvg(n) + '</g>');
-  parts.push('<text x="20" y="' + (H - 16) + '" font-size="11" fill="#64748b">theory (M) → variables/edges (observed solid · latent dashed · ✗ assumed absent) → probes (P)</text>');
-  svg.innerHTML = parts.join("");
+  for (const n of layout.nodes) {
+    const g = svgEl("g", {});
+    g.setAttribute("data-node", n.id);
+    g.setAttribute("data-kind", n.kind);
+    g.setAttribute("data-detail", n.detail);
+    g.setAttribute("data-probe", n.kind === "probe" ? n.id : "");
+    if (n.kind === "theory") {
+      g.appendChild(svgEl("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 9,
+        fill: "#2e1065", stroke: "#a78bfa", "stroke-width": 1.5 }));
+    } else if (n.kind === "variable") {
+      if (n.latent) {
+        g.appendChild(svgEl("ellipse", { cx: n.x + n.w / 2, cy: n.y + n.h / 2,
+          rx: n.w / 2, ry: n.h / 2, fill: "#1e293b", stroke: "#64748b",
+          "stroke-width": 1.5, "stroke-dasharray": "5 3" }));
+      } else {
+        g.appendChild(svgEl("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 7,
+          fill: "#082f49", stroke: "#38bdf8", "stroke-width": 1.5 }));
+      }
+    } else {
+      const st = ST[n.status] || ST.waiting;
+      g.appendChild(svgEl("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 10,
+        fill: st.fill, stroke: st.stroke, "stroke-width": 2 }));
+      if (st.badge) {
+        g.appendChild(svgText(n.x + n.w - 8, n.y + 10, st.badge,
+          { "text-anchor": "end", "font-size": "9", fill: "#7dd3fc", "font-weight": "700" }));
+      }
+    }
+    g.appendChild(svgText(n.x + n.w / 2, n.y + n.h / 2, n.label));
+    viewport.appendChild(g);
+  }
+  viewport.appendChild(svgText(20, H - 16,
+    "theory (M) \u2192 variables/edges (observed solid \u00b7 latent dashed \u00b7 \u2717 assumed absent) \u2192 probes (P)",
+    { "text-anchor": "start", "dominant-baseline": "auto", "font-size": "11", fill: "#64748b" }));
   svg.setAttribute("viewBox", "0 0 " + W + " " + H);
 
   const g = svg.querySelectorAll("g[data-node]"), epaths = svg.querySelectorAll("path[data-edge]");
@@ -997,9 +1051,10 @@ function renderDag() {
     p.addEventListener("mouseleave", hideTip);
   }
 
-  /* pan + zoom */
+  /* pan + zoom: transform the inner viewport group (the root <svg> element
+     cannot carry a transform attribute — the old code silently did nothing) */
   let drag = null, scale = 1, tx = 0, ty = 0;
-  const apply = () => { svg.setAttribute("transform", "translate(" + tx + "," + ty + ") scale(" + scale + ")"); };
+  const apply = () => viewport.setAttribute("transform", "translate(" + tx + "," + ty + ") scale(" + scale + ")");
   svg.onmousedown = (ev) => { drag = { x: ev.clientX, y: ev.clientY, tx: tx, ty: ty }; svg.classList.add("dragging"); };
   window.onmousemove = (ev) => {
     if (!drag) return;
