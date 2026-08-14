@@ -330,7 +330,7 @@ def cmd_timeline(args: argparse.Namespace) -> int:
         sys.path.insert(0, str(TOOLS))
     import research_closure as rc  # reuse the dashboard renderer
 
-    snapshots: list[tuple[str, str, str]] = []  # (label, dashboard html, mark)
+    snapshots: list[tuple[str, dict[str, Any], str]] = []  # (label, payload, mark)
 
     def snapshot(label: str) -> None:
         state = json.loads(
@@ -345,7 +345,7 @@ def cmd_timeline(args: argparse.Namespace) -> int:
             mark = "nodes"
         else:
             mark = "empty"
-        snapshots.append((label, rc.render_dashboard(payload), mark))
+        snapshots.append((label, payload, mark))
 
     snapshot("init")
     for i, step in enumerate(steps, 1):
@@ -358,43 +358,34 @@ def cmd_timeline(args: argparse.Namespace) -> int:
         label = step.get("note") or f"{step['cli']} {step['cmd']}"
         snapshot(f"{i}. {label}")
 
-    html = build_timeline_html(script, snapshots)
+    # One self-contained page: the dashboard is mounted N times via
+    # initDashboard(container, payload) — no iframes at all, so no frame
+    # loading differences between standalone and replay.
+    html = build_timeline_html(script, snapshots, rc.DASHBOARD_CSS, rc.DASHBOARD_JS)
     target = Path(args.out).expanduser().resolve()
-    # Frames are written as separate files and loaded via <iframe src=>: the
-    # most reliable mechanism in every browser (srcdoc was not dependable).
-    frames_dir = target.parent / (target.stem + "_frames")
-    frames_dir.mkdir(parents=True, exist_ok=True)
-    for stale in frames_dir.glob("frame_*.html"):
-        stale.unlink()
-    for i, (_, body, _) in enumerate(snapshots):
-        (frames_dir / f"frame_{i:03d}.html").write_text(body, encoding="utf-8")
-    html = build_timeline_html(script, snapshots, target.name, frames_dir.name)
     target.write_text(html, encoding="utf-8")
-    print(f"Timeline written: {target} ({len(snapshots)} snapshots)")
-    print(f"Frames: {frames_dir} (frame_000.html ... frame_{len(snapshots) - 1:03d}.html)")
+    print(f"Timeline written: {target} ({len(snapshots)} snapshots, single page)")
     if not args.no_open:
         webbrowser.open(target.resolve().as_uri())
     return 0
 
 
 def build_timeline_html(script: dict[str, Any],
-                        snapshots: list[tuple[str, str, str]],
-                        page_name: str = "replay.html",
-                        frames_dir: str = "replay_frames") -> str:
+                        snapshots: list[tuple[str, dict[str, Any], str]],
+                        dashboard_css: str,
+                        dashboard_js: str) -> str:
     name = script.get("name", "research replay")
+    payloads = json.dumps([p for _, p, _ in snapshots],
+                          ensure_ascii=False).replace("</", "<\\/")
     labels = json.dumps([lbl for lbl, _, _ in snapshots], ensure_ascii=False)
     marks = json.dumps([m for _, _, m in snapshots])
-    stages = []
-    for i, (_, _, _) in enumerate(snapshots):
-        stages.append(
-            f'<div class="stage" data-i="{i}">'
-            f'<iframe src="{frames_dir}/frame_{i:03d}.html"></iframe></div>')
     return f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <title>Research Replay: {htmlmod.escape(name)}</title>
 <style>
+{dashboard_css}
 :root{{--bg:#0b1220;--panel:#111a2e;--line:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--blue:#38bdf8;
 --green:#22c55e;--amber:#fbbf24;--red:#f87171}}
 *{{box-sizing:border-box}}
@@ -412,8 +403,8 @@ button:hover{{background:#0c4a6e}}
 #state.none{{color:var(--muted)}}
 #state.empty{{color:var(--amber);border-color:#78350f}}
 #state.nodes{{color:#4ade80;border-color:#166534}}
-.stage{{display:none}}
-.stage iframe{{width:100%;height:calc(100vh - 66px);border:0;display:block;background:var(--bg)}}
+.stage{{display:none;height:calc(100vh - 66px);overflow:auto;background:var(--bg)}}
+.stage header{{border-top:2px solid var(--line)}}
 </style>
 </head>
 <body>
@@ -428,13 +419,22 @@ button:hover{{background:#0c4a6e}}
   <input id="slider" type="range" min="0" max="{len(snapshots) - 1}" value="0" step="1"/>
   <div id="label"></div>
 </div>
-<div id="stages">
-{chr(10).join(stages)}
-</div>
+<div id="stages"></div>
 <script>
+{dashboard_js}
+</script>
+<script>
+const PAYLOADS = {payloads};
 const labels = {labels};
 const marks = {marks};
 const STATE_TEXT = {{ none: "no claim graph yet", empty: "graph skeleton (no nodes yet)", nodes: "nodes rendered" }};
+const stagesWrap = document.getElementById("stages");
+PAYLOADS.forEach((p, i) => {{
+  const div = document.createElement("div");
+  div.className = "stage";
+  stagesWrap.appendChild(div);
+  initDashboard(div, p);
+}});
 const stages = Array.from(document.querySelectorAll(".stage"));
 const slider = document.getElementById("slider");
 const idxEl = document.getElementById("idx");

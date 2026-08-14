@@ -260,17 +260,13 @@ class TestTimeline(ReplayCase):
         self.assertIn('id="play"', html)
         self.assertIn('id="first-content"', html)
         self.assertIn('id="state"', html)
-        self.assertIn('"nodes"', html)  # per-frame graph-state marks embedded
-        # frames are separate files loaded via src (srcdoc is unreliable)
+        self.assertIn('"nodes"', html)          # per-frame graph-state marks
+        self.assertIn("const PAYLOADS", html)   # all payloads embedded
+        self.assertIn("initDashboard", html)    # dashboard mounted as a component
+        # single self-contained page: no iframes, no frames directory
+        self.assertNotIn("<iframe", html)
         self.assertNotIn("srcdoc", html)
-        self.assertIn('<iframe src="replay_frames/frame_000.html"', html)
-        frames_dir = self.base / "replay_frames"
-        self.assertEqual(
-            len(list(frames_dir.glob("frame_*.html"))),
-            len(MINIMAL_SCRIPT["steps"]) + 1)
-        # each frame file is a self-contained dashboard
-        frame0 = (frames_dir / "frame_000.html").read_text(encoding="utf-8")
-        self.assertIn("Research Closure Dashboard", frame0)
+        self.assertFalse((self.base / "replay_frames").exists())
 
 
 if __name__ == "__main__":

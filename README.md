@@ -118,7 +118,7 @@ python tools/research_replay.py export --dir /path/to/research --out /tmp/rebuil
 python tools/research_replay.py run --script /tmp/rebuild.json --out /tmp/resumed
 
 # script -> step-by-step replay with a scrubber over per-step dashboards
-# (writes replay.html plus replay_frames/frame_*.html, one dashboard per step)
+# (one self-contained page; the dashboard is mounted once per step inside it)
 python tools/research_replay.py timeline --script example/conditioning_recovery/script.json --out /tmp/replay.html
 ```
 
@@ -408,7 +408,7 @@ python tools/research_replay.py export --dir /path/to/research --out /tmp/rebuil
 python tools/research_replay.py run --script /tmp/rebuild.json --out /tmp/resumed
 
 # 脚本 -> 逐步回放：带进度条、逐帧展示每步的 dashboard
-# （生成 replay.html 和 replay_frames/frame_*.html，每步一个 dashboard）
+# （单文件自包含页面，每步的 dashboard 直接挂载在页面内）
 python tools/research_replay.py timeline --script example/conditioning_recovery/script.json --out /tmp/replay.html
 ```
 

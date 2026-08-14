@@ -694,13 +694,7 @@ def cmd_events(args: argparse.Namespace) -> int:
 
 # NOTE: raw string on purpose — the JS inside keeps its own escape sequences
 # (\n, \u2717, ...) and must not be interpreted by Python.
-DASHBOARD_HTML = r"""<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Research Closure Dashboard</title>
-<style>
+DASHBOARD_CSS = r"""
 :root{--bg:#0b1220;--panel:#111a2e;--line:#1e293b;--text:#e2e8f0;--muted:#94a3b8;
 --green:#22c55e;--red:#f87171;--amber:#fbbf24;--violet:#a78bfa;--blue:#38bdf8;}
 *{box-sizing:border-box}
@@ -753,10 +747,9 @@ footer{padding:10px 22px 18px;color:var(--muted);font-size:11.5px;line-height:1.
 .empty-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:10px}
 .empty-sub{margin-top:12px;font-size:11.5px;color:#64748b}
 .empty code{background:#0d1626;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:11px}
-</style>
-</head>
-<body>
-<header>
+"""
+
+DASHBOARD_STAGE_HTML = r"""<header>
   <h1>Research Closure Dashboard <span id="verdict-chip"></span></h1>
   <div class="meta" id="meta"></div>
   <div id="guard-banner"></div>
@@ -802,10 +795,15 @@ footer{padding:10px 22px 18px;color:var(--muted);font-size:11.5px;line-height:1.
   Generated <span id="gen-at"></span> · regenerate with <code>python tools/research_closure.py dashboard</code>
   · the design hash freezes the pre-registration; outcomes and amendments move the map.
 </footer>
-<script>
-const DATA = /*__DATA__*/;
-const G = DATA.graph, D = DATA.derived || {}, S = DATA.state || {};
-const $ = (id) => document.getElementById(id);
+"""
+
+DASHBOARD_JS = (
+    "const STAGE_HTML = " + json.dumps(DASHBOARD_STAGE_HTML, ensure_ascii=False) + ";\n"
+    + r"""
+function initDashboard(container, DATA) {
+  const G = DATA.graph, D = DATA.derived || {}, S = DATA.state || {};
+  container.innerHTML = STAGE_HTML;
+  const $ = (id) => container.querySelector("#" + id);
 const esc = (s) => { const d = document.createElement("div"); d.textContent = String(s == null ? "" : s); return d.innerHTML; };
 const fmt = (s) => s == null ? "-" : s;
 
@@ -1056,11 +1054,12 @@ function renderDag() {
   let drag = null, scale = 1, tx = 0, ty = 0;
   const apply = () => viewport.setAttribute("transform", "translate(" + tx + "," + ty + ") scale(" + scale + ")");
   svg.onmousedown = (ev) => { drag = { x: ev.clientX, y: ev.clientY, tx: tx, ty: ty }; svg.classList.add("dragging"); };
-  window.onmousemove = (ev) => {
+  const doc = container.ownerDocument;
+  doc.addEventListener("mousemove", (ev) => {
     if (!drag) return;
     tx = drag.tx + (ev.clientX - drag.x); ty = drag.ty + (ev.clientY - drag.y); apply();
-  };
-  window.onmouseup = () => { drag = null; svg.classList.remove("dragging"); };
+  });
+  doc.addEventListener("mouseup", () => { drag = null; svg.classList.remove("dragging"); });
   svg.onwheel = (ev) => {
     ev.preventDefault();
     scale = Math.min(3, Math.max(0.3, scale * (ev.deltaY < 0 ? 1.12 : 0.9)));
@@ -1144,12 +1143,24 @@ function showProbeDetail(id) {
   $("legend").innerHTML = items.map(i => "<span><i class='sw' style='background:" + i[0] + "'></i>" + i[1] + "</span>").join("");
 })();
 
-$("gen-at").textContent = DATA.generated_at || "";
-renderDag();
-</script>
-</body>
-</html>
+  $("gen-at").textContent = DATA.generated_at || "";
+  renderDag();
+}
 """
+)
+
+
+def render_dashboard(payload: dict[str, Any]) -> str:
+    """Assemble a standalone dashboard page from the reusable component."""
+    blob = json.dumps(payload, ensure_ascii=False, indent=1).replace("</", "<\\/")
+    return (
+        "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\"/>\n"
+        "<title>Research Closure Dashboard</title>\n<style>" + DASHBOARD_CSS +
+        "</style>\n</head>\n<body>\n<div id=\"stage\"></div>\n<script>" +
+        DASHBOARD_JS +
+        "\ninitDashboard(document.getElementById(\"stage\"), " + blob + ");\n" +
+        "</script>\n</body>\n</html>\n"
+    )
 
 
 def dashboard_payload(state: dict[str, Any], graph: dict[str, Any] | None) -> dict[str, Any]:
@@ -1180,11 +1191,6 @@ def dashboard_payload(state: dict[str, Any], graph: dict[str, Any] | None) -> di
         "derived": derived,
         "command": "python tools/research_closure.py dashboard",
     }
-
-
-def render_dashboard(payload: dict[str, Any]) -> str:
-    blob = json.dumps(payload, ensure_ascii=False, indent=1).replace("</", "<\\/")
-    return DASHBOARD_HTML.replace("/*__DATA__*/", blob)
 
 
 def cmd_dashboard(args: argparse.Namespace) -> int:
