@@ -20,7 +20,6 @@ No third-party dependencies.
 from __future__ import annotations
 
 import argparse
-import html as htmlmod
 import json
 import os
 import shutil
@@ -330,7 +329,7 @@ def cmd_timeline(args: argparse.Namespace) -> int:
         sys.path.insert(0, str(TOOLS))
     import research_closure as rc  # reuse the dashboard renderer
 
-    snapshots: list[tuple[str, dict[str, Any], str]] = []  # (label, payload, mark)
+    frames: list[tuple[str, dict[str, Any], dict[str, Any] | None]] = []
 
     def snapshot(label: str) -> None:
         state = json.loads(
@@ -338,14 +337,7 @@ def cmd_timeline(args: argparse.Namespace) -> int:
         gpath = out / ".research" / "claim_graph.json"
         graph = (json.loads(gpath.read_text(encoding="utf-8"))
                  if gpath.exists() else None)
-        payload = rc.dashboard_payload(state, graph)
-        if graph is None:
-            mark = "none"
-        elif graph.get("variables") or graph.get("probes"):
-            mark = "nodes"
-        else:
-            mark = "empty"
-        snapshots.append((label, payload, mark))
+        frames.append((label, state, graph))
 
     snapshot("init")
     for i, step in enumerate(steps, 1):
@@ -358,125 +350,16 @@ def cmd_timeline(args: argparse.Namespace) -> int:
         label = step.get("note") or f"{step['cli']} {step['cmd']}"
         snapshot(f"{i}. {label}")
 
-    # One self-contained page: the dashboard is mounted N times via
-    # initDashboard(container, payload) — no iframes at all, so no frame
-    # loading differences between standalone and replay.
-    html = build_timeline_html(script, snapshots, rc.DASHBOARD_CSS, rc.DASHBOARD_JS)
+    # One unified page: the dashboard is mounted once per frame with a
+    # scrubber, opening at the latest frame — the same page `dashboard`
+    # produces from the snapshot journal. No replay-specific mode.
+    html = rc.render_dashboard_page(script.get("name", "research"), frames)
     target = Path(args.out).expanduser().resolve()
     target.write_text(html, encoding="utf-8")
-    print(f"Timeline written: {target} ({len(snapshots)} snapshots, single page)")
+    print(f"Timeline written: {target} ({len(frames)} frames, opens at latest)")
     if not args.no_open:
         webbrowser.open(target.resolve().as_uri())
     return 0
-
-
-def build_timeline_html(script: dict[str, Any],
-                        snapshots: list[tuple[str, dict[str, Any], str]],
-                        dashboard_css: str,
-                        dashboard_js: str) -> str:
-    name = script.get("name", "research replay")
-    payloads = json.dumps([p for _, p, _ in snapshots],
-                          ensure_ascii=False).replace("</", "<\\/")
-    labels = json.dumps([lbl for lbl, _, _ in snapshots], ensure_ascii=False)
-    marks = json.dumps([m for _, _, m in snapshots])
-    return f"""<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
-<meta http-equiv="Pragma" content="no-cache"/>
-<title>Research Replay: {htmlmod.escape(name)}</title>
-<style>
-{dashboard_css}
-:root{{--bg:#0b1220;--panel:#111a2e;--line:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--blue:#38bdf8;
---green:#22c55e;--amber:#fbbf24;--red:#f87171}}
-*{{box-sizing:border-box}}
-body{{margin:0;font-family:system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text)}}
-#controls{{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;
-padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}}
-h1{{font-size:15px;margin:0 8px 0 0}}
-#idx{{font-size:12px;color:var(--muted);min-width:52px}}
-button{{background:#082f49;color:var(--blue);border:1px solid #0c4a6e;border-radius:6px;
-padding:4px 12px;font-size:12px;cursor:pointer}}
-button:hover{{background:#0c4a6e}}
-#slider{{flex:1;min-width:180px;accent-color:var(--blue)}}
-#label{{flex-basis:100%;font-size:12px;color:var(--muted)}}
-#state{{font-size:11px;font-weight:600;border-radius:99px;padding:2px 10px;border:1px solid var(--line)}}
-#state.none{{color:var(--muted)}}
-#state.empty{{color:var(--amber);border-color:#78350f}}
-#state.nodes{{color:#4ade80;border-color:#166534}}
-.stage{{display:none;height:calc(100vh - 66px);overflow:auto;background:var(--bg)}}
-.stage.active{{display:block}}
-.stage header{{border-top:2px solid var(--line)}}
-</style>
-</head>
-<body>
-<div id="controls">
-  <h1>Replay: {htmlmod.escape(name)}</h1>
-  <span id="idx">1/{len(snapshots)}</span>
-  <span id="state"></span>
-  <span id="gen-at-tl" style="font-size:11px;color:var(--muted)"></span>
-  <button id="prev">&#9664; prev</button>
-  <button id="play">&#9654; play</button>
-  <button id="next">next &#9654;</button>
-  <button id="first-content" title="jump to the first frame where the DAG has nodes">first content &#9193;</button>
-  <input id="slider" type="range" min="0" max="{len(snapshots) - 1}" value="0" step="1"/>
-  <div id="label"></div>
-</div>
-<div id="stages"></div>
-<script>
-{dashboard_js}
-</script>
-<script>
-const PAYLOADS = {payloads};
-const labels = {labels};
-const marks = {marks};
-const STATE_TEXT = {{ none: "no claim graph yet", empty: "graph skeleton (no nodes yet)", nodes: "nodes rendered" }};
-const stagesWrap = document.getElementById("stages");
-PAYLOADS.forEach((p, i) => {{
-  const div = document.createElement("div");
-  div.className = "stage";
-  stagesWrap.appendChild(div);
-  initDashboard(div, p);
-}});
-const stages = Array.from(document.querySelectorAll(".stage"));
-const slider = document.getElementById("slider");
-const idxEl = document.getElementById("idx");
-const labelEl = document.getElementById("label");
-const stateEl = document.getElementById("state");
-const genAtEl = document.getElementById("gen-at-tl");
-if (genAtEl && PAYLOADS[0] && PAYLOADS[0].generated_at) {{
-  genAtEl.textContent = "page built " + String(PAYLOADS[0].generated_at).slice(0, 19).replace("T", " ");
-}}
-let current = 0, timer = null;
-function show(i) {{
-  current = i;
-  stages.forEach((s, k) => {{ s.classList.toggle("active", k === i); }});
-  slider.value = i;
-  idxEl.textContent = (i + 1) + "/" + stages.length;
-  labelEl.textContent = labels[i] || "";
-  const mark = marks[i] || "none";
-  stateEl.textContent = STATE_TEXT[mark] || mark;
-  stateEl.className = mark;
-}}
-function play() {{
-  if (timer) {{ clearInterval(timer); timer = null; document.getElementById("play").textContent = "\\u25b6 play"; return; }}
-  document.getElementById("play").textContent = "\\u23f8 pause";
-  timer = setInterval(() => {{ show((current + 1) % stages.length); }}, 1600);
-}}
-document.getElementById("prev").onclick = () => show(Math.max(0, current - 1));
-document.getElementById("next").onclick = () => show(Math.min(stages.length - 1, current + 1));
-document.getElementById("play").onclick = play;
-slider.oninput = () => show(Number(slider.value));
-document.getElementById("first-content").onclick = () => {{
-  const i = marks.indexOf("nodes");
-  show(i >= 0 ? i : 0);
-}};
-show(0);
-</script>
-</body>
-</html>
-"""
 
 
 def build_parser() -> argparse.ArgumentParser:

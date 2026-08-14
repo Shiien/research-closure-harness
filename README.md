@@ -95,19 +95,24 @@ python tools/research_closure.py dashboard
 ```
 
 Renders `.research/dashboard.html` — a self-contained, offline HTML page with an
-interactive DAG of the claim graph — and opens it in the browser. It shows the
-theory layer (M), the observation DAG (observed/latent variables, edges,
-assumed-absent ✗), and the probes (P) colour-coded by status (READY, positive,
-negative, unresolved, skipped/waiting), with drag-pan and wheel-zoom. Hover a
-node for its pre-registration details; click a probe for its tests, metric and
-outcome. Below the graph: the resolution map with which rules currently fire,
-the guard verdict, the next events, the state table and the full event log.
-`guard` also prints the dashboard command whenever a claim graph exists.
+interactive DAG of the claim graph — and opens it in the browser, **opening at
+the latest state**. Every mutation records a snapshot checkpoint
+(`.research/snapshots/`), so the slider walks back through the research's
+history with full fidelity — there is no separate "replay mode", one view does
+both. It shows the theory layer (M), the observation DAG (observed/latent
+variables, edges, assumed-absent ✗), and the probes (P) colour-coded by status
+(READY, positive, negative, unresolved, skipped/waiting), with drag-pan and
+wheel-zoom. Hover a node for its pre-registration details; click a probe for
+its tests, metric and outcome. Below the graph: the resolution map with which
+rules currently fire, the guard verdict, the next events, the state table and
+the full event log. `guard` also prints the dashboard command whenever a claim
+graph exists.
 
 ### Research replay: half-finished research is readable and continuable
 
 `tools/research_replay.py` makes any half-finished research a first-class
-object — a script, a directory, or a scrubbable story:
+object — a script, a directory, or a scrubbable story. The replay view is the
+same page as the dashboard (opens at the latest state, scrub back manually):
 
 ```bash
 # script -> fresh research directory (any prefix is a reproducible intermediate state)
@@ -117,8 +122,8 @@ python tools/research_replay.py run --script example/minimal_handoff/script.json
 python tools/research_replay.py export --dir /path/to/research --out /tmp/rebuild.json
 python tools/research_replay.py run --script /tmp/rebuild.json --out /tmp/resumed
 
-# script -> step-by-step replay with a scrubber over per-step dashboards
-# (one self-contained page; the dashboard is mounted once per step inside it)
+# script -> step-by-step view with a scrubber over per-step dashboards
+# (the same unified page the dashboard renders from the snapshot journal)
 python tools/research_replay.py timeline --script example/conditioning_recovery/script.json --out /tmp/replay.html
 ```
 
@@ -387,12 +392,15 @@ python tools/research_closure.py dashboard
 ```
 
 生成 `.research/dashboard.html` —— 一个自包含、可离线打开的 HTML 页面，以
-交互式 DAG 展示 claim graph 并自动在浏览器中打开。它展示理论层（M）、观测
-DAG（已观测/隐变量、边、assumed-absent ✗）以及按状态着色的探针（READY、
-positive、negative、unresolved、skipped/waiting），支持拖拽平移与滚轮缩放。
-悬停节点查看预注册详情；点击探针查看其测试、指标与结果。图下方是：
-resolution map（哪些规则当前已触发）、guard 判定、下一个事件、状态表与完整
-事件日志。只要存在 claim graph，`guard` 也会打印 dashboard 命令。
+交互式 DAG 展示 claim graph 并自动在浏览器中打开，**默认展示最新状态**。
+每次变更都会在 `.research/snapshots/` 记录检查点，因此滑块可以带着完整
+保真度往回翻看研究历史——**没有单独的"回放模式"，一个视图两者兼做**。
+它展示理论层（M）、观测 DAG（已观测/隐变量、边、assumed-absent ✗）以及按
+状态着色的探针（READY、positive、negative、unresolved、skipped/waiting），
+支持拖拽平移与滚轮缩放。悬停节点查看预注册详情；点击探针查看其测试、指标
+与结果。图下方是：resolution map（哪些规则当前已触发）、guard 判定、下一
+个事件、状态表与完整事件日志。只要存在 claim graph，`guard` 也会打印
+dashboard 命令。
 
 ### Research 回放：进行到一半的研究可读、可续、可回放
 
@@ -415,8 +423,9 @@ python tools/research_replay.py timeline --script example/conditioning_recovery/
 `example/` 目录内置两个带注释的事件脚本 + 对应的物化半成品研究目录（见
 [example/README.md](example/README.md)）：`conditioning_recovery/`（sprint
 已冻结、两个探针 positive、第三个探针上有未关闭的实验）与 `minimal_handoff/`
-（最小的中途状态）。适用场景：跨会话/跨 agent 续传、迁移与备份恢复、教学与
-演示、审计——事件日志就是按时间排序的事实来源。
+（最小的中途状态）。回放视图与 dashboard 是同一个页面（默认最新、可手动回拉）。
+适用场景：跨会话/跨 agent 续传、迁移与备份恢复、教学与演示、审计——事件日志
+就是按时间排序的事实来源。
 
 开启实验：
 

@@ -429,6 +429,31 @@ class TestDashboard(RepoCase):
         self.assertIn('\\n"', html)                  # JS escapes survive Python (raw template)
         self.assertIn("Next events", html)
         self.assertIn("Resolution map", html)
+        # the dashboard is now the unified scrubbable page (snapshot journal)
+        self.assertIn("const PAYLOADS", html)
+        self.assertIn("show(stages.length - 1)", html)   # opens at latest
+        self.assertIn('id="slider"', html)
+
+    def test_snapshots_are_recorded_on_each_mutation(self):
+        self.assertOk(self.run_cli(
+            "set-project", "--question", "q", "--agenda", "a", "--minimum", "m",
+        ))
+        self.install_graph()
+        self.assertOk(self.start_sprint())
+        self.assertOk(self.new_experiment("--node", "P1", "--controls", "E"))
+        snap_dir = self.repo / ".research" / "snapshots"
+        states = sorted(snap_dir.glob("*_state.json"))
+        # init, set-project, start-sprint, new-experiment
+        self.assertGreaterEqual(len(states), 4)
+        self.assertTrue(any("project_set" in s.name for s in states))
+        self.assertTrue(any("sprint_started" in s.name for s in states))
+        self.assertTrue(any("experiment_started" in s.name for s in states))
+        # graph snapshots accompany the state snapshots once the graph exists
+        # (init/set-project predate the graph; it is copied in by the test)
+        self.assertGreaterEqual(len(list(snap_dir.glob("*_graph.json"))), 2)
+        # and the scrubber frames come from the journal
+        proc = self.assertOk(self.run_cli("dashboard", "--no-open", "--out", "dash2.html"))
+        self.assertIn("frames, opens at latest", proc.stdout)
 
     def test_dashboard_without_a_graph_is_still_rendered(self):
         proc = self.assertOk(self.run_cli("dashboard", "--no-open", "--out", "dash.html"))

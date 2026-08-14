@@ -9,13 +9,13 @@
   "sprint": {
     "claim": "Across controlled excitation levels, log condition number predicts affine recovery error more reliably than predictive loss.",
     "artifact": "A four-page note, results.csv, and one three-panel main figure.",
-    "started_at": "2026-08-14T12:09:09+08:00",
-    "ends_at": "2026-08-28T12:09:09+08:00",
+    "started_at": "2026-08-14T13:11:57+08:00",
+    "ends_at": "2026-08-28T13:11:57+08:00",
     "status": "active",
     "claim_graph": {
       "path": ".research\\claim_graph.json",
       "design_hash": "25f3db706fee8613",
-      "frozen_at": "2026-08-14T12:09:09+08:00"
+      "frozen_at": "2026-08-14T13:11:57+08:00"
     }
   },
   "active_experiment": {
@@ -27,7 +27,7 @@
     "kill_criterion": "Stop the comparative claim if K wins on fewer than 4 of 5 seeds.",
     "expected_artifact": "results/p3.csv, figures/p3.pdf",
     "time_budget_hours": 10.0,
-    "started_at": "2026-08-14T12:09:09+08:00",
+    "started_at": "2026-08-14T13:11:57+08:00",
     "status": "active",
     "claim_graph_node": "P3",
     "controls": "",
@@ -39,7 +39,7 @@
   },
   "events": [
     {
-      "at": "2026-08-14T12:09:07+08:00",
+      "at": "2026-08-14T13:11:54+08:00",
       "event": "project_set",
       "payload": {
         "question": "When can a learned representation support stable and reusable option discovery?",
@@ -48,7 +48,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:07+08:00",
+      "at": "2026-08-14T13:11:54+08:00",
       "event": "graph_init",
       "payload": {
         "claim_id": "SC-001",
@@ -58,7 +58,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:07+08:00",
+      "at": "2026-08-14T13:11:54+08:00",
       "event": "graph_variable_added",
       "payload": {
         "id": "E",
@@ -67,7 +67,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:07+08:00",
+      "at": "2026-08-14T13:11:55+08:00",
       "event": "graph_variable_added",
       "payload": {
         "id": "K",
@@ -76,7 +76,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:07+08:00",
+      "at": "2026-08-14T13:11:55+08:00",
       "event": "graph_variable_added",
       "payload": {
         "id": "L",
@@ -85,7 +85,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:07+08:00",
+      "at": "2026-08-14T13:11:55+08:00",
       "event": "graph_variable_added",
       "payload": {
         "id": "R",
@@ -94,7 +94,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:07+08:00",
+      "at": "2026-08-14T13:11:55+08:00",
       "event": "graph_edge_added",
       "payload": {
         "from": "E",
@@ -102,7 +102,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:07+08:00",
+      "at": "2026-08-14T13:11:55+08:00",
       "event": "graph_edge_added",
       "payload": {
         "from": "E",
@@ -110,7 +110,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:08+08:00",
+      "at": "2026-08-14T13:11:55+08:00",
       "event": "graph_edge_added",
       "payload": {
         "from": "K",
@@ -118,7 +118,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:08+08:00",
+      "at": "2026-08-14T13:11:55+08:00",
       "event": "graph_absent_added",
       "payload": {
         "from": "L",
@@ -126,7 +126,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:08+08:00",
+      "at": "2026-08-14T13:11:56+08:00",
       "event": "graph_probe_added",
       "payload": {
         "id": "P1",
@@ -135,7 +135,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:08+08:00",
+      "at": "2026-08-14T13:11:56+08:00",
       "event": "graph_probe_added",
       "payload": {
         "id": "P2",
@@ -146,7 +146,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:08+08:00",
+      "at": "2026-08-14T13:11:56+08:00",
       "event": "graph_probe_added",
       "payload": {
         "id": "P3",
@@ -158,7 +158,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:08+08:00",
+      "at": "2026-08-14T13:11:56+08:00",
       "event": "graph_resolution_added",
       "payload": {
         "when": {
@@ -168,7 +168,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:08+08:00",
+      "at": "2026-08-14T13:11:56+08:00",
       "event": "graph_resolution_added",
       "payload": {
         "when": {
@@ -179,7 +179,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:08+08:00",
+      "at": "2026-08-14T13:11:56+08:00",
       "event": "graph_resolution_added",
       "payload": {
         "when": {
@@ -191,7 +191,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:08+08:00",
+      "at": "2026-08-14T13:11:56+08:00",
       "event": "graph_resolution_added",
       "payload": {
         "when": {
@@ -203,34 +203,34 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:09+08:00",
+      "at": "2026-08-14T13:11:57+08:00",
       "event": "sprint_started",
       "payload": {
         "claim": "Across controlled excitation levels, log condition number predicts affine recovery error more reliably than predictive loss.",
         "artifact": "A four-page note, results.csv, and one three-panel main figure.",
-        "started_at": "2026-08-14T12:09:09+08:00",
-        "ends_at": "2026-08-28T12:09:09+08:00",
+        "started_at": "2026-08-14T13:11:57+08:00",
+        "ends_at": "2026-08-28T13:11:57+08:00",
         "status": "active",
         "claim_graph": {
           "path": ".research\\claim_graph.json",
           "design_hash": "25f3db706fee8613",
-          "frozen_at": "2026-08-14T12:09:09+08:00"
+          "frozen_at": "2026-08-14T13:11:57+08:00"
         }
       }
     },
     {
-      "at": "2026-08-14T12:09:09+08:00",
+      "at": "2026-08-14T13:11:57+08:00",
       "event": "idea_backlogged",
       "payload": {
         "id": "IDEA-001",
         "idea": "Try a variational identifiability objective for the representation.",
         "reason_not_now": "Does not test the current frozen claim; it changes the representation family.",
         "revisit": "After the current sprint closes.",
-        "created_at": "2026-08-14T12:09:09+08:00"
+        "created_at": "2026-08-14T13:11:57+08:00"
       }
     },
     {
-      "at": "2026-08-14T12:09:09+08:00",
+      "at": "2026-08-14T13:11:57+08:00",
       "event": "experiment_started",
       "payload": {
         "id": "EXP-001",
@@ -241,7 +241,7 @@
         "kill_criterion": "Stop using this quantity if correlation remains near zero across 30 instances and 5 seeds.",
         "expected_artifact": "results/p1.csv, figures/p1.pdf",
         "time_budget_hours": 8.0,
-        "started_at": "2026-08-14T12:09:09+08:00",
+        "started_at": "2026-08-14T13:11:57+08:00",
         "status": "active",
         "claim_graph_node": "P1",
         "controls": "E",
@@ -249,7 +249,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:09+08:00",
+      "at": "2026-08-14T13:11:57+08:00",
       "event": "experiment_closed",
       "payload": {
         "id": "EXP-001",
@@ -260,12 +260,12 @@
         "kill_criterion": "Stop using this quantity if correlation remains near zero across 30 instances and 5 seeds.",
         "expected_artifact": "results/p1.csv, figures/p1.pdf",
         "time_budget_hours": 8.0,
-        "started_at": "2026-08-14T12:09:09+08:00",
+        "started_at": "2026-08-14T13:11:57+08:00",
         "status": "closed",
         "claim_graph_node": "P1",
         "controls": "E",
         "expected_figure": "",
-        "closed_at": "2026-08-14T12:09:09+08:00",
+        "closed_at": "2026-08-14T13:11:57+08:00",
         "decision": "supported",
         "evidence": "results/p1.csv,figures/p1.pdf",
         "conclusion": "Conditioning tracks recovery within the tested excitation range.",
@@ -273,7 +273,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:09+08:00",
+      "at": "2026-08-14T13:11:57+08:00",
       "event": "experiment_started",
       "payload": {
         "id": "EXP-002",
@@ -284,7 +284,7 @@
         "kill_criterion": "Treat as inert if |partial rho| < 0.2 on 30 instances x 5 seeds.",
         "expected_artifact": "results/p2.csv, figures/p2.pdf",
         "time_budget_hours": 6.0,
-        "started_at": "2026-08-14T12:09:09+08:00",
+        "started_at": "2026-08-14T13:11:57+08:00",
         "status": "active",
         "claim_graph_node": "P2",
         "controls": "",
@@ -292,7 +292,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:09+08:00",
+      "at": "2026-08-14T13:11:57+08:00",
       "event": "experiment_closed",
       "payload": {
         "id": "EXP-002",
@@ -303,12 +303,12 @@
         "kill_criterion": "Treat as inert if |partial rho| < 0.2 on 30 instances x 5 seeds.",
         "expected_artifact": "results/p2.csv, figures/p2.pdf",
         "time_budget_hours": 6.0,
-        "started_at": "2026-08-14T12:09:09+08:00",
+        "started_at": "2026-08-14T13:11:57+08:00",
         "status": "closed",
         "claim_graph_node": "P2",
         "controls": "",
         "expected_figure": "",
-        "closed_at": "2026-08-14T12:09:09+08:00",
+        "closed_at": "2026-08-14T13:11:57+08:00",
         "decision": "supported",
         "evidence": "results/p2.csv,figures/p2.pdf",
         "conclusion": "Predictive loss carries no measurable signal given excitation.",
@@ -316,7 +316,7 @@
       }
     },
     {
-      "at": "2026-08-14T12:09:09+08:00",
+      "at": "2026-08-14T13:11:57+08:00",
       "event": "experiment_started",
       "payload": {
         "id": "EXP-003",
@@ -327,7 +327,7 @@
         "kill_criterion": "Stop the comparative claim if K wins on fewer than 4 of 5 seeds.",
         "expected_artifact": "results/p3.csv, figures/p3.pdf",
         "time_budget_hours": 10.0,
-        "started_at": "2026-08-14T12:09:09+08:00",
+        "started_at": "2026-08-14T13:11:57+08:00",
         "status": "active",
         "claim_graph_node": "P3",
         "controls": "",

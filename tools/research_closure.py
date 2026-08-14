@@ -19,6 +19,7 @@ import json
 import os
 import sys
 from datetime import datetime, timedelta
+from html import escape as html_escape
 from pathlib import Path
 from typing import Any
 
@@ -70,6 +71,7 @@ ROOT = discover_root()
 STATE_PATH = ROOT / ".research" / "state.json"
 LOG_DIR = ROOT / ".research" / "logs"
 GRAPH_PATH = ROOT / ".research" / "claim_graph.json"
+SNAP_DIR = ROOT / ".research" / "snapshots"
 
 
 def now_iso() -> str:
@@ -98,6 +100,73 @@ def load_state() -> dict[str, Any]:
 def save_state(state: dict[str, Any]) -> None:
     STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     STATE_PATH.write_text(json.dumps(state, indent=2) + "\n")
+    record_snapshot(state)
+
+
+def record_snapshot(state: dict[str, Any]) -> None:
+    """Checkpoint state + claim graph after a mutation.
+
+    Every mutation writes a snapshot pair into .research/snapshots/, which is
+    what lets the dashboard scrub back through the history of the research
+    with full fidelity (no reconstruction from lossy event payloads).
+    Best-effort; deduplicated against the previous snapshot.
+    """
+    try:
+        SNAP_DIR.mkdir(parents=True, exist_ok=True)
+        state_files = sorted(SNAP_DIR.glob("*_state.json"))
+        if state_files:
+            try:
+                last = json.loads(state_files[-1].read_text(encoding="utf-8"))
+            except Exception:
+                last = None
+            same_state = last == state
+            same_graph = False
+            if same_state and GRAPH_PATH.exists():
+                graph_files = sorted(SNAP_DIR.glob("*_graph.json"))
+                if graph_files:
+                    same_graph = (graph_files[-1].read_bytes()
+                                  == GRAPH_PATH.read_bytes())
+            if same_state and (not GRAPH_PATH.exists() or same_graph):
+                return
+        stamp = datetime.now().astimezone().strftime("%Y%m%d_%H%M%S")
+        seq = 0
+        while (SNAP_DIR / f"{stamp}_{seq:03d}_state.json").exists():
+            seq += 1
+        events = state.get("events") or []
+        event = (events[-1].get("event", "mutation") if events else "init")
+        base = SNAP_DIR / f"{stamp}_{seq:03d}_{event}"
+        base.with_name(base.name + "_state.json").write_text(
+            json.dumps(state, indent=2) + "\n", encoding="utf-8")
+        if GRAPH_PATH.exists():
+            base.with_name(base.name + "_graph.json").write_bytes(
+                GRAPH_PATH.read_bytes())
+    except Exception:
+        pass
+
+
+def load_snapshot_frames() -> list[tuple[str, dict[str, Any], dict[str, Any] | None]]:
+    """(label, state, graph) per snapshot, oldest first."""
+    frames: list[tuple[str, dict[str, Any], dict[str, Any] | None]] = []
+    if not SNAP_DIR.exists():
+        return frames
+    for f in sorted(SNAP_DIR.glob("*_state.json")):
+        try:
+            st = json.loads(f.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        graph = None
+        gf = f.with_name(f.name.replace("_state.json", "_graph.json"))
+        if gf.exists():
+            try:
+                graph = json.loads(gf.read_text(encoding="utf-8"))
+            except Exception:
+                graph = None
+        # filename: <date>_<time>_<seq>_<event>_state.json
+        parts = f.stem.replace("_state", "").split("_")
+        clock = f"{parts[1][:2]}:{parts[1][2:4]}:{parts[1][4:6]}" if len(parts) > 1 and len(parts[1]) >= 6 else ""
+        event = "_".join(parts[3:]) if len(parts) > 3 else "snapshot"
+        frames.append((f"{clock} {event}".strip(), st, graph))
+    return frames
 
 
 def append_event(state: dict[str, Any], event: str, payload: dict[str, Any]) -> None:
@@ -1150,19 +1219,129 @@ function showProbeDetail(id) {
 )
 
 
-def render_dashboard(payload: dict[str, Any]) -> str:
-    """Assemble a standalone dashboard page from the reusable component."""
-    blob = json.dumps(payload, ensure_ascii=False, indent=1).replace("</", "<\\/")
-    return (
-        "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\"/>\n"
-        "<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\"/>\n"
-        "<meta http-equiv=\"Pragma\" content=\"no-cache\"/>\n"
-        "<title>Research Closure Dashboard</title>\n<style>" + DASHBOARD_CSS +
-        "</style>\n</head>\n<body>\n<div id=\"stage\"></div>\n<script>" +
-        DASHBOARD_JS +
-        "\ninitDashboard(document.getElementById(\"stage\"), " + blob + ");\n" +
-        "</script>\n</body>\n</html>\n"
-    )
+def render_dashboard_page(name: str,
+                          frames: list[tuple[str, dict[str, Any], dict[str, Any] | None]]
+                          ) -> str:
+    """The unified dashboard page: one mountable dashboard per frame, a
+    scrubber to walk history, opening on the LATEST frame by default.
+
+    Used both by `dashboard` (frames from the snapshot journal + current
+    state) and by `timeline` (frames from a script) — there is no separate
+    "replay mode", just one view.
+    """
+    if not frames:
+        state = load_state()
+        graph = cg.load_graph(GRAPH_PATH) if GRAPH_PATH.exists() else None
+        frames = [("current", state, graph)]
+    labels = json.dumps([lbl for lbl, _, _ in frames], ensure_ascii=False)
+    marks = json.dumps([
+        ("none" if g is None
+         else "nodes" if (g.get("variables") or g.get("probes"))
+         else "empty")
+        for _, _, g in frames])
+    payloads = json.dumps(
+        [dashboard_payload(st, g) for _, st, g in frames],
+        ensure_ascii=False).replace("</", "<\\/")
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<title>Research Closure Dashboard</title>
+<style>
+{DASHBOARD_CSS}
+:root{{--bg:#0b1220;--panel:#111a2e;--line:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--blue:#38bdf8;
+--green:#22c55e;--amber:#fbbf24;--red:#f87171}}
+*{{box-sizing:border-box}}
+body{{margin:0;font-family:system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text)}}
+#controls{{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;
+padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}}
+h1{{font-size:15px;margin:0 8px 0 0}}
+#idx{{font-size:12px;color:var(--muted);min-width:52px}}
+button{{background:#082f49;color:var(--blue);border:1px solid #0c4a6e;border-radius:6px;
+padding:4px 12px;font-size:12px;cursor:pointer}}
+button:hover{{background:#0c4a6e}}
+#slider{{flex:1;min-width:180px;accent-color:var(--blue)}}
+#label{{flex-basis:100%;font-size:12px;color:var(--muted)}}
+#state{{font-size:11px;font-weight:600;border-radius:99px;padding:2px 10px;border:1px solid var(--line)}}
+#state.none{{color:var(--muted)}}
+#state.empty{{color:var(--amber);border-color:#78350f}}
+#state.nodes{{color:#4ade80;border-color:#166534}}
+.stage{{display:none;height:calc(100vh - 66px);overflow:auto;background:var(--bg)}}
+.stage.active{{display:block}}
+.stage header{{border-top:2px solid var(--line)}}
+</style>
+</head>
+<body>
+<div id="controls">
+  <h1>Research Dashboard {html_escape(name)}</h1>
+  <span id="idx">1/{len(frames)}</span>
+  <span id="state"></span>
+  <span id="gen-at-tl" style="font-size:11px;color:var(--muted)"></span>
+  <button id="prev">&#9664; prev</button>
+  <button id="play">&#9654; play</button>
+  <button id="next">next &#9654;</button>
+  <button id="first-content" title="jump to the first frame where the DAG has nodes">first content &#9193;</button>
+  <button id="latest" title="jump to the latest state">latest &#9195;</button>
+  <input id="slider" type="range" min="0" max="{len(frames) - 1}" value="{len(frames) - 1}" step="1"/>
+  <div id="label"></div>
+</div>
+<div id="stages"></div>
+<script>
+{DASHBOARD_JS}
+</script>
+<script>
+const PAYLOADS = {payloads};
+const labels = {labels};
+const marks = {marks};
+const STATE_TEXT = {{ none: "no claim graph yet", empty: "graph skeleton (no nodes yet)", nodes: "nodes rendered" }};
+const stagesWrap = document.getElementById("stages");
+PAYLOADS.forEach((p, i) => {{
+  const div = document.createElement("div");
+  div.className = "stage";
+  stagesWrap.appendChild(div);
+  initDashboard(div, p);
+}});
+const stages = Array.from(document.querySelectorAll(".stage"));
+const slider = document.getElementById("slider");
+const idxEl = document.getElementById("idx");
+const labelEl = document.getElementById("label");
+const stateEl = document.getElementById("state");
+const genAtEl = document.getElementById("gen-at-tl");
+if (genAtEl && PAYLOADS[PAYLOADS.length - 1] && PAYLOADS[PAYLOADS.length - 1].generated_at) {{
+  genAtEl.textContent = "latest " + String(PAYLOADS[PAYLOADS.length - 1].generated_at).slice(0, 19).replace("T", " ");
+}}
+let current = 0, timer = null;
+function show(i) {{
+  current = i;
+  stages.forEach((s, k) => {{ s.classList.toggle("active", k === i); }});
+  slider.value = i;
+  idxEl.textContent = (i + 1) + "/" + stages.length;
+  labelEl.textContent = labels[i] || "";
+  const mark = marks[i] || "none";
+  stateEl.textContent = STATE_TEXT[mark] || mark;
+  stateEl.className = mark;
+}}
+function play() {{
+  if (timer) {{ clearInterval(timer); timer = null; document.getElementById("play").textContent = "\\u25b6 play"; return; }}
+  document.getElementById("play").textContent = "\\u23f8 pause";
+  timer = setInterval(() => {{ show((current + 1) % stages.length); }}, 1600);
+}}
+document.getElementById("prev").onclick = () => show(Math.max(0, current - 1));
+document.getElementById("next").onclick = () => show(Math.min(stages.length - 1, current + 1));
+document.getElementById("play").onclick = play;
+slider.oninput = () => show(Number(slider.value));
+document.getElementById("first-content").onclick = () => {{
+  const i = marks.indexOf("nodes");
+  show(i >= 0 ? i : 0);
+}};
+document.getElementById("latest").onclick = () => show(stages.length - 1);
+show(stages.length - 1);
+</script>
+</body>
+</html>
+"""
 
 
 def dashboard_payload(state: dict[str, Any], graph: dict[str, Any] | None) -> dict[str, Any]:
@@ -1198,13 +1377,22 @@ def dashboard_payload(state: dict[str, Any], graph: dict[str, Any] | None) -> di
 def cmd_dashboard(args: argparse.Namespace) -> int:
     state = load_state()
     graph = cg.load_graph(GRAPH_PATH) if GRAPH_PATH.exists() else None
-    html = render_dashboard(dashboard_payload(state, graph))
+    # frames: snapshot journal (oldest first) + the current state, deduped
+    frames = load_snapshot_frames()
+    last = frames[-1] if frames else None
+    current_json = json.dumps(state, sort_keys=True)
+    same = (last is not None
+            and json.dumps(last[1], sort_keys=True) == current_json
+            and (last[2] == graph or (last[2] is None and graph is None)))
+    if not same:
+        frames.append(("current state", state, graph))
+    html = render_dashboard_page(ROOT.name, frames)
     out = Path(args.out).expanduser() if args.out else ROOT / ".research" / "dashboard.html"
     if not out.is_absolute():
         out = ROOT / out
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(html, encoding="utf-8")
-    print(f"Dashboard written: {rel(out)}")
+    print(f"Dashboard written: {rel(out)} ({len(frames)} frames, opens at latest)")
     if not args.no_open:
         try:
             import webbrowser

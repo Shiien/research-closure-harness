@@ -263,6 +263,9 @@ class TestTimeline(ReplayCase):
         self.assertIn('"nodes"', html)          # per-frame graph-state marks
         self.assertIn("const PAYLOADS", html)   # all payloads embedded
         self.assertIn("initDashboard", html)    # dashboard mounted as a component
+        # opens at the LATEST frame by default (scrub back manually)
+        self.assertIn("show(stages.length - 1)", html)
+        self.assertIn('id="latest"', html)
         # stage visibility must use an explicit .active class: setting
         # style.display = "" falls back to .stage{display:none} and hides
         # every frame (regression: nodes existed in the DOM but were invisible)
