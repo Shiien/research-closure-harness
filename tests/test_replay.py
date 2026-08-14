@@ -258,6 +258,9 @@ class TestTimeline(ReplayCase):
         html = html_path.read_text(encoding="utf-8")
         self.assertIn('id="slider"', html)
         self.assertIn('id="play"', html)
+        self.assertIn('id="first-content"', html)
+        self.assertIn('id="state"', html)
+        self.assertIn('"nodes"', html)  # per-frame graph-state marks embedded
         # one snapshot after init + one per step
         self.assertEqual(html.count("<iframe srcdoc="), len(MINIMAL_SCRIPT["steps"]) + 1)
 

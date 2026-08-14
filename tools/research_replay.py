@@ -330,7 +330,7 @@ def cmd_timeline(args: argparse.Namespace) -> int:
         sys.path.insert(0, str(TOOLS))
     import research_closure as rc  # reuse the dashboard renderer
 
-    snapshots: list[tuple[str, str]] = []
+    snapshots: list[tuple[str, str, str]] = []  # (label, dashboard html, mark)
 
     def snapshot(label: str) -> None:
         state = json.loads(
@@ -339,7 +339,13 @@ def cmd_timeline(args: argparse.Namespace) -> int:
         graph = (json.loads(gpath.read_text(encoding="utf-8"))
                  if gpath.exists() else None)
         payload = rc.dashboard_payload(state, graph)
-        snapshots.append((label, rc.render_dashboard(payload)))
+        if graph is None:
+            mark = "none"
+        elif graph.get("variables") or graph.get("probes"):
+            mark = "nodes"
+        else:
+            mark = "empty"
+        snapshots.append((label, rc.render_dashboard(payload), mark))
 
     snapshot("init")
     for i, step in enumerate(steps, 1):
@@ -362,11 +368,12 @@ def cmd_timeline(args: argparse.Namespace) -> int:
 
 
 def build_timeline_html(script: dict[str, Any],
-                        snapshots: list[tuple[str, str]]) -> str:
+                        snapshots: list[tuple[str, str, str]]) -> str:
     name = script.get("name", "research replay")
-    labels = json.dumps([lbl for lbl, _ in snapshots], ensure_ascii=False)
+    labels = json.dumps([lbl for lbl, _, _ in snapshots], ensure_ascii=False)
+    marks = json.dumps([m for _, _, m in snapshots])
     stages = []
-    for i, (_, body) in enumerate(snapshots):
+    for i, (_, body, _) in enumerate(snapshots):
         stages.append(
             f'<div class="stage" data-i="{i}">'
             f'<iframe srcdoc="{htmlmod.escape(body, quote=True)}"></iframe></div>')
@@ -376,7 +383,8 @@ def build_timeline_html(script: dict[str, Any],
 <meta charset="utf-8"/>
 <title>Research Replay: {htmlmod.escape(name)}</title>
 <style>
-:root{{--bg:#0b1220;--panel:#111a2e;--line:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--blue:#38bdf8}}
+:root{{--bg:#0b1220;--panel:#111a2e;--line:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--blue:#38bdf8;
+--green:#22c55e;--amber:#fbbf24;--red:#f87171}}
 *{{box-sizing:border-box}}
 body{{margin:0;font-family:system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text)}}
 #controls{{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;
@@ -388,6 +396,10 @@ padding:4px 12px;font-size:12px;cursor:pointer}}
 button:hover{{background:#0c4a6e}}
 #slider{{flex:1;min-width:180px;accent-color:var(--blue)}}
 #label{{flex-basis:100%;font-size:12px;color:var(--muted)}}
+#state{{font-size:11px;font-weight:600;border-radius:99px;padding:2px 10px;border:1px solid var(--line)}}
+#state.none{{color:var(--muted)}}
+#state.empty{{color:var(--amber);border-color:#78350f}}
+#state.nodes{{color:#4ade80;border-color:#166534}}
 .stage{{display:none}}
 .stage iframe{{width:100%;height:calc(100vh - 66px);border:0;display:block;background:var(--bg)}}
 </style>
@@ -396,9 +408,11 @@ button:hover{{background:#0c4a6e}}
 <div id="controls">
   <h1>Replay: {htmlmod.escape(name)}</h1>
   <span id="idx">1/{len(snapshots)}</span>
+  <span id="state"></span>
   <button id="prev">&#9664; prev</button>
   <button id="play">&#9654; play</button>
   <button id="next">next &#9654;</button>
+  <button id="first-content" title="jump to the first frame where the DAG has nodes">first content &#9193;</button>
   <input id="slider" type="range" min="0" max="{len(snapshots) - 1}" value="0" step="1"/>
   <div id="label"></div>
 </div>
@@ -407,10 +421,13 @@ button:hover{{background:#0c4a6e}}
 </div>
 <script>
 const labels = {labels};
+const marks = {marks};
+const STATE_TEXT = {{ none: "no claim graph yet", empty: "graph skeleton (no nodes yet)", nodes: "nodes rendered" }};
 const stages = Array.from(document.querySelectorAll(".stage"));
 const slider = document.getElementById("slider");
 const idxEl = document.getElementById("idx");
 const labelEl = document.getElementById("label");
+const stateEl = document.getElementById("state");
 let current = 0, timer = null;
 function show(i) {{
   current = i;
@@ -418,6 +435,9 @@ function show(i) {{
   slider.value = i;
   idxEl.textContent = (i + 1) + "/" + stages.length;
   labelEl.textContent = labels[i] || "";
+  const mark = marks[i] || "none";
+  stateEl.textContent = STATE_TEXT[mark] || mark;
+  stateEl.className = mark;
 }}
 function play() {{
   if (timer) {{ clearInterval(timer); timer = null; document.getElementById("play").textContent = "\\u25b6 play"; return; }}
@@ -428,6 +448,10 @@ document.getElementById("prev").onclick = () => show(Math.max(0, current - 1));
 document.getElementById("next").onclick = () => show(Math.min(stages.length - 1, current + 1));
 document.getElementById("play").onclick = play;
 slider.oninput = () => show(Number(slider.value));
+document.getElementById("first-content").onclick = () => {{
+  const i = marks.indexOf("nodes");
+  show(i >= 0 ? i : 0);
+}};
 show(0);
 </script>
 </body>
