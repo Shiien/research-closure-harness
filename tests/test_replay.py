@@ -261,8 +261,16 @@ class TestTimeline(ReplayCase):
         self.assertIn('id="first-content"', html)
         self.assertIn('id="state"', html)
         self.assertIn('"nodes"', html)  # per-frame graph-state marks embedded
-        # one snapshot after init + one per step
-        self.assertEqual(html.count("<iframe srcdoc="), len(MINIMAL_SCRIPT["steps"]) + 1)
+        # frames are separate files loaded via src (srcdoc is unreliable)
+        self.assertNotIn("srcdoc", html)
+        self.assertIn('<iframe src="replay_frames/frame_000.html"', html)
+        frames_dir = self.base / "replay_frames"
+        self.assertEqual(
+            len(list(frames_dir.glob("frame_*.html"))),
+            len(MINIMAL_SCRIPT["steps"]) + 1)
+        # each frame file is a self-contained dashboard
+        frame0 = (frames_dir / "frame_000.html").read_text(encoding="utf-8")
+        self.assertIn("Research Closure Dashboard", frame0)
 
 
 if __name__ == "__main__":

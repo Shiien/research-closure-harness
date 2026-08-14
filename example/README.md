@@ -37,8 +37,9 @@ python tools/research_replay.py run --script example/conditioning_recovery/scrip
 python tools/research_replay.py export --dir example/conditioning_recovery/research --out /tmp/rebuild.json
 python tools/research_replay.py run --script /tmp/rebuild.json --out /tmp/resumed   # continue from the copy
 
-# step-by-step replay -> scrubber HTML over per-step dashboards (open in browser)
+# step-by-step replay -> scrubber HTML + per-frame dashboards (open replay.html in a browser)
 python tools/research_replay.py timeline --script example/conditioning_recovery/script.json --out /tmp/replay.html
+# writes /tmp/replay.html plus /tmp/replay_frames/frame_000.html ... (one dashboard per step)
 ```
 
 ### How this maps to the four use cases

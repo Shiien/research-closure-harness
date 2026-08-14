@@ -717,8 +717,8 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px;padding:14p
 @media(max-width:1000px){main{grid-template-columns:1fr}}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
 .card+.card{margin-top:14px}
-#canvas-wrap{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#0d1626}
-svg#dag{display:block;width:100%;cursor:grab;touch-action:none}
+#canvas-wrap{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#0d1626;min-height:320px}
+svg#dag{display:block;width:100%;min-height:320px;cursor:grab;touch-action:none}
 svg#dag.dragging{cursor:grabbing}
 #tooltip{position:absolute;display:none;max-width:360px;background:#0f172a;border:1px solid #334155;
 border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.6;white-space:pre-wrap;

@@ -359,24 +359,36 @@ def cmd_timeline(args: argparse.Namespace) -> int:
         snapshot(f"{i}. {label}")
 
     html = build_timeline_html(script, snapshots)
-    target = Path(args.out).expanduser()
+    target = Path(args.out).expanduser().resolve()
+    # Frames are written as separate files and loaded via <iframe src=>: the
+    # most reliable mechanism in every browser (srcdoc was not dependable).
+    frames_dir = target.parent / (target.stem + "_frames")
+    frames_dir.mkdir(parents=True, exist_ok=True)
+    for stale in frames_dir.glob("frame_*.html"):
+        stale.unlink()
+    for i, (_, body, _) in enumerate(snapshots):
+        (frames_dir / f"frame_{i:03d}.html").write_text(body, encoding="utf-8")
+    html = build_timeline_html(script, snapshots, target.name, frames_dir.name)
     target.write_text(html, encoding="utf-8")
     print(f"Timeline written: {target} ({len(snapshots)} snapshots)")
+    print(f"Frames: {frames_dir} (frame_000.html ... frame_{len(snapshots) - 1:03d}.html)")
     if not args.no_open:
         webbrowser.open(target.resolve().as_uri())
     return 0
 
 
 def build_timeline_html(script: dict[str, Any],
-                        snapshots: list[tuple[str, str, str]]) -> str:
+                        snapshots: list[tuple[str, str, str]],
+                        page_name: str = "replay.html",
+                        frames_dir: str = "replay_frames") -> str:
     name = script.get("name", "research replay")
     labels = json.dumps([lbl for lbl, _, _ in snapshots], ensure_ascii=False)
     marks = json.dumps([m for _, _, m in snapshots])
     stages = []
-    for i, (_, body, _) in enumerate(snapshots):
+    for i, (_, _, _) in enumerate(snapshots):
         stages.append(
             f'<div class="stage" data-i="{i}">'
-            f'<iframe srcdoc="{htmlmod.escape(body, quote=True)}"></iframe></div>')
+            f'<iframe src="{frames_dir}/frame_{i:03d}.html"></iframe></div>')
     return f"""<!doctype html>
 <html lang="en">
 <head>
