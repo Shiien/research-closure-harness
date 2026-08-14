@@ -3,3 +3,4 @@ __pycache__/
 .research/tmp/
 .research/candidates.json
 **/.research/snapshots/
+.jsdomtest/

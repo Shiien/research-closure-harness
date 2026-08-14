@@ -451,6 +451,11 @@ class TestDashboard(RepoCase):
         # graph snapshots accompany the state snapshots once the graph exists
         # (init/set-project predate the graph; it is copied in by the test)
         self.assertGreaterEqual(len(list(snap_dir.glob("*_graph.json"))), 2)
+        # snapshots must be chronologically ordered even within one second
+        events = [f.name.split("_", 3)[3].split("_state")[0] for f in states]
+        wanted = ["init", "project_set", "sprint_started", "experiment_started"]
+        positions = [events.index(e) for e in wanted]
+        self.assertEqual(positions, sorted(positions), events)
         # and the scrubber frames come from the journal
         proc = self.assertOk(self.run_cli("dashboard", "--no-open", "--out", "dash2.html"))
         self.assertIn("frames, opens at latest", proc.stdout)

@@ -129,7 +129,9 @@ def record_snapshot(state: dict[str, Any]) -> None:
             if same_state and (not GRAPH_PATH.exists() or same_graph):
                 return
         stamp = datetime.now().astimezone().strftime("%Y%m%d_%H%M%S")
-        seq = 0
+        # globally monotonic sequence: same-second snapshots must still sort
+        # chronologically by filename, not by event name
+        seq = len(state_files)
         while (SNAP_DIR / f"{stamp}_{seq:03d}_state.json").exists():
             seq += 1
         events = state.get("events") or []
