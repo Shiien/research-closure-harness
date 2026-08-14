@@ -433,7 +433,7 @@ class TestDashboard(RepoCase):
     def test_dashboard_without_a_graph_is_still_rendered(self):
         proc = self.assertOk(self.run_cli("dashboard", "--no-open", "--out", "dash.html"))
         html = (self.repo / "dash.html").read_text(encoding="utf-8")
-        self.assertIn("No claim graph yet", html)
+        self.assertIn("No claim graph in this repository yet", html)
         self.assertIn("claim_graph.py init", html)
 
     def test_guard_mentions_the_dashboard(self):

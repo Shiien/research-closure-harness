@@ -749,6 +749,10 @@ td.mono,code{font-family:ui-monospace,Consolas,monospace;font-size:11px}
 .sw{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid #334155}
 footer{padding:10px 22px 18px;color:var(--muted);font-size:11.5px;line-height:1.7}
 .empty{color:var(--muted);font-size:12.5px;padding:26px;text-align:center}
+.empty.big{padding:44px 30px;line-height:1.9}
+.empty-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:10px}
+.empty-sub{margin-top:12px;font-size:11.5px;color:#64748b}
+.empty code{background:#0d1626;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:11px}
 </style>
 </head>
 <body>
@@ -936,7 +940,20 @@ function renderDag() {
   const empty = $("dag-empty");
   if (!G || !layout.nodes.length) {
     svg.innerHTML = "";
-    empty.innerHTML = '<div class="empty">No claim graph yet. Author it first:<br/><code>claim_graph.py init --claim "..."</code> then <code>add-variable / add-edge / add-probe / add-resolution</code>.</div>';
+    const noGraph = !G;
+    const title = noGraph
+      ? "No claim graph in this repository yet"
+      : "The claim graph exists but has no nodes yet";
+    const hint = noGraph
+      ? "The claim graph is the engine \u2014 nodes appear here once it has content.<br/>" +
+        "1. <code>claim_graph.py init --claim \"&lt;the sprint claim&gt;\"</code><br/>" +
+        "2. <code>add-variable --id X --name \"...\" --role \"...\"</code> then <code>add-edge / add-probe / add-resolution</code><br/>" +
+        "3. <code>research_closure.py start-sprint ...</code>"
+      : "The graph skeleton has no variables or probes yet.<br/>" +
+        "<code>claim_graph.py add-variable --id X --name \"...\" --role \"...\"</code> then <code>add-edge / add-probe / add-resolution</code>";
+    empty.innerHTML = '<div class="empty big"><div class="empty-title">' + title +
+      "</div>" + hint +
+      '<div class="empty-sub">Theory (M), variable and probe (P) nodes render here as soon as the claim graph has content. The exact next commands are listed in the "Next events" panel below.</div></div>';
     return;
   }
   empty.innerHTML = "";
