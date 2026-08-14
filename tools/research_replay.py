@@ -406,6 +406,7 @@ button:hover{{background:#0c4a6e}}
 #state.empty{{color:var(--amber);border-color:#78350f}}
 #state.nodes{{color:#4ade80;border-color:#166534}}
 .stage{{display:none;height:calc(100vh - 66px);overflow:auto;background:var(--bg)}}
+.stage.active{{display:block}}
 .stage header{{border-top:2px solid var(--line)}}
 </style>
 </head>
@@ -450,7 +451,7 @@ if (genAtEl && PAYLOADS[0] && PAYLOADS[0].generated_at) {{
 let current = 0, timer = null;
 function show(i) {{
   current = i;
-  stages.forEach((s, k) => {{ s.style.display = k === i ? "" : "none"; }});
+  stages.forEach((s, k) => {{ s.classList.toggle("active", k === i); }});
   slider.value = i;
   idxEl.textContent = (i + 1) + "/" + stages.length;
   labelEl.textContent = labels[i] || "";
