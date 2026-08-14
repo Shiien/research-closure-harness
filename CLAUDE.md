@@ -13,6 +13,10 @@ At the start of every session:
 6. State the frozen claim, this session's deliverable, and what is out of scope, plus
    the ready frontier and whether the resolution map is already determined.
 
+For human progress tracking, `python tools/research_closure.py dashboard` opens the
+interactive DAG view (theory → variables/edges → probes, outcomes, frontier,
+resolution map, event log).
+
 ## Hard workflow constraints
 
 - One active project question.

@@ -22,6 +22,8 @@ python tools/research_closure.py next
 
 The guard reports blocking violations; `frontier` shows which probe is ready to run; `next` shows the event the harness expects from you. If the guard reports a blocking violation, do not begin a new method, experiment family, benchmark, or research question. Help resolve the violation first.
 
+For human progress tracking, run `python tools/research_closure.py dashboard` to open the interactive DAG view (theory → variables/edges → probes, with outcomes, frontier and the resolution map).
+
 ## Non-negotiable workflow
 
 Every task must map to the current frozen claim and to a probe of the claim graph.

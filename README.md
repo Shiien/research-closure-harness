@@ -88,6 +88,22 @@ The harness is event-driven: `next` always tells you the event it expects
 (sets the project, authors the graph, freezes the sprint, opens the experiment
 on the ready probe, closes it, closes the sprint), and `events` shows the log.
 
+### Human progress tracking: the dashboard
+
+```bash
+python tools/research_closure.py dashboard
+```
+
+Renders `.research/dashboard.html` — a self-contained, offline HTML page with an
+interactive DAG of the claim graph — and opens it in the browser. It shows the
+theory layer (M), the observation DAG (observed/latent variables, edges,
+assumed-absent ✗), and the probes (P) colour-coded by status (READY, positive,
+negative, unresolved, skipped/waiting), with drag-pan and wheel-zoom. Hover a
+node for its pre-registration details; click a probe for its tests, metric and
+outcome. Below the graph: the resolution map with which rules currently fire,
+the guard verdict, the next events, the state table and the full event log.
+`guard` also prints the dashboard command whenever a claim graph exists.
+
 Open an experiment:
 
 ```bash
@@ -335,6 +351,20 @@ python tools/research_closure.py next
 Harness 是事件驱动的：`next` 始终告诉你它期待的下一个事件（设置项目、创作
 claim graph、冻结 sprint、在就绪探针上开实验、关闭实验、关闭 sprint），
 `events` 显示完整事件日志。
+
+### 人类进度追踪：dashboard
+
+```bash
+python tools/research_closure.py dashboard
+```
+
+生成 `.research/dashboard.html` —— 一个自包含、可离线打开的 HTML 页面，以
+交互式 DAG 展示 claim graph 并自动在浏览器中打开。它展示理论层（M）、观测
+DAG（已观测/隐变量、边、assumed-absent ✗）以及按状态着色的探针（READY、
+positive、negative、unresolved、skipped/waiting），支持拖拽平移与滚轮缩放。
+悬停节点查看预注册详情；点击探针查看其测试、指标与结果。图下方是：
+resolution map（哪些规则当前已触发）、guard 判定、下一个事件、状态表与完整
+事件日志。只要存在 claim graph，`guard` 也会打印 dashboard 命令。
 
 开启实验：
 

@@ -407,6 +407,42 @@ class TestGraphAuthoring(RepoCase):
         self.assertIn("undefined probe P9", proc.stderr)
 
 
+class TestDashboard(RepoCase):
+    """The interactive HTML dashboard embeds the graph, state and derived status."""
+
+    def test_dashboard_renders_the_graph_and_state(self):
+        self.assertOk(self.run_cli(
+            "set-project", "--question", "q", "--agenda", "a", "--minimum", "m",
+        ))
+        self.install_graph()
+        self.assertOk(self.start_sprint())
+        self.assertOk(self.new_experiment("--node", "P1", "--controls", "E"))
+        proc = self.assertOk(self.run_cli(
+            "dashboard", "--no-open", "--out", "dash.html",
+        ))
+        self.assertIn("Dashboard written", proc.stdout)
+        html = (self.repo / "dash.html").read_text(encoding="utf-8")
+        self.assertIn("Research Closure Dashboard", html)
+        self.assertIn("K predicts R", html)          # sprint claim embedded
+        self.assertIn('"P1": {', html)               # probe data embedded
+        self.assertIn("probeStatus", html)           # the interactive JS is present
+        self.assertIn('\\n"', html)                  # JS escapes survive Python (raw template)
+        self.assertIn("Next events", html)
+        self.assertIn("Resolution map", html)
+
+    def test_dashboard_without_a_graph_is_still_rendered(self):
+        proc = self.assertOk(self.run_cli("dashboard", "--no-open", "--out", "dash.html"))
+        html = (self.repo / "dash.html").read_text(encoding="utf-8")
+        self.assertIn("No claim graph yet", html)
+        self.assertIn("claim_graph.py init", html)
+
+    def test_guard_mentions_the_dashboard(self):
+        self.install_graph()
+        self.assertOk(self.start_sprint())
+        proc = self.assertOk(self.run_cli("guard"))
+        self.assertIn("dashboard", proc.stdout)
+
+
 class TestGraphCliRunsFromAnywhere(RepoCase):
     def test_reasoning_modes_are_explicitly_named(self):
         proc = self.assertOk(self.run_graph("reasoning"))

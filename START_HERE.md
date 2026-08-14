@@ -101,6 +101,16 @@ python tools/research_closure.py close-experiment \
   --conclusion "The estimator is too noisy at current sample size; keep the claim and repair only the estimator."
 ```
 
+## 7. Track progress visually
+
+```bash
+python tools/research_closure.py dashboard
+```
+
+Opens the interactive DAG view in the browser: theory → variables/edges →
+probes, colour-coded outcomes, the ready frontier, the resolution map and the
+event log. Re-run it any time to refresh.
+
 The first goal is not to feel organized. The first goal is to complete one full
 claim–test–decision cycle. The harness is event-driven: `next` always tells you
 what it expects next, and `events` shows the log.
