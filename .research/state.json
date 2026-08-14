@@ -552,6 +552,33 @@
           "D1"
         ]
       }
+    },
+    {
+      "at": "2026-08-14T12:54:07+08:00",
+      "event": "theory_node_added",
+      "payload": {
+        "id": "M2",
+        "provenance": "induced",
+        "supported_by": [
+          "EXP-001",
+          "EXP-002"
+        ],
+        "entails": [
+          "K->R",
+          "E->R"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-14T12:54:07+08:00",
+      "event": "selection_recorded",
+      "payload": {
+        "kind": "deduction",
+        "candidate_set_hash": "fe47d6d72ac07a00",
+        "selected": [
+          "D1"
+        ]
+      }
     }
   ],
   "limits": {

@@ -1155,6 +1155,8 @@ def render_dashboard(payload: dict[str, Any]) -> str:
     blob = json.dumps(payload, ensure_ascii=False, indent=1).replace("</", "<\\/")
     return (
         "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\"/>\n"
+        "<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\"/>\n"
+        "<meta http-equiv=\"Pragma\" content=\"no-cache\"/>\n"
         "<title>Research Closure Dashboard</title>\n<style>" + DASHBOARD_CSS +
         "</style>\n</head>\n<body>\n<div id=\"stage\"></div>\n<script>" +
         DASHBOARD_JS +

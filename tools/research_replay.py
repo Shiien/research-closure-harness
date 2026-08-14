@@ -383,6 +383,8 @@ def build_timeline_html(script: dict[str, Any],
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
 <title>Research Replay: {htmlmod.escape(name)}</title>
 <style>
 {dashboard_css}
@@ -412,6 +414,7 @@ button:hover{{background:#0c4a6e}}
   <h1>Replay: {htmlmod.escape(name)}</h1>
   <span id="idx">1/{len(snapshots)}</span>
   <span id="state"></span>
+  <span id="gen-at-tl" style="font-size:11px;color:var(--muted)"></span>
   <button id="prev">&#9664; prev</button>
   <button id="play">&#9654; play</button>
   <button id="next">next &#9654;</button>
@@ -440,6 +443,10 @@ const slider = document.getElementById("slider");
 const idxEl = document.getElementById("idx");
 const labelEl = document.getElementById("label");
 const stateEl = document.getElementById("state");
+const genAtEl = document.getElementById("gen-at-tl");
+if (genAtEl && PAYLOADS[0] && PAYLOADS[0].generated_at) {{
+  genAtEl.textContent = "page built " + String(PAYLOADS[0].generated_at).slice(0, 19).replace("T", " ");
+}}
 let current = 0, timer = null;
 function show(i) {{
   current = i;
