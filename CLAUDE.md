@@ -1,8 +1,24 @@
-# Research Closure Operating Rules
+# Self-Evolved Research Harness Operating Rules
 
-This repository is managed in **graduation-mode research closure**.
+This repository is managed in **graduation-mode research closure** and now also
+runs the **A/B Self-Evolved Research Harness**.
 
-At the start of every session:
+## Session auto-load (always)
+
+At the start of every session, before task selection:
+
+1. Run `python tools/auto_research.py ab-status`.
+2. Run `python tools/auto_research.py ab-next`.
+3. Read `.research/auto_research.json`.
+4. Declare your role:
+   - `A (fast)`: use the `/auto-research-fast` skill; draft and propose candidates.
+   - `B (slow)`: use the `/auto-research-slow` skill; critique, verify, apply, revalidate.
+5. If the session is ordinary PhD research work, also run the closure commands below.
+
+A proposes, B criticises, B hard-verifies, B applies, then B feeds the result
+back to A. `M0` is immutable and soft judgment never replaces hard verification.
+
+At the start of every research-closure session:
 
 1. Read `.research/state.json`.
 2. Read the active sprint and experiment logs in `.research/logs/`.
@@ -97,19 +113,17 @@ Close the active experiment with the CLI and let the harness compute the verdict
 `python tools/research_closure.py close-experiment ...`, then check
 `python tools/research_closure.py next` for what the harness expects next.
 
-## Auto-research substrate (this branch)
+## Auto-research operating mode
 
-When the session objective is to improve the harness itself, read
-`.research/auto_research.json` and run:
+When improving the harness itself:
 
-```bash
-python tools/auto_research.py validate
-python tools/auto_research.py status
-python tools/auto_research.py next
-```
-
-Self-modifications go through `propose -> critique -> verify -> apply`. The
-critic gate is soft judgment; only an exit-0 hard verification command or a
-syntax revalidation restores `validated` status. `M0` is immutable, and every
-self-modification decays trust and deprecates the dependency closure of the
-changed nodes. End such sessions with `python tools/auto_research.py self-test`.
+- A uses `/auto-research-fast` and `propose --track A`.
+- B uses `/auto-research-slow` and `critique --track B`, `verify --track B`,
+  `apply --track B`, or `revalidate --track B`.
+- Run `python tools/auto_research.py ab-status` before acting and
+  `python tools/auto_research.py ab-next` after each step.
+- Only an exit-0 hard verification command or a syntax revalidation restores
+  `validated` status. Applying decays trust and deprecates the dependency
+  closure of the changed nodes.
+- End self-modification sessions with `python tools/auto_research.py self-test`.
+- Never edit `.research/auto_research.json` by hand to bypass the pipeline.

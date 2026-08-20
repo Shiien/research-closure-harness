@@ -231,6 +231,35 @@ pre-existing non-L0 node, and marks the dependency closure of the changed nodes
 `--level hard --command '<reproducible command>'`. Snapshots are written to
 `.research/auto_snapshots/`; roll back with `rollback --to <n>`.
 
+### Harness auto-load and A/B roles
+
+Entering the repository automatically loads the A/B auto-research mode in all
+three harnesses:
+
+| Harness | Auto-loaded rules | Repository skills |
+|---|---|---|
+| Codex | `AGENTS.md` | `.agents/skills/auto-research-fast/`, `.agents/skills/auto-research-slow/` |
+| Claude Code | `CLAUDE.md` | `.claude/skills/auto-research-fast/`, `.claude/skills/auto-research-slow/` |
+| DeepSeek harness | `DEEPSEEK.md` (falls back to `AGENTS.md` when the harness reads that convention) | `.deepseek/skills/auto-research-fast/`, `.deepseek/skills/auto-research-slow/` |
+
+At session start every harness is instructed to run:
+
+```bash
+python tools/auto_research.py ab-status
+python tools/auto_research.py ab-next
+```
+
+The two roles are the fast and slow versions of the same auto-research process:
+
+- **A (fast)** uses `auto-research-fast` and `propose --track A`. A only
+  explores, drafts and proposes; it never applies.
+- **B (slow)** uses `auto-research-slow` and `critique --track B`,
+  `verify --track B`, `apply --track B`, or `revalidate --track B`. B owns
+  critic review, hard verification and consolidation.
+
+The loop contract is `A proposes -> B criticises -> B hard-verifies ->
+B applies -> trust decay + dependency closure -> A revises or proposes again`.
+
 ### Quick start
 
 Copy this directory into the root of a research repository, then run:
@@ -395,10 +424,16 @@ AGENTS.md                         Persistent project rules for Codex
 CLAUDE.md                         Persistent project rules for Claude Code
 SKILL.md                          Canonical skill: research-closure
 HANDOFF_SKILL.md                  Canonical skill: research-handoff
+AUTO_RESEARCH_FAST_SKILL.md       Canonical skill: auto-research A (fast)
+AUTO_RESEARCH_SLOW_SKILL.md       Canonical skill: auto-research B (slow)
 .agents/skills/research-closure/  Repository skill for Codex
 .agents/skills/research-handoff/  Repository skill for Codex
+.agents/skills/auto-research-*/  A/B self-evolution skills for Codex
 .claude/skills/research-closure/  Repository skill for Claude Code
 .claude/skills/research-handoff/  Repository skill for Claude Code
+.claude/skills/auto-research-*/  A/B self-evolution skills for Claude Code
+.deepseek/skills/auto-research-*/ A/B self-evolution skills for DeepSeek harness
+DEEPSEEK.md                       DeepSeek harness auto-loaded rules
 .research/state.json              CLI state and event log
 .research/logs/                   Sprint, experiment and decision logs
 templates/                        Research planning and decision templates
@@ -670,6 +705,34 @@ python tools/auto_research.py next
 `--level hard --command '<可复现命令>'` 重新验证节点。快照写入
 `.research/auto_snapshots/`，用 `rollback --to <n>` 回溯。
 
+### Harness 自动加载与 A/B 角色
+
+进入仓库后，三个 harness 都会自动加载 A/B auto-research 模式：
+
+| Harness | 自动加载规则 | 仓库内 skills |
+|---|---|---|
+| Codex | `AGENTS.md` | `.agents/skills/auto-research-fast/`、`.agents/skills/auto-research-slow/` |
+| Claude Code | `CLAUDE.md` | `.claude/skills/auto-research-fast/`、`.claude/skills/auto-research-slow/` |
+| DeepSeek harness | `DEEPSEEK.md`（若该 harness 读取 `AGENTS.md` 约定，则已有同样规则） | `.deepseek/skills/auto-research-fast/`、`.deepseek/skills/auto-research-slow/` |
+
+每个会话开始时，harness 被要求先运行：
+
+```bash
+python tools/auto_research.py ab-status
+python tools/auto_research.py ab-next
+```
+
+两个角色是同一 auto-research 过程的快慢版本：
+
+- **A（快速层）** 使用 `auto-research-fast` 与 `propose --track A`；只探索、
+  起草和提案，不执行 apply。
+- **B（慢速层）** 使用 `auto-research-slow` 与 `critique --track B`、
+  `verify --track B`、`apply --track B`、`revalidate --track B`；负责批评、
+  硬验证与固化。
+
+循环契约：`A 提案 -> B 批评 -> B 硬验证 -> B 应用 -> 信任衰减与依赖闭包 ->
+A 修订或重新提案`。
+
 ### 快速开始
 
 将整个目录复制到研究仓库根目录，然后执行：
@@ -828,10 +891,16 @@ AGENTS.md                         Codex 的持续项目规则
 CLAUDE.md                         Claude Code 的持续项目规则
 SKILL.md                          research-closure 技能主副本
 HANDOFF_SKILL.md                  research-handoff 技能主副本
+AUTO_RESEARCH_FAST_SKILL.md       auto-research A（快速层）技能主副本
+AUTO_RESEARCH_SLOW_SKILL.md       auto-research B（慢速层）技能主副本
 .agents/skills/research-closure/  Codex 仓库级 skill
 .agents/skills/research-handoff/  Codex 仓库级 skill
+.agents/skills/auto-research-*/  Codex 的 A/B 自进化 skill
 .claude/skills/research-closure/  Claude Code 仓库级 skill
 .claude/skills/research-handoff/  Claude Code 仓库级 skill
+.claude/skills/auto-research-*/  Claude Code 的 A/B 自进化 skill
+.deepseek/skills/auto-research-*/ DeepSeek harness 的 A/B 自进化 skill
+DEEPSEEK.md                       DeepSeek harness 自动加载规则
 .research/state.json              CLI 状态与事件日志
 .research/logs/                   Sprint、实验与决策日志
 templates/                        研究计划与决策模板

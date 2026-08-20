@@ -235,6 +235,47 @@ class TestRevalidationAndSelfTest(RepoCase):
         self.assertFalse(self.state()["last_self_test"]["passed"])
 
 
+
+class TestABTracks(RepoCase):
+    def test_proposal_records_a_track_and_ab_next_routes_to_b(self):
+        self.add_node("N1")
+        self.propose_ready_modification()
+        st = self.state()
+        self.assertEqual(st["proposals"]["P-001"]["track"], "A")
+        status = self.assertOk(self.run_auto("ab-status")).stdout
+        self.assertIn("A (fast)", status)
+        self.assertIn("P-001", status)
+        nxt = self.assertOk(self.run_auto("ab-next")).stdout
+        self.assertIn("critique --proposal P-001 --track B", nxt)
+        self.assertIn("A NEXT (fast layer)", nxt)
+        self.assertIn("B NEXT (slow layer)", nxt)
+
+    def test_critic_and_verification_record_b_track(self):
+        self.add_node("N1")
+        self.propose_ready_modification(verification=PASS_CMD)
+        self.assertOk(self.run_auto(
+            "critique", "--proposal", "P-001", "--verdict", "pass",
+            "--critic", "test-critic", "--reason", "ok",
+        ))
+        self.assertOk(self.run_auto("verify", "--proposal", "P-001"))
+        st = self.state()
+        self.assertEqual(st["proposals"]["P-001"]["critic"]["track"], "B")
+        self.assertEqual(st["proposals"]["P-001"]["verification"]["track"], "B")
+
+    def test_failed_verification_can_be_revised_by_a(self):
+        self.add_node("N1")
+        self.propose_ready_modification()
+        self.run_auto("critique", "--proposal", "P-001", "--verdict", "pass",
+                      "--critic", "test-critic", "--reason", "ok")
+        self.run_auto("verify", "--proposal", "P-001", "--command", FAIL_CMD)
+        self.assertEqual(self.state()["proposals"]["P-001"]["status"],
+                         "failed_verification")
+        self.assertOk(self.run_auto("revise", "--proposal", "P-001",
+                                    "--note", "fixed command"))
+        st = self.state()
+        self.assertEqual(st["proposals"]["P-001"]["status"], "proposed")
+        self.assertIsNone(st["proposals"]["P-001"]["verification"])
+
 class TestSnapshotsAndRollback(RepoCase):
     def test_rollback_restores_earlier_self_graph(self):
         baseline = self.state()

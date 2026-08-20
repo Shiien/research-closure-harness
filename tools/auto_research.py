@@ -49,6 +49,11 @@ PROPOSAL_STATUSES = (
 )
 CRITIC_VERDICTS = ("pass", "challenge", "reject")
 REVALIDATION_LEVELS = ("syntax", "light", "hard")
+TRACKS = ("A", "B")
+TRACK_ROLES = {
+    "A": "fast auto-research: explore, draft, propose candidates, cheap pre-checks",
+    "B": "slow auto-research: critic review, hard verification, consolidation, apply",
+}
 
 META_GOAL_ID = "M0"
 META_GOAL_STATEMENT = "Improve this system's own auto-research capability."
@@ -106,6 +111,7 @@ def skeleton(goal: str = META_GOAL_STATEMENT) -> dict[str, Any]:
         "affected_trust_decay": 0.5,
         "revalidation_threshold": 0.25,
         "self_test_command": "python3 -m unittest discover -s tests",
+        "tracks": TRACK_ROLES,
         "nodes": {
             META_GOAL_ID: {
                 "type": "assumption",
@@ -142,6 +148,7 @@ def load_state(path: Path | None = None) -> dict[str, Any]:
         ("nodes", {}),
         ("edges", []),
         ("last_self_test", None),
+        ("tracks", dict(TRACK_ROLES)),
     ):
         state.setdefault(key, default)
     return state
@@ -328,7 +335,11 @@ def validate(state: dict[str, Any]) -> tuple[list[str], list[str]]:
     for pid, prop in state.get("proposals", {}).items():
         if prop.get("status") not in PROPOSAL_STATUSES:
             blocks.append(f"proposal {pid} has invalid status {prop.get('status')!r}")
+        if prop.get("track", "A") not in TRACKS:
+            blocks.append("proposal " + pid + " has invalid track " + repr(prop.get("track")))
         critic = prop.get("critic") or {}
+        if critic.get("track", "B") not in TRACKS:
+            blocks.append("proposal " + pid + " has invalid critic track " + repr(critic.get("track")))
         verdict = critic.get("verdict")
         if verdict is not None and verdict not in CRITIC_VERDICTS:
             blocks.append(f"proposal {pid} has invalid critic verdict {verdict!r}")
@@ -591,6 +602,7 @@ def apply_modification(
     proposal_id: str,
     patch: list[dict[str, Any]],
     targets: Iterable[str],
+    track: str = "B",
 ) -> dict[str, Any]:
     blocks = validate_patch(state, patch)
     if blocks:
@@ -631,12 +643,14 @@ def apply_modification(
 
     proposal["status"] = "applied"
     proposal["applied_at"] = now_iso()
+    proposal["applied_by_track"] = track
     proposal["modification_node"] = mod_id
     proposal["affected_nodes"] = sorted(a for a in affected if a != mod_id)
     append_event(
         state,
         "modification_applied",
         {
+            "track": track,
             "proposal": proposal_id,
             "modification_node": mod_id,
             "targets": sorted(origins | changed),
@@ -742,6 +756,7 @@ def cmd_propose(args: argparse.Namespace) -> int:
     pid = next_id(state, "P", "proposal")
     proposal = {
         "id": pid,
+        "track": args.track,
         "title": args.title,
         "statement": args.statement,
         "targets": [t.strip() for t in (args.targets or "").split(",") if t.strip()],
@@ -754,7 +769,7 @@ def cmd_propose(args: argparse.Namespace) -> int:
         "proposed_at": now_iso(),
     }
     state["proposals"][pid] = proposal
-    append_event(state, "proposal_proposed", {"proposal": pid, "title": args.title})
+    append_event(state, "proposal_proposed", {"track": args.track, "proposal": pid, "title": args.title})
     save_state(state, "proposal_proposed")
     print(f"Proposed {pid}: {args.title}")
     print(f"Next: critique --proposal {pid} --verdict pass|challenge|reject "
@@ -772,6 +787,7 @@ def cmd_critique(args: argparse.Namespace) -> int:
     if not args.reason.strip():
         raise SystemExit("BLOCKED: critic reason is mandatory")
     prop["critic"] = {
+        "track": args.track,
         "verdict": args.verdict,
         "critic": args.critic,
         "reason": args.reason,
@@ -784,7 +800,7 @@ def cmd_critique(args: argparse.Namespace) -> int:
     }[args.verdict]
     append_event(
         state, "proposal_critiqued",
-        {"proposal": args.proposal, "verdict": args.verdict, "critic": args.critic},
+        {"track": args.track, "proposal": args.proposal, "verdict": args.verdict, "critic": args.critic},
     )
     save_state(state, "proposal_critiqued")
     print(f"{args.proposal}: {args.verdict} ({args.critic})")
@@ -796,11 +812,12 @@ def cmd_revise(args: argparse.Namespace) -> int:
     prop = state["proposals"].get(args.proposal)
     if not prop:
         raise SystemExit(f"Unknown proposal {args.proposal}")
-    if prop["status"] != "challenged":
-        raise SystemExit(f"BLOCKED: proposal {args.proposal} is {prop['status']}, not challenged")
+    if prop["status"] not in ("challenged", "failed_verification"):
+        raise SystemExit(f"BLOCKED: proposal {args.proposal} is {prop['status']}, not revisable")
     prop.setdefault("revisions", []).append({"note": args.note, "at": now_iso()})
     prop["status"] = "proposed"
     prop["critic"] = None
+    prop["verification"] = None
     append_event(state, "proposal_revised", {"proposal": args.proposal, "note": args.note})
     save_state(state, "proposal_revised")
     print(f"{args.proposal} re-opened for critique")
@@ -851,10 +868,11 @@ def cmd_verify(args: argparse.Namespace) -> int:
     if not command or not command.strip():
         raise SystemExit("BLOCKED: no verification command; pass --command")
     record = run_verification_command(command, args.timeout)
-    record.update({"proposal": args.proposal, "level": "hard", "command": command})
+    record.update({"track": args.track, "proposal": args.proposal, "level": "hard", "command": command})
     state.setdefault("verifications", []).append(record)
     state["counters"]["verification"] = len(state["verifications"])
     prop["verification"] = {
+        "track": args.track,
         "command": command,
         "exit_code": record["exit_code"],
         "timeout": record["timeout"],
@@ -864,7 +882,7 @@ def cmd_verify(args: argparse.Namespace) -> int:
     passed = not record.get("timeout") and record.get("exit_code") == 0
     prop["status"] = "verified" if passed else "failed_verification"
     outcome = "verified" if passed else "failed_verification"
-    append_event(state, "proposal_verified", {"proposal": args.proposal, "outcome": outcome})
+    append_event(state, "proposal_verified", {"track": args.track, "proposal": args.proposal, "outcome": outcome})
     save_state(state, "proposal_verified")
     print(f"{args.proposal}: {outcome} (exit {record['exit_code']})")
     if record["stderr_tail"]:
@@ -884,8 +902,11 @@ def cmd_apply(args: argparse.Namespace) -> int:
         )
     if not prop.get("patch"):
         raise SystemExit(f"BLOCKED: proposal {args.proposal} has no patch")
-    result = apply_modification(state, args.proposal, prop["patch"], prop.get("targets", []))
-    print(f"Applied {args.proposal} as modification node {result['modification_node']}")
+    result = apply_modification(
+        state, args.proposal, prop["patch"], prop.get("targets", []), track=args.track
+    )
+    role = "B (slow)" if args.track == "B" else "A (fast)"
+    print(f"{role} applied {args.proposal} as modification node {result['modification_node']}")
     print(f"Affected/deprecated nodes: {result['affected_nodes'] or 'none'}")
     return 0
 
@@ -898,7 +919,7 @@ def cmd_invalidate(args: argparse.Namespace) -> int:
         raise SystemExit(f"Unknown origin nodes: {missing}")
     decay_trust(state, set(state["nodes"]))
     affected = invalidate_closure(state, origins)
-    append_event(state, "nodes_invalidated", {"origins": origins, "affected": sorted(affected)})
+    append_event(state, "nodes_invalidated", {"track": args.track, "origins": origins, "affected": sorted(affected)})
     save_state(state, "nodes_invalidated")
     print(f"Invalidated: {sorted(affected) or 'none'}")
     print("Trust decayed for every non-L0 node; revalidate before reuse.")
@@ -921,6 +942,7 @@ def cmd_revalidate(args: argparse.Namespace) -> int:
         for w in warnings:
             print(f"WARNING: {w}")
         record = {
+            "track": args.track,
             "node": args.node,
             "level": "syntax",
             "command": None,
@@ -932,7 +954,7 @@ def cmd_revalidate(args: argparse.Namespace) -> int:
         if not args.command or not args.command.strip():
             raise SystemExit(f"BLOCKED: {args.level} revalidation requires --command")
         record = run_verification_command(args.command, args.timeout)
-        record.update({"node": args.node, "level": args.level, "command": args.command})
+        record.update({"track": args.track, "node": args.node, "level": args.level, "command": args.command})
         if record.get("timeout") or record.get("exit_code") != 0:
             append_event(state, "node_revalidation_failed", record)
             save_state(state, "node_revalidation_failed")
@@ -943,7 +965,7 @@ def cmd_revalidate(args: argparse.Namespace) -> int:
     node["status"] = "validated"
     node["trust"] = 1.0
     node["updated_at"] = now_iso()
-    append_event(state, "node_revalidated", {"node": args.node, "level": args.level})
+    append_event(state, "node_revalidated", {"track": args.track, "node": args.node, "level": args.level})
     save_state(state, "node_revalidated")
     print(f"{args.node}: validated (trust 1.0, level={args.level})")
     return 0
@@ -1028,7 +1050,7 @@ def cmd_status(_: argparse.Namespace) -> int:
               f"{node.get('status','?'):11s} trust={node.get('trust', 0):.2f}")
     print(f"Proposals: {len(state.get('proposals', {}))}")
     for pid, prop in sorted(state.get("proposals", {}).items()):
-        print(f"  {pid:8s} {prop.get('status','?'):18s} {prop.get('title','')[:60]}")
+        print(f"  {pid:8s} [{prop.get('track','?')}] {prop.get('status','?'):18s} {prop.get('title','')[:60]}")
     if state.get("last_self_test"):
         last = state["last_self_test"]
         print(f"Last self-test: {'PASS' if last.get('passed') else 'FAIL'} at {last.get('at')}")
@@ -1085,6 +1107,115 @@ def cmd_events(args: argparse.Namespace) -> int:
     return 0
 
 
+
+def cmd_ab_status(_: argparse.Namespace) -> int:
+    state = load_state()
+    proposals = state.get("proposals", {})
+    nodes = state.get("nodes", {})
+
+    print("A/B AUTO-RESEARCH STATUS")
+    print("A (fast): propose, explore, draft candidates, cheap pre-checks")
+    drafts = sorted(nid for nid, n in nodes.items() if n.get("status") == "draft")
+    deprecated = sorted(nid for nid, n in nodes.items() if n.get("status") == "deprecated")
+    print(f"  draft nodes      : {drafts or 'none'}")
+    print(f"  deprecated nodes : {deprecated or 'none'}")
+    a_props = [pid for pid, prop in proposals.items() if prop.get("track", "A") == "A"]
+    print(f"  A proposals      : {a_props or 'none'}")
+    for pid in a_props:
+        prop = proposals[pid]
+        print(f"    {pid:8s} {prop.get('status', '?'):18s} {prop.get('title', '')[:60]}")
+
+    print("B (slow): critic review, hard verification, consolidation, apply")
+    b_queue = sorted(
+        pid for pid, prop in proposals.items()
+        if prop.get("status") in ("proposed", "passed_critic", "verified")
+    )
+    print(f"  B queue          : {b_queue or 'none'}")
+    for pid in b_queue:
+        prop = proposals[pid]
+        action = {
+            "proposed": "critique",
+            "passed_critic": "verify",
+            "verified": "apply",
+        }[prop["status"]]
+        print(f"    {pid:8s} {prop.get('status', '?'):18s} -> {action}")
+
+    print("Loop contract")
+    print("  A proposes -> B criticises -> B hard-verifies -> B applies")
+    print("  -> trust decay + dependency closure -> A revises or opens a new candidate")
+    return 0
+
+
+def cmd_ab_next(_: argparse.Namespace) -> int:
+    state = load_state()
+    proposals = state.get("proposals", {})
+    nodes = state.get("nodes", {})
+    a_actions: list[str] = []
+    b_actions: list[str] = []
+
+    for pid, prop in sorted(proposals.items()):
+        status = prop.get("status")
+        if status == "proposed":
+            b_actions.append(
+                f"critique --proposal {pid} --track B --verdict pass|challenge|reject "
+                "--critic '<critic>' --reason '<reason>'"
+            )
+        elif status == "challenged":
+            a_actions.append(f"revise --proposal {pid} --note '<A revision>'")
+        elif status == "failed_verification":
+            a_actions.append(
+                f"revise --proposal {pid} --note '<fix verification failure>'"
+            )
+        elif status == "passed_critic":
+            b_actions.append(f"verify --proposal {pid} --track B")
+        elif status == "verified":
+            b_actions.append(f"apply --proposal {pid} --track B")
+        elif status == "rejected":
+            a_actions.append(
+                f"propose --track A --title '<new candidate>' "
+                "--statement '<why this differs from rejected {pid}>'"
+            )
+
+    if not b_actions:
+        deprecated = sorted(
+            nid for nid, n in nodes.items() if n.get("status") == "deprecated"
+        )
+        if deprecated:
+            b_actions.append(
+                f"revalidate --node {deprecated[0]} --track B --level hard "
+                "--command '<reproducible verification>'"
+            )
+
+    if not a_actions and not b_actions:
+        drafts = sorted(
+            nid for nid, n in nodes.items() if n.get("status") == "draft"
+        )
+        if drafts:
+            b_actions.append(
+                f"revalidate --node {drafts[0]} --track B --level syntax"
+            )
+        else:
+            a_actions.append(
+                "propose --track A --title '<candidate self-modification>' "
+                "--statement '<rationale>' --patch-file patch.json "
+                "--verification '<exit-0 command>'"
+            )
+            b_actions.append("self-test")
+
+    print("A NEXT (fast layer)")
+    for action in a_actions[:5]:
+        print(f"  - {action}")
+    if not a_actions:
+        print("  - (wait for B feedback)")
+
+    print("B NEXT (slow layer)")
+    for action in b_actions[:5]:
+        print(f"  - {action}")
+    if not b_actions:
+        print("  - (wait for A candidates)")
+    return 0
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -1115,7 +1246,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--kind", required=True, choices=EDGE_KINDS)
     sp.set_defaults(func=cmd_add_edge)
 
-    sp = sub.add_parser("propose", help="propose a self-modification")
+    sp = sub.add_parser("propose", help="A-track: propose a self-modification")
+    sp.add_argument("--track", choices=TRACKS, default="A",
+                    help="A = fast proposer (default); B = slow proposer")
     sp.add_argument("--title", required=True)
     sp.add_argument("--statement", required=True)
     sp.add_argument("--targets", default="", help="comma-separated target node ids")
@@ -1124,7 +1257,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--verification", help="hard verification command")
     sp.set_defaults(func=cmd_propose)
 
-    sp = sub.add_parser("critique", help="LLM critic gate (soft judgment only)")
+    sp = sub.add_parser("critique", help="B-track: LLM critic gate (soft judgment only)")
+    sp.add_argument("--track", choices=TRACKS, default="B",
+                    help="B = slow critic (default)")
     sp.add_argument("--proposal", required=True)
     sp.add_argument("--verdict", required=True, choices=CRITIC_VERDICTS)
     sp.add_argument("--critic", required=True)
@@ -1136,26 +1271,40 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--note", required=True)
     sp.set_defaults(func=cmd_revise)
 
-    sp = sub.add_parser("verify", help="run hard verification for a proposal")
+    sp = sub.add_parser("verify", help="B-track: run hard verification for a proposal")
+    sp.add_argument("--track", choices=TRACKS, default="B",
+                    help="B = slow verifier (default)")
     sp.add_argument("--proposal", required=True)
     sp.add_argument("--command", help="override the proposal verification command")
     sp.add_argument("--timeout", type=int, default=60)
     sp.set_defaults(func=cmd_verify)
 
-    sp = sub.add_parser("apply", help="apply a verified patch and invalidate dependents")
+    sp = sub.add_parser("apply", help="B-track: apply a verified patch and invalidate dependents")
+    sp.add_argument("--track", choices=TRACKS, default="B",
+                    help="B = slow applier (default)")
     sp.add_argument("--proposal", required=True)
     sp.set_defaults(func=cmd_apply)
 
     sp = sub.add_parser("invalidate", help="manually invalidate nodes and their closure")
+    sp.add_argument("--track", choices=TRACKS, default="B",
+                    help="B = slow-layer invalidation (default)")
     sp.add_argument("--origins", required=True, help="comma-separated node ids")
     sp.set_defaults(func=cmd_invalidate)
 
-    sp = sub.add_parser("revalidate", help="restore a node to validated")
+    sp = sub.add_parser("revalidate", help="B-track: restore a node to validated")
+    sp.add_argument("--track", choices=TRACKS, default="B",
+                    help="B = slow revalidator (default)")
     sp.add_argument("--node", required=True)
     sp.add_argument("--level", required=True, choices=REVALIDATION_LEVELS)
     sp.add_argument("--command", help="required for light/hard")
     sp.add_argument("--timeout", type=int, default=60)
     sp.set_defaults(func=cmd_revalidate)
+
+    sp = sub.add_parser("ab-status", help="show the A/B fast/slow queue")
+    sp.set_defaults(func=cmd_ab_status)
+
+    sp = sub.add_parser("ab-next", help="show the next A and B actions")
+    sp.set_defaults(func=cmd_ab_next)
 
     sp = sub.add_parser("self-test", help="run the configured capability self-test")
     sp.add_argument("--command", help="override the configured self-test command")

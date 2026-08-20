@@ -26,6 +26,26 @@ cd /path/to/research-repo
 research-closure-init
 ```
 
+`research-closure-init` now also copies `tools/auto_research.py`, the A/B
+skills for Codex, Claude Code and DeepSeek harness, `DEEPSEEK.md`, and the
+bootstrap `.research/auto_research.json`.
+
+## Auto-load A/B auto-research
+
+At the start of any session in this repository:
+
+```bash
+python tools/auto_research.py ab-status
+python tools/auto_research.py ab-next
+```
+
+- Codex auto-loads `AGENTS.md`.
+- Claude Code auto-loads `CLAUDE.md`.
+- DeepSeek harness auto-loads `DEEPSEEK.md` (and falls back to `AGENTS.md`
+  when it follows that convention).
+
+A (fast) proposes. B (slow) criticises, verifies, applies, and revalidates.
+
 # 30-Minute Setup
 
 ## 1. Copy this harness into the research repository
@@ -72,11 +92,13 @@ python tools/research_closure.py start-sprint \
   --artifact "A four-page note, results.csv, and one three-panel main figure."
 ```
 
-## 5. Ask Codex or Claude Code
+## 5. Ask Codex, Claude Code, or DeepSeek harness
 
 ```text
-Read AGENTS.md/CLAUDE.md and the current .research state.
-Run the closure guard, the probe frontier, and the next-event command.
+Read the auto-loaded rules (AGENTS.md / CLAUDE.md / DEEPSEEK.md).
+Run auto-research ab-status and ab-next first, then decide A or B role.
+For PhD research work, also run the closure guard, the probe frontier, and
+the next-event command.
 Help me complete the next event the harness expects.
 Do not introduce a new research direction or method family.
 At the end, identify the artifact, evidence, decision, and next smallest action.

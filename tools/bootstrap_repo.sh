@@ -63,8 +63,14 @@ mkdir -p \
   "$TARGET/.research/logs" \
   "$TARGET/.agents/skills/research-closure" \
   "$TARGET/.agents/skills/research-handoff" \
+  "$TARGET/.agents/skills/auto-research-fast" \
+  "$TARGET/.agents/skills/auto-research-slow" \
   "$TARGET/.claude/skills/research-closure" \
   "$TARGET/.claude/skills/research-handoff" \
+  "$TARGET/.claude/skills/auto-research-fast" \
+  "$TARGET/.claude/skills/auto-research-slow" \
+  "$TARGET/.deepseek/skills/auto-research-fast" \
+  "$TARGET/.deepseek/skills/auto-research-slow" \
   "$TARGET/.claude/hooks"
 
 cp "$SOURCE_ROOT/tools/research_closure.py" "$TARGET/tools/research_closure.py"
@@ -73,6 +79,8 @@ cp "$SOURCE_ROOT/tools/claim_graph.py" "$TARGET/tools/claim_graph.py"
 chmod +x "$TARGET/tools/claim_graph.py"
 cp "$SOURCE_ROOT/tools/research_replay.py" "$TARGET/tools/research_replay.py"
 chmod +x "$TARGET/tools/research_replay.py"
+cp "$SOURCE_ROOT/tools/auto_research.py" "$TARGET/tools/auto_research.py"
+chmod +x "$TARGET/tools/auto_research.py"
 cp -R "$SOURCE_ROOT/templates/." "$TARGET/templates/"
 cp "$SOURCE_ROOT/docs/protocol.md" "$TARGET/docs/research_closure_protocol.md"
 cp "$SOURCE_ROOT/docs/claim_graph_protocol.md" \
@@ -89,22 +97,45 @@ cp "$SOURCE_ROOT/.claude/hooks/closure_guard.py" \
    "$TARGET/.claude/hooks/research_closure_guard.py"
 chmod +x "$TARGET/.claude/hooks/research_closure_guard.py"
 
+cp "$SOURCE_ROOT/AUTO_RESEARCH_FAST_SKILL.md" \
+   "$TARGET/.agents/skills/auto-research-fast/SKILL.md"
+cp "$SOURCE_ROOT/AUTO_RESEARCH_FAST_SKILL.md" \
+   "$TARGET/.claude/skills/auto-research-fast/SKILL.md"
+cp "$SOURCE_ROOT/AUTO_RESEARCH_FAST_SKILL.md" \
+   "$TARGET/.deepseek/skills/auto-research-fast/SKILL.md"
+cp "$SOURCE_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" \
+   "$TARGET/.agents/skills/auto-research-slow/SKILL.md"
+cp "$SOURCE_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" \
+   "$TARGET/.claude/skills/auto-research-slow/SKILL.md"
+cp "$SOURCE_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" \
+   "$TARGET/.deepseek/skills/auto-research-slow/SKILL.md"
+cp "$SOURCE_ROOT/DEEPSEEK.md" "$TARGET/DEEPSEEK.md"
+
 if [[ ! -f "$TARGET/.research/state.json" ]]; then
   cp "$SOURCE_ROOT/.research/state.json" "$TARGET/.research/state.json"
+fi
+if [[ ! -f "$TARGET/.research/auto_research.json" ]]; then
+  cp "$SOURCE_ROOT/.research/auto_research.json" "$TARGET/.research/auto_research.json"
 fi
 touch "$TARGET/.research/logs/.gitkeep"
 
 merge_markdown_block "$TARGET/AGENTS.md" "$SOURCE_ROOT/AGENTS.md" \
-  "Research Closure Rules"
+  "Self-Evolved Research Harness Rules"
 merge_markdown_block "$TARGET/CLAUDE.md" "$SOURCE_ROOT/CLAUDE.md" \
-  "Research Closure Rules"
+  "Self-Evolved Research Harness Rules"
+merge_markdown_block "$TARGET/DEEPSEEK.md" "$SOURCE_ROOT/DEEPSEEK.md" \
+  "Self-Evolved Research Harness Rules"
 
 cat <<EOF
-Research Closure Harness initialized in:
+Self-Evolved Research Harness initialized in:
   $TARGET
 
 Next:
   cd "$TARGET"
+  auto-research ab-status
+  auto-research ab-next
+
+For PhD research closure work:
   research-closure set-project --agenda "..." --question "..." --minimum "..."
   research-closure-graph init --claim "..." && research-closure-graph validate
   research-closure start-sprint --claim "..." --days 14 --artifact "..."

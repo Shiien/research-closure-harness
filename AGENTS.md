@@ -1,4 +1,22 @@
-# Research Closure Rules for Codex
+# Self-Evolved Research Harness Rules for Codex
+
+## Session auto-load (A/B auto-research)
+
+This branch runs the A/B Self-Evolved Research Harness. At every session start,
+before choosing a task:
+
+1. Run `python tools/auto_research.py ab-status`.
+2. Run `python tools/auto_research.py ab-next`.
+3. Read `.research/auto_research.json`.
+4. Declare your role explicitly:
+   - `A (fast)`: use the `auto-research-fast` skill; draft and propose candidates.
+   - `B (slow)`: use the `auto-research-slow` skill; critique, verify, apply, revalidate.
+5. If the session is ordinary PhD research work, also use the `research-closure`
+   skill and run the closure commands below.
+
+The A/B contract is: A proposes, B criticises, B hard-verifies, B applies, then
+B feeds the result back to A. Soft judgment never replaces hard verification,
+and `M0` is immutable.
 
 ## Mission
 
@@ -24,16 +42,17 @@ The guard reports blocking violations; `frontier` shows which probe is ready to 
 
 For human progress tracking, run `python tools/research_closure.py dashboard` to open the interactive DAG view (theory → variables/edges → probes, with outcomes, frontier and the resolution map).
 
-## Auto-research mode (this branch)
+## Auto-research operating mode
 
-When the session objective is to improve the harness itself, not the PhD
-research project:
+For self-modification work:
 
-1. Read `.research/auto_research.json`.
-2. Run `python tools/auto_research.py validate`, `python tools/auto_research.py status`, and `python tools/auto_research.py next`.
-3. Drive self-modifications through `propose -> critique -> verify -> apply`. A critic verdict is soft judgment and never replaces an exit-0 hard verification.
-4. `M0` is the immutable L0 meta-goal; the engine blocks any patch that targets it.
-5. End a self-modification session with `python tools/auto_research.py self-test`.
+- Invoke the `auto-research-fast` skill when acting as A.
+- Invoke the `auto-research-slow` skill when acting as B.
+- Drive the loop as `propose (A) -> critique (B) -> verify (B) -> apply (B)`.
+- A critic verdict is soft judgment and never replaces an exit-0 hard verification.
+- `M0` is the immutable L0 meta-goal; the engine blocks any patch that targets it.
+- End a self-modification session with `python tools/auto_research.py self-test`.
+- Do not edit `.research/auto_research.json` by hand to bypass the pipeline.
 
 Ordinary PhD-research work still follows the closure workflow below.
 

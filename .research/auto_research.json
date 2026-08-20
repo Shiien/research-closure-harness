@@ -227,5 +227,9 @@
     "node": 1,
     "proposal": 0,
     "verification": 2
+  },
+  "tracks": {
+    "A": "fast auto-research: explore, draft, propose candidates, cheap pre-checks",
+    "B": "slow auto-research: critic review, hard verification, consolidation, apply"
   }
 }

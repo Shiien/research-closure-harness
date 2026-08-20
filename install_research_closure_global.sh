@@ -28,14 +28,22 @@ Options:
 Installed locations:
   Codex skills:     ~/.agents/skills/research-closure/
                     ~/.agents/skills/research-handoff/
+                    ~/.agents/skills/auto-research-fast/
+                    ~/.agents/skills/auto-research-slow/
   Codex guidance:   ${CODEX_HOME:-~/.codex}/AGENTS.md
   Claude skills:    ${CLAUDE_CONFIG_DIR:-~/.claude}/skills/research-closure/
                     ${CLAUDE_CONFIG_DIR:-~/.claude}/skills/research-handoff/
+                    ${CLAUDE_CONFIG_DIR:-~/.claude}/skills/auto-research-fast/
+                    ${CLAUDE_CONFIG_DIR:-~/.claude}/skills/auto-research-slow/
   Claude guidance:  ${CLAUDE_CONFIG_DIR:-~/.claude}/CLAUDE.md
+  DeepSeek skills:  ${DEEPSEEK_HOME:-~/.deepseek}/skills/auto-research-fast/
+                    ${DEEPSEEK_HOME:-~/.deepseek}/skills/auto-research-slow/
+  DeepSeek guidance:${DEEPSEEK_HOME:-~/.deepseek}/DEEPSEEK.md
   Harness data:     ${XDG_DATA_HOME:-~/.local/share}/research-closure-harness/
   CLI commands:     ~/.local/bin/research-closure
                     ~/.local/bin/research-closure-init
                     ~/.local/bin/research-closure-graph
+                    ~/.local/bin/auto-research
 EOF
 }
 
@@ -94,14 +102,22 @@ PY
 CODEX_HOME_DIR="${CODEX_HOME:-$HOME/.codex}"
 CODEX_SKILL_DIR="$HOME/.agents/skills/research-closure"
 CODEX_HANDOFF_SKILL_DIR="$HOME/.agents/skills/research-handoff"
+CODEX_AR_FAST_DIR="$HOME/.agents/skills/auto-research-fast"
+CODEX_AR_SLOW_DIR="$HOME/.agents/skills/auto-research-slow"
 CLAUDE_HOME_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 CLAUDE_SKILL_DIR="$CLAUDE_HOME_DIR/skills/research-closure"
 CLAUDE_HANDOFF_SKILL_DIR="$CLAUDE_HOME_DIR/skills/research-handoff"
+CLAUDE_AR_FAST_DIR="$CLAUDE_HOME_DIR/skills/auto-research-fast"
+CLAUDE_AR_SLOW_DIR="$CLAUDE_HOME_DIR/skills/auto-research-slow"
+DEEPSEEK_HOME_DIR="${DEEPSEEK_HOME:-$HOME/.deepseek}"
+DEEPSEEK_AR_FAST_DIR="$DEEPSEEK_HOME_DIR/skills/auto-research-fast"
+DEEPSEEK_AR_SLOW_DIR="$DEEPSEEK_HOME_DIR/skills/auto-research-slow"
 DATA_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/research-closure-harness"
 BIN_DIR="$HOME/.local/bin"
 BACKUP_ROOT="$HOME/.research-closure-backups/$TIMESTAMP"
 CODEX_AGENTS="$CODEX_HOME_DIR/AGENTS.md"
 CLAUDE_MD="$CLAUDE_HOME_DIR/CLAUDE.md"
+DEEPSEEK_MD="$DEEPSEEK_HOME_DIR/DEEPSEEK.md"
 CLAUDE_HOOK="$CLAUDE_HOME_DIR/hooks/research_closure_guard.py"
 CLAUDE_SETTINGS="$CLAUDE_HOME_DIR/settings.json"
 BEGIN="<!-- research-closure-harness:start -->"
@@ -248,17 +264,30 @@ if [[ "$UNINSTALL" -eq 1 ]]; then
   echo "Uninstalling Research Closure Harness..."
   backup_path "$CODEX_SKILL_DIR"
   backup_path "$CODEX_HANDOFF_SKILL_DIR"
+  backup_path "$CODEX_AR_FAST_DIR"
+  backup_path "$CODEX_AR_SLOW_DIR"
   backup_path "$CLAUDE_SKILL_DIR"
   backup_path "$CLAUDE_HANDOFF_SKILL_DIR"
+  backup_path "$CLAUDE_AR_FAST_DIR"
+  backup_path "$CLAUDE_AR_SLOW_DIR"
+  backup_path "$DEEPSEEK_AR_FAST_DIR"
+  backup_path "$DEEPSEEK_AR_SLOW_DIR"
   backup_path "$CODEX_AGENTS"
   backup_path "$CLAUDE_MD"
+  backup_path "$DEEPSEEK_MD"
   backup_path "$CLAUDE_SETTINGS"
 
   run rm -rf \
     "$CODEX_SKILL_DIR" \
     "$CODEX_HANDOFF_SKILL_DIR" \
+    "$CODEX_AR_FAST_DIR" \
+    "$CODEX_AR_SLOW_DIR" \
     "$CLAUDE_SKILL_DIR" \
     "$CLAUDE_HANDOFF_SKILL_DIR" \
+    "$CLAUDE_AR_FAST_DIR" \
+    "$CLAUDE_AR_SLOW_DIR" \
+    "$DEEPSEEK_AR_FAST_DIR" \
+    "$DEEPSEEK_AR_SLOW_DIR" \
     "$DATA_ROOT"
   if [[ -L "$BIN_DIR/research-closure" || -f "$BIN_DIR/research-closure" ]]; then
     run rm -f "$BIN_DIR/research-closure"
@@ -269,8 +298,12 @@ if [[ "$UNINSTALL" -eq 1 ]]; then
   if [[ -L "$BIN_DIR/research-closure-graph" || -f "$BIN_DIR/research-closure-graph" ]]; then
     run rm -f "$BIN_DIR/research-closure-graph"
   fi
+  if [[ -L "$BIN_DIR/auto-research" || -f "$BIN_DIR/auto-research" ]]; then
+    run rm -f "$BIN_DIR/auto-research"
+  fi
   remove_managed_block "$CODEX_AGENTS"
   remove_managed_block "$CLAUDE_MD"
+  remove_managed_block "$DEEPSEEK_MD"
   remove_claude_hook_setting
   run rm -f "$CLAUDE_HOOK"
 
@@ -317,8 +350,11 @@ fi
 for required in \
   "$HARNESS_ROOT/SKILL.md" \
   "$HARNESS_ROOT/HANDOFF_SKILL.md" \
+  "$HARNESS_ROOT/AUTO_RESEARCH_FAST_SKILL.md" \
+  "$HARNESS_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" \
   "$HARNESS_ROOT/tools/research_closure.py" \
   "$HARNESS_ROOT/tools/claim_graph.py" \
+  "$HARNESS_ROOT/tools/auto_research.py" \
   "$HARNESS_ROOT/tools/research_replay.py" \
   "$HARNESS_ROOT/tools/bootstrap_repo.sh"; do
   if [[ ! -f "$required" ]]; then
@@ -332,12 +368,19 @@ echo "  $HARNESS_ROOT"
 
 backup_path "$CODEX_SKILL_DIR"
 backup_path "$CODEX_HANDOFF_SKILL_DIR"
+backup_path "$CODEX_AR_FAST_DIR"
+backup_path "$CODEX_AR_SLOW_DIR"
 backup_path "$CLAUDE_SKILL_DIR"
 backup_path "$CLAUDE_HANDOFF_SKILL_DIR"
+backup_path "$CLAUDE_AR_FAST_DIR"
+backup_path "$CLAUDE_AR_SLOW_DIR"
+backup_path "$DEEPSEEK_AR_FAST_DIR"
+backup_path "$DEEPSEEK_AR_SLOW_DIR"
 backup_path "$DATA_ROOT"
 if [[ "$INSTALL_GLOBAL_RULES" -eq 1 ]]; then
   backup_path "$CODEX_AGENTS"
   backup_path "$CLAUDE_MD"
+  backup_path "$DEEPSEEK_MD"
 fi
 if [[ "$WITH_CLAUDE_HOOK" -eq 1 ]]; then
   backup_path "$CLAUDE_SETTINGS"
@@ -347,6 +390,7 @@ fi
 run mkdir -p \
   "$(dirname "$CODEX_SKILL_DIR")" \
   "$(dirname "$CLAUDE_SKILL_DIR")" \
+  "$(dirname "$DEEPSEEK_AR_FAST_DIR")" \
   "$(dirname "$DATA_ROOT")" \
   "$BIN_DIR"
 
@@ -356,21 +400,40 @@ run cp -R "$HARNESS_ROOT" "$DATA_ROOT"
 run rm -rf \
   "$CODEX_SKILL_DIR" \
   "$CODEX_HANDOFF_SKILL_DIR" \
+  "$CODEX_AR_FAST_DIR" \
+  "$CODEX_AR_SLOW_DIR" \
   "$CLAUDE_SKILL_DIR" \
-  "$CLAUDE_HANDOFF_SKILL_DIR"
+  "$CLAUDE_HANDOFF_SKILL_DIR" \
+  "$CLAUDE_AR_FAST_DIR" \
+  "$CLAUDE_AR_SLOW_DIR" \
+  "$DEEPSEEK_AR_FAST_DIR" \
+  "$DEEPSEEK_AR_SLOW_DIR"
 run mkdir -p \
   "$CODEX_SKILL_DIR" \
   "$CODEX_HANDOFF_SKILL_DIR" \
+  "$CODEX_AR_FAST_DIR" \
+  "$CODEX_AR_SLOW_DIR" \
   "$CLAUDE_SKILL_DIR" \
-  "$CLAUDE_HANDOFF_SKILL_DIR"
+  "$CLAUDE_HANDOFF_SKILL_DIR" \
+  "$CLAUDE_AR_FAST_DIR" \
+  "$CLAUDE_AR_SLOW_DIR" \
+  "$DEEPSEEK_AR_FAST_DIR" \
+  "$DEEPSEEK_AR_SLOW_DIR"
 run cp "$HARNESS_ROOT/SKILL.md" "$CODEX_SKILL_DIR/SKILL.md"
 run cp "$HARNESS_ROOT/SKILL.md" "$CLAUDE_SKILL_DIR/SKILL.md"
 run cp "$HARNESS_ROOT/HANDOFF_SKILL.md" "$CODEX_HANDOFF_SKILL_DIR/SKILL.md"
 run cp "$HARNESS_ROOT/HANDOFF_SKILL.md" "$CLAUDE_HANDOFF_SKILL_DIR/SKILL.md"
+run cp "$HARNESS_ROOT/AUTO_RESEARCH_FAST_SKILL.md" "$CODEX_AR_FAST_DIR/SKILL.md"
+run cp "$HARNESS_ROOT/AUTO_RESEARCH_FAST_SKILL.md" "$CLAUDE_AR_FAST_DIR/SKILL.md"
+run cp "$HARNESS_ROOT/AUTO_RESEARCH_FAST_SKILL.md" "$DEEPSEEK_AR_FAST_DIR/SKILL.md"
+run cp "$HARNESS_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" "$CODEX_AR_SLOW_DIR/SKILL.md"
+run cp "$HARNESS_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" "$CLAUDE_AR_SLOW_DIR/SKILL.md"
+run cp "$HARNESS_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" "$DEEPSEEK_AR_SLOW_DIR/SKILL.md"
 
 run chmod +x \
   "$DATA_ROOT/tools/research_closure.py" \
   "$DATA_ROOT/tools/claim_graph.py" \
+  "$DATA_ROOT/tools/auto_research.py" \
   "$DATA_ROOT/tools/research_replay.py" \
   "$DATA_ROOT/tools/bootstrap_repo.sh" \
   "$DATA_ROOT/.claude/hooks/closure_guard.py"
@@ -379,12 +442,22 @@ run ln -sfn "$DATA_ROOT/tools/research_closure.py" "$BIN_DIR/research-closure"
 run ln -sfn "$DATA_ROOT/tools/bootstrap_repo.sh" "$BIN_DIR/research-closure-init"
 run ln -sfn "$DATA_ROOT/tools/claim_graph.py" "$BIN_DIR/research-closure-graph"
 run ln -sfn "$DATA_ROOT/tools/research_replay.py" "$BIN_DIR/research-closure-replay"
+run ln -sfn "$DATA_ROOT/tools/auto_research.py" "$BIN_DIR/auto-research"
 
 if [[ "$INSTALL_GLOBAL_RULES" -eq 1 ]]; then
   CODEX_BLOCK="$(mktemp)"
   CLAUDE_BLOCK="$(mktemp)"
+  DEEPSEEK_BLOCK="$(mktemp)"
   cat >"$CODEX_BLOCK" <<'EOF'
-## Research Closure
+## Research Closure + Auto-Research A/B
+
+In repositories containing `.research/auto_research.json`:
+
+- At session start run `auto-research ab-status` and `auto-research ab-next`.
+- A (fast) invokes `$auto-research-fast` and only proposes candidates.
+- B (slow) invokes `$auto-research-slow` and criticises, verifies, applies, or revalidates.
+- The loop is: A proposes -> B criticises -> B hard-verifies -> B applies -> feedback to A.
+- M0 is immutable. Soft judgment never replaces an exit-0 hard verification.
 
 For research planning, experiment implementation, result analysis, scope changes, or paper-progress work:
 
@@ -396,7 +469,15 @@ For research planning, experiment implementation, result analysis, scope changes
 - End substantial research work with: artifact, evidence, decision, and one next action.
 EOF
   cat >"$CLAUDE_BLOCK" <<'EOF'
-## Research Closure
+## Research Closure + Auto-Research A/B
+
+In repositories containing `.research/auto_research.json`:
+
+- At session start run `auto-research ab-status` and `auto-research ab-next`.
+- A (fast) uses `/auto-research-fast` and only proposes candidates.
+- B (slow) uses `/auto-research-slow` and criticises, verifies, applies, or revalidates.
+- The loop is: A proposes -> B criticises -> B hard-verifies -> B applies -> feedback to A.
+- M0 is immutable. Soft judgment never replaces an exit-0 hard verification.
 
 For research planning, experiment implementation, result analysis, scope changes, or paper-progress work:
 
@@ -407,9 +488,28 @@ For research planning, experiment implementation, result analysis, scope changes
 - Treat new ideas as backlog items unless they directly test the frozen sprint claim.
 - End substantial research work with: artifact, evidence, decision, and one next action.
 EOF
+  cat >"$DEEPSEEK_BLOCK" <<'EOF'
+## Research Closure + Auto-Research A/B
+
+In repositories containing `.research/auto_research.json`:
+
+- At session start run `auto-research ab-status` and `auto-research ab-next`.
+- A (fast) uses the `auto-research-fast` skill and only proposes candidates.
+- B (slow) uses the `auto-research-slow` skill and criticises, verifies, applies, or revalidates.
+- The loop is: A proposes -> B criticises -> B hard-verifies -> B applies -> feedback to A.
+- M0 is immutable. Soft judgment never replaces an exit-0 hard verification.
+
+For research planning, experiment implementation, result analysis, scope changes, or paper-progress work:
+
+- Use the `research-closure` skill.
+- Use the `research-handoff` skill when interpreting another agent's output.
+- In a repository containing `.research/state.json`, run `research-closure guard` before substantial work.
+- End substantial research work with: artifact, evidence, decision, and one next action.
+EOF
   upsert_managed_block "$CODEX_AGENTS" "$CODEX_BLOCK"
   upsert_managed_block "$CLAUDE_MD" "$CLAUDE_BLOCK"
-  rm -f "$CODEX_BLOCK" "$CLAUDE_BLOCK"
+  upsert_managed_block "$DEEPSEEK_MD" "$DEEPSEEK_BLOCK"
+  rm -f "$CODEX_BLOCK" "$CLAUDE_BLOCK" "$DEEPSEEK_BLOCK"
 fi
 
 if [[ "$WITH_CLAUDE_HOOK" -eq 1 ]]; then
@@ -426,15 +526,24 @@ Installation complete.
 Codex skills:
   $CODEX_SKILL_DIR/SKILL.md
   $CODEX_HANDOFF_SKILL_DIR/SKILL.md
+  $CODEX_AR_FAST_DIR/SKILL.md
+  $CODEX_AR_SLOW_DIR/SKILL.md
 
 Claude Code skills:
   $CLAUDE_SKILL_DIR/SKILL.md
   $CLAUDE_HANDOFF_SKILL_DIR/SKILL.md
+  $CLAUDE_AR_FAST_DIR/SKILL.md
+  $CLAUDE_AR_SLOW_DIR/SKILL.md
+
+DeepSeek harness skills:
+  $DEEPSEEK_AR_FAST_DIR/SKILL.md
+  $DEEPSEEK_AR_SLOW_DIR/SKILL.md
 
 Commands:
   $BIN_DIR/research-closure
   $BIN_DIR/research-closure-init
   $BIN_DIR/research-closure-graph
+  $BIN_DIR/auto-research
 
 Initialize a repository:
   cd /path/to/repository
@@ -445,6 +554,10 @@ Then:
   research-closure-graph init --claim "..." && research-closure-graph validate
   research-closure start-sprint --claim "..." --days 14 --artifact "..."
   research-closure next
+
+Auto-research:
+  auto-research ab-status
+  auto-research ab-next
 
 EOF
 
