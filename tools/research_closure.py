@@ -766,8 +766,36 @@ def cmd_events(args: argparse.Namespace) -> int:
 # NOTE: raw string on purpose — the JS inside keeps its own escape sequences
 # (\n, \u2717, ...) and must not be interpreted by Python.
 DASHBOARD_CSS = r"""
-:root{--bg:#0b1220;--panel:#111a2e;--line:#1e293b;--text:#e2e8f0;--muted:#94a3b8;
---green:#22c55e;--red:#f87171;--amber:#fbbf24;--violet:#a78bfa;--blue:#38bdf8;}
+:root{color-scheme:dark;--bg:#0b1220;--panel:#111a2e;--surface:#0d1626;--surface-strong:#0f172a;
+--line:#1e293b;--line-soft:#1a2740;--text:#e2e8f0;--text-soft:#cbd5e1;--muted:#94a3b8;
+--subtle:#64748b;--green:#22c55e;--red:#f87171;--amber:#fbbf24;--violet:#a78bfa;--blue:#38bdf8;
+--ok-bg:#052e16;--ok-border:#166534;--ok-text:#bbf7d0;--bad-bg:#450a0a;--bad-border:#7f1d1d;
+--bad-text:#fecaca;--info-bg:#082f49;--info-border:#0c4a6e;--info-text:#7dd3fc;
+--button-hover:#0c4a6e;--theory-fill:#2e1065;--theory-stroke:#a78bfa;--variable-fill:#082f49;
+--variable-stroke:#38bdf8;--latent-fill:#1e293b;--latent-stroke:#64748b;--probe-ready-fill:#052e16;
+--probe-ready-stroke:#22c55e;--probe-positive-fill:#14532d;--probe-positive-stroke:#4ade80;
+--probe-negative-fill:#450a0a;--probe-negative-stroke:#f87171;--probe-neutral-fill:#1e293b;
+--probe-neutral-stroke:#94a3b8;--probe-waiting-fill:#111a2e;--probe-waiting-stroke:#475569;
+--node-text:#e2e8f0;--badge-text:#7dd3fc;--edge-stroke:#64748b;--guard-stroke:#7dd3fc;
+--claim-fill:#172554;--claim-stroke:#60a5fa;--experiment-fill:#312e81;--experiment-stroke:#818cf8;
+--result-fill:#052e16;--result-stroke:#4ade80;--decision-fill:#3b0764;--decision-stroke:#c084fc;
+--amendment-fill:#451a03;--amendment-stroke:#fbbf24;--flow-stroke:#64748b;--tests-stroke:#38bdf8;
+--tooltip-shadow:rgba(0,0,0,.5)}
+:root[data-theme="light"]{color-scheme:light;--bg:#f8fafc;--panel:#ffffff;--surface:#f1f5f9;
+--surface-strong:#ffffff;--line:#cbd5e1;--line-soft:#e2e8f0;--text:#0f172a;--text-soft:#334155;
+--muted:#475569;--subtle:#64748b;--green:#15803d;--red:#b91c1c;--amber:#a16207;
+--violet:#7c3aed;--blue:#0369a1;--ok-bg:#dcfce7;--ok-border:#86efac;--ok-text:#166534;
+--bad-bg:#fee2e2;--bad-border:#fca5a5;--bad-text:#991b1b;--info-bg:#e0f2fe;
+--info-border:#7dd3fc;--info-text:#075985;--button-hover:#bae6fd;--theory-fill:#ede9fe;
+--theory-stroke:#7c3aed;--variable-fill:#e0f2fe;--variable-stroke:#0284c7;--latent-fill:#e2e8f0;
+--latent-stroke:#64748b;--probe-ready-fill:#dcfce7;--probe-ready-stroke:#16a34a;
+--probe-positive-fill:#bbf7d0;--probe-positive-stroke:#15803d;--probe-negative-fill:#fee2e2;
+--probe-negative-stroke:#b91c1c;--probe-neutral-fill:#e2e8f0;--probe-neutral-stroke:#64748b;
+--probe-waiting-fill:#f1f5f9;--probe-waiting-stroke:#94a3b8;--node-text:#0f172a;
+--badge-text:#075985;--edge-stroke:#64748b;--guard-stroke:#0284c7;--claim-fill:#dbeafe;
+--claim-stroke:#2563eb;--experiment-fill:#e0e7ff;--experiment-stroke:#6366f1;--result-fill:#dcfce7;
+--result-stroke:#16a34a;--decision-fill:#f3e8ff;--decision-stroke:#9333ea;--amendment-fill:#fef3c7;
+--amendment-stroke:#d97706;--flow-stroke:#64748b;--tests-stroke:#0284c7;--tooltip-shadow:rgba(15,23,42,.18)}
 *{box-sizing:border-box}
 body{font-family:system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);margin:0}
 header{padding:14px 22px;border-bottom:1px solid var(--line);background:var(--panel)}
@@ -775,63 +803,81 @@ h1{font-size:17px;margin:0;letter-spacing:.3px}
 h2{font-size:13px;margin:0 0 8px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
 .meta{color:var(--muted);font-size:12px;margin-top:6px;line-height:1.7}
 .chip{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:600;margin-left:6px}
-.chip.ok{background:#052e16;color:#4ade80;border:1px solid #166534}
-.chip.bad{background:#450a0a;color:#fca5a5;border:1px solid #7f1d1d}
-.chip.info{background:#082f49;color:#7dd3fc;border:1px solid #0c4a6e}
-main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px;padding:14px 22px;align-items:start}
-@media(max-width:1000px){main{grid-template-columns:1fr}}
+.chip.ok{background:var(--ok-bg);color:var(--ok-text);border:1px solid var(--ok-border)}
+.chip.bad{background:var(--bad-bg);color:var(--bad-text);border:1px solid var(--bad-border)}
+.chip.info{background:var(--info-bg);color:var(--info-text);border:1px solid var(--info-border)}
+main{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;padding:14px 22px;align-items:start}
+main>div+div{margin-top:0}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
 .card+.card{margin-top:14px}
-#canvas-wrap{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#0d1626;min-height:320px}
-svg#dag{display:block;width:100%;min-height:320px;cursor:grab;touch-action:none}
+#canvas-wrap{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface);min-height:600px}
+svg#dag{display:block;width:100%;height:600px;min-height:600px;cursor:grab;touch-action:none}
 svg#dag.dragging{cursor:grabbing}
-#tooltip{position:absolute;display:none;max-width:360px;background:#0f172a;border:1px solid #334155;
-border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.6;white-space:pre-wrap;
-pointer-events:none;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+svg#dag g[data-node]{cursor:move}
+svg#dag g[data-node]:hover>*:not(title){filter:brightness(1.08)}
+svg#dag g[data-node].node-dragging{cursor:grabbing}
+#tooltip{position:absolute;display:none;width:min(480px,calc(100% - 28px));max-height:520px;overflow:auto;
+background:var(--surface-strong);border:1px solid var(--line);border-radius:9px;padding:11px 12px;font-size:12px;
+line-height:1.55;pointer-events:auto;z-index:20;box-shadow:0 10px 30px var(--tooltip-shadow)}
+#tooltip.pinned{border-color:var(--blue);box-shadow:0 12px 34px var(--tooltip-shadow),0 0 0 2px var(--info-bg)}
+#tooltip .pin-status{display:flex;align-items:center;gap:6px;margin:-2px 0 8px;color:var(--info-text);
+font-size:10px;font-weight:800;letter-spacing:.45px;text-transform:uppercase}
+#tooltip .pin-status::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--blue)}
+#tooltip .detail-title,#probe-detail .detail-title{font-size:13px;font-weight:750;color:var(--text);margin-bottom:2px}
+#tooltip .detail-subtitle,#probe-detail .detail-subtitle{color:var(--muted);margin-bottom:7px}
+#tooltip .detail-label,#probe-detail .detail-label{margin-top:8px;color:var(--badge-text);font-size:10px;
+font-weight:800;text-transform:uppercase;letter-spacing:.7px}
+#tooltip pre,#probe-detail pre{margin:3px 0 0;background:var(--surface);border:1px solid var(--line);border-radius:6px;
+padding:7px 8px;font-size:11px;line-height:1.45;overflow:auto;white-space:pre-wrap;max-height:220px}
+.artifact-list{display:grid;gap:7px;margin-top:4px}
+.artifact-ref{border:1px solid var(--line);border-radius:6px;padding:6px 7px;background:var(--surface)}
+.artifact-ref a{color:var(--info-text);font-family:ui-monospace,Consolas,monospace;font-size:10.5px;overflow-wrap:anywhere}
+.artifact-ref img{display:block;max-width:100%;max-height:180px;object-fit:contain;margin-top:6px;border-radius:4px;border:1px solid var(--line)}
 #zoom-hint{position:absolute;top:8px;right:10px;font-size:11px;color:var(--muted);user-select:none}
-#reset-view{position:absolute;top:8px;right:88px;font-size:11px;color:var(--blue);cursor:pointer;
-border:1px solid #0c4a6e;border-radius:6px;padding:2px 8px;background:#082f49;user-select:none}
-#probe-detail{font-size:12px;line-height:1.7;min-height:120px;color:#cbd5e1}
+#reset-view,#fit-view{position:absolute;top:8px;font-size:11px;color:var(--info-text);cursor:pointer;
+border:1px solid var(--info-border);border-radius:6px;padding:2px 8px;background:var(--info-bg);user-select:none}
+#fit-view{left:10px}
+#reset-view{left:105px}
+#probe-detail{font-size:12px;line-height:1.7;min-height:120px;color:var(--text-soft)}
 #probe-detail b{color:var(--text)}
-#probe-detail pre{margin:6px 0 0;background:#0d1626;border:1px solid var(--line);border-radius:6px;
-padding:6px 8px;font-size:11px;overflow-x:auto;white-space:pre-wrap}
 table{width:100%;border-collapse:collapse;font-size:11.5px}
-th,td{text-align:left;padding:4px 8px;border-bottom:1px solid #1a2740;vertical-align:top}
+th,td{text-align:left;padding:4px 8px;border-bottom:1px solid var(--line-soft);vertical-align:top}
 th{color:var(--muted);font-weight:600;text-transform:uppercase;font-size:10.5px;letter-spacing:.6px}
 td.mono,code{font-family:ui-monospace,Consolas,monospace;font-size:11px}
 .rule{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px}
-.rule.fires{border-color:#166534;background:#052e16}
-.rule .when{color:#cbd5e1}
+.rule.fires{border-color:var(--ok-border);background:var(--ok-bg)}
+.rule .when{color:var(--text-soft)}
 .rule .then{font-weight:700;margin-top:2px}
 .rule .note{color:var(--muted);margin-top:4px;font-size:11px}
 .banner{border-radius:8px;padding:8px 12px;font-size:12.5px;margin-top:10px;line-height:1.7}
-.banner.pass{background:#052e16;border:1px solid #166534;color:#bbf7d0}
-.banner.block{background:#450a0a;border:1px solid #7f1d1d;color:#fecaca}
+.banner.pass{background:var(--ok-bg);border:1px solid var(--ok-border);color:var(--ok-text)}
+.banner.block{background:var(--bad-bg);border:1px solid var(--bad-border);color:var(--bad-text)}
 .banner .l{color:var(--muted)}
 #next-list{margin:6px 0 0;padding-left:18px;font-size:12px;line-height:1.9}
 #legend{display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:var(--muted);margin-top:8px}
 #legend span{display:inline-flex;align-items:center;gap:5px}
-.sw{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid #334155}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid var(--line)}
 footer{padding:10px 22px 18px;color:var(--muted);font-size:11.5px;line-height:1.7}
 .empty{color:var(--muted);font-size:12.5px;padding:26px;text-align:center}
 .empty.big{padding:44px 30px;line-height:1.9}
 .empty-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:10px}
-.empty-sub{margin-top:12px;font-size:11.5px;color:#64748b}
-.empty code{background:#0d1626;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:11px}
+.empty-sub{margin-top:12px;font-size:11.5px;color:var(--subtle)}
+.empty code{background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:11px}
 """
 
 DASHBOARD_STAGE_HTML = r"""<header>
-  <h1>Research Closure Dashboard <span id="verdict-chip"></span></h1>
+  <h1><span data-i18n="closureDashboard">Research Closure Dashboard</span> <span id="verdict-chip"></span></h1>
   <div class="meta" id="meta"></div>
   <div id="guard-banner"></div>
 </header>
 <main>
   <div>
     <div class="card">
-      <h2>Claim graph (DAG)</h2>
+      <h2 data-i18n="claimGraph">Connected research flow</h2>
       <div id="canvas-wrap">
-        <div id="zoom-hint">drag: pan · wheel: zoom</div>
-        <div id="reset-view">reset view</div>
+        <div id="zoom-hint" data-i18n="panZoom">drag: pan · wheel: zoom</div>
+        <div id="reset-view" data-i18n="resetView">reset view</div>
+        <div id="fit-view" data-i18n="fitView">fit whole graph</div>
         <svg id="dag"></svg>
         <div id="tooltip"></div>
         <div id="dag-empty"></div>
@@ -839,41 +885,152 @@ DASHBOARD_STAGE_HTML = r"""<header>
       <div id="legend"></div>
     </div>
     <div class="card">
-      <h2>Resolution map</h2>
+      <h2 data-i18n="resolutionMap">Decision rules (audit)</h2>
       <div id="resolution"></div>
     </div>
     <div class="card">
-      <h2>Next events</h2>
+      <h2 data-i18n="nextEvents">Next events</h2>
       <ol id="next-list"></ol>
     </div>
     <div class="card">
-      <h2>Event log</h2>
-      <table id="events-table"><thead><tr><th>at</th><th>event</th><th>payload</th></tr></thead><tbody></tbody></table>
+      <h2 data-i18n="eventLog">Event log</h2>
+      <table id="events-table"><thead><tr><th data-i18n="at">at</th><th data-i18n="event">event</th><th data-i18n="payload">payload</th></tr></thead><tbody></tbody></table>
     </div>
   </div>
   <div>
     <div class="card">
-      <h2>Probe detail</h2>
-      <div id="probe-detail">Click a probe node to inspect its pre-registration and outcome.</div>
+      <h2 data-i18n="probeDetail">Node detail</h2>
+      <div id="probe-detail" data-i18n="probePrompt">Click any node to inspect the source record behind this projection.</div>
     </div>
     <div class="card">
-      <h2>State</h2>
+      <h2 data-i18n="state">State</h2>
       <table id="state-table"></table>
     </div>
   </div>
 </main>
 <footer>
-  Generated <span id="gen-at"></span> · regenerate with <code>python tools/research_closure.py dashboard</code>
-  · the design hash freezes the pre-registration; outcomes and amendments move the map.
+  <span data-i18n="generated">Generated</span> <span id="gen-at"></span> · <span data-i18n="regenerateWith">regenerate with</span>
+  <code>python tools/research_closure.py dashboard</code>
+  · <span data-i18n="footerExplain">the design hash freezes the pre-registration; outcomes and amendments move the map.</span>
 </footer>
 """
 
 DASHBOARD_JS = (
     "const STAGE_HTML = " + json.dumps(DASHBOARD_STAGE_HTML, ensure_ascii=False) + ";\n"
     + r"""
+const RCH_LOCALE_STORAGE_KEY = "rch-dashboard-locale";
+const RCH_I18N = {
+  en: {
+    closureDashboard:"Research Closure Dashboard", claimGraph:"Connected research flow", panZoom:"drag background: pan · drag node: move · wheel: zoom",
+    resetView:"reset view", fitView:"fit whole graph", resolutionMap:"Decision rules (audit)", nextEvents:"Next events", eventLog:"Event log",
+    at:"at", event:"event", payload:"payload", probeDetail:"Node detail",
+    probePrompt:"Click any node to inspect the source record behind this projection.", state:"State", generated:"Generated",
+    regenerateWith:"regenerate with", footerExplain:"the design hash freezes the pre-registration; outcomes and amendments move the map.",
+    researchDashboard:"Research Dashboard", theme:"theme", dark:"Dark", light:"Light", language:"language",
+    dashboardTheme:"Dashboard theme", dashboardLanguage:"Dashboard language",
+    english:"English", chinese:"中文", prev:"prev", play:"play", pause:"pause", next:"next",
+    firstContent:"first content", firstContentTitle:"jump to the first frame where the research flow has nodes",
+    latest:"latest", latestTitle:"jump to the latest state", latestGenerated:"latest",
+    stateNone:"no claim graph yet", stateEmpty:"graph skeleton (no nodes yet)", stateNodes:"nodes rendered",
+    block:"BLOCK", pass:"PASS", claim:"claim", noClaimGraphYet:"(no claim graph yet)", type:"type",
+    designHash:"design hash", sprint:"sprint", ends:"ends", active:"active", on:"on",
+    resolutionMapLabel:"resolution map", closeAs:"close as", open:"open", ready:"ready", none:"none",
+    warning:"warning", blockLabel:"block", guardPass:"PASS: work may proceed within the frozen claim.",
+    positive:"positive", negative:"negative", unresolved:"unresolved", skipped:"skipped", waiting:"waiting",
+    probe:"probe", tests:"tests", metric:"metric", prereg:"prereg", controls:"controls", guardsIn:"guards_in", role:"role",
+    status:"status", observed:"observed", roleIntervention:"intervention", roleOutcome:"outcome",
+    roleExposure:"exposure", roleMediator:"mediator", roleConfounder:"confounder", roleCovariate:"covariate",
+    outcome:"outcome", experiment:"experiment", defect:"defect", unobserved:"unobserved",
+    statement:"statement", provenance:"provenance", entails:"entails",
+    noGraphTitle:"No claim graph in this repository yet", emptyGraphTitle:"The claim graph exists but has no nodes yet",
+    graphEngineHint:"The claim graph is the engine — nodes appear here once it has content.",
+    graphSkeletonHint:"The graph skeleton has no variables or probes yet.", then:"then",
+    graphContentHint:"The sprint claim, observation model, probes, experiments, results and decision render as one traceable projection as soon as records exist.",
+    graphCaption:"claim → observation relation → probe/hypothesis → experiment/intervention → result → claim decision · dotted paths are guards or provenance",
+    assumedAbsent:"assumed absent", guard:"guard", unknownProbe:"Unknown probe.", preRegistration:"pre-registration",
+    resolutionRules:"resolution rules mentioning", noResolutionMap:"No resolution map until the claim graph exists.",
+    noResolutionRules:"No resolution rules pre-registered.", when:"when", fires:"FIRES", skips:"skips",
+    dependsAssumption:"depends on assumption", nothingToDo:"(nothing to do)", mode:"mode",
+    projectQuestion:"project question", sprintClaim:"sprint claim", sprintStatus:"sprint status",
+    activeExperiment:"active experiment", backloggedIdeas:"backlogged ideas", events:"events", noEvents:"no events yet",
+    theory:"theory (M)", variableObserved:"variable (observed)", variableLatent:"variable (latent, dashed)",
+    probeReady:"probe ready", probePositive:"probe positive", probeNegative:"probe negative",
+    waitingSkipped:"waiting/skipped", theoryObservation:"theory→observation", edge:"edge", probeGuard:"probe guard",
+    claimNode:"sprint claim", hypothesisNode:"probe / hypothesis", experimentNode:"experiment / intervention",
+    resultNode:"evidence / result", decisionNode:"claim decision", amendmentNode:"amendment",
+    contains:"contains", models:"models", testedBy:"tested by", executedAs:"executed as", produced:"produced",
+    contributes:"contributes", enabledBy:"enabled by", inducedBy:"induced by", motivatedBy:"motivated by",
+    supported:"supported", falsified:"falsified", inconclusive:"inconclusive", terminated:"terminated",
+    advance:"advance", continueDecision:"continue", narrow:"narrow", activeDecision:"active", pendingResult:"pending",
+    workflowDecision:"workflow decision", evidenceLabel:"evidence", conclusion:"conclusion", intervention:"intervention",
+    hypothesis:"hypothesis", question:"question", measurement:"measurement", sourceRecord:"source record",
+    graphRecord:"graph relation", artifacts:"graph / figure", expectedFigure:"expected figure", openArtifact:"open artifact",
+    pinnedDetail:"Pinned detail · click elsewhere to close"
+  },
+  zh: {
+    closureDashboard:"研究闭环仪表盘", claimGraph:"完整研究流程网络", panZoom:"拖动背景：平移 · 拖动节点：移动 · 滚轮：缩放",
+    resetView:"重置视图", fitView:"适配整图", resolutionMap:"判定规则（审计）", nextEvents:"下一事件", eventLog:"事件日志",
+    at:"时间", event:"事件", payload:"载荷", probeDetail:"节点详情",
+    probePrompt:"点击任一节点，查看该投影背后的原始记录。", state:"研究状态", generated:"生成于",
+    regenerateWith:"重新生成命令", footerExplain:"设计哈希冻结预注册方案；结果和修订推动结论映射。",
+    researchDashboard:"研究仪表盘", theme:"主题", dark:"深色", light:"浅色", language:"语言",
+    dashboardTheme:"仪表盘主题", dashboardLanguage:"仪表盘语言",
+    english:"English", chinese:"中文", prev:"上一帧", play:"播放", pause:"暂停", next:"下一帧",
+    firstContent:"首个有内容帧", firstContentTitle:"跳到研究流程首次出现节点的帧",
+    latest:"最新状态", latestTitle:"跳到最新状态", latestGenerated:"最新生成",
+    stateNone:"尚无主张图", stateEmpty:"主张图骨架（尚无节点）", stateNodes:"已渲染节点",
+    block:"阻塞", pass:"通过", claim:"主张", noClaimGraphYet:"（尚无主张图）", type:"类型",
+    designHash:"设计哈希", sprint:"冲刺", ends:"结束日期", active:"活动实验", on:"对应探针",
+    resolutionMapLabel:"结论映射", closeAs:"应关闭为", open:"未决", ready:"就绪", none:"无",
+    warning:"警告", blockLabel:"阻塞", guardPass:"通过：工作可在冻结主张范围内继续。",
+    positive:"正向", negative:"负向", unresolved:"未决", skipped:"已跳过", waiting:"等待中",
+    probe:"探针", tests:"检验", metric:"指标", prereg:"预注册", controls:"控制变量", guardsIn:"前置条件", role:"角色",
+    status:"状态", observed:"已观测", roleIntervention:"干预", roleOutcome:"结果",
+    roleExposure:"暴露", roleMediator:"中介", roleConfounder:"混杂", roleCovariate:"协变量",
+    outcome:"结果", experiment:"实验", defect:"缺陷", unobserved:"未观测",
+    statement:"陈述", provenance:"来源", entails:"蕴含",
+    noGraphTitle:"当前仓库尚未建立主张图", emptyGraphTitle:"主张图已建立，但尚无节点",
+    graphEngineHint:"主张图是 RCH 的引擎；加入内容后节点会显示在这里。",
+    graphSkeletonHint:"当前图骨架尚无变量或探针。", then:"则",
+    graphContentHint:"记录存在后，冲刺主张、观测模型、探针、实验、结果和判定会投影成一张可追溯网络。",
+    graphCaption:"主张 → 观测关系 → 探针/假设 → 实验/干预 → 证据结果 → 主张判定 · 点线表示前置条件或来源",
+    assumedAbsent:"假定不存在", guard:"前置条件", unknownProbe:"未知探针。", preRegistration:"预注册",
+    resolutionRules:"涉及该探针的结论规则", noResolutionMap:"建立主张图后才会出现结论映射。",
+    noResolutionRules:"尚未预注册结论规则。", when:"当", fires:"已触发", skips:"跳过",
+    dependsAssumption:"依赖假设", nothingToDo:"（当前无待办事件）", mode:"模式",
+    projectQuestion:"项目问题", sprintClaim:"冲刺主张", sprintStatus:"冲刺状态",
+    activeExperiment:"活动实验", backloggedIdeas:"待办想法", events:"事件数", noEvents:"尚无事件",
+    theory:"理论（M）", variableObserved:"变量（已观测）", variableLatent:"变量（潜变量，虚线）",
+    probeReady:"探针就绪", probePositive:"探针正向", probeNegative:"探针负向",
+    waitingSkipped:"等待/已跳过", theoryObservation:"理论→观测", edge:"边", probeGuard:"探针前置条件",
+    claimNode:"冲刺主张", hypothesisNode:"探针/假设", experimentNode:"实验/干预",
+    resultNode:"证据/结果", decisionNode:"主张判定", amendmentNode:"修订",
+    contains:"包含", models:"建模", testedBy:"由探针检验", executedAs:"执行为", produced:"产生",
+    contributes:"汇入判定", enabledBy:"由结果开放", inducedBy:"由结果归纳", motivatedBy:"由异常驱动",
+    supported:"支持", falsified:"证伪", inconclusive:"无定论", terminated:"终止",
+    advance:"推进", continueDecision:"继续", narrow:"收窄", activeDecision:"进行中", pendingResult:"待定",
+    workflowDecision:"工作流决定", evidenceLabel:"证据", conclusion:"结论", intervention:"干预",
+    hypothesis:"假设", question:"问题", measurement:"测量", sourceRecord:"原始记录",
+    graphRecord:"图关系", artifacts:"图表 / 图片", expectedFigure:"预期图片", openArtifact:"打开文件",
+    pinnedDetail:"详情已固定 · 点击其他位置关闭"
+  }
+};
+function readStoredLocale() {
+  try { return localStorage.getItem(RCH_LOCALE_STORAGE_KEY); } catch (_) { return null; }
+}
+const RCH_LOCALE = readStoredLocale() === "zh" ? "zh" : "en";
+document.documentElement.lang = RCH_LOCALE === "zh" ? "zh-CN" : "en";
+function tr(key) { return (RCH_I18N[RCH_LOCALE] && RCH_I18N[RCH_LOCALE][key]) || RCH_I18N.en[key] || key; }
+function translateStatic(root) {
+  root.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = tr(el.dataset.i18n); });
+  root.querySelectorAll("[data-i18n-title]").forEach(el => { el.title = tr(el.dataset.i18nTitle); });
+  root.querySelectorAll("[data-i18n-aria]").forEach(el => { el.setAttribute("aria-label", tr(el.dataset.i18nAria)); });
+}
+
 function initDashboard(container, DATA) {
   const G = DATA.graph, D = DATA.derived || {}, S = DATA.state || {};
   container.innerHTML = STAGE_HTML;
+  translateStatic(container);
   const $ = (id) => container.querySelector("#" + id);
 const esc = (s) => { const d = document.createElement("div"); d.textContent = String(s == null ? "" : s); return d.innerHTML; };
 const fmt = (s) => s == null ? "-" : s;
@@ -881,27 +1038,27 @@ const fmt = (s) => s == null ? "-" : s;
 /* ---------- header: verdict, meta, guard ---------- */
 (function header(){
   const chip = $("verdict-chip");
-  if (D.blocks && D.blocks.length) chip.className = "chip bad", chip.textContent = "BLOCK";
-  else chip.className = "chip ok", chip.textContent = "PASS";
+  if (D.blocks && D.blocks.length) chip.className = "chip bad", chip.textContent = tr("block");
+  else chip.className = "chip ok", chip.textContent = tr("pass");
   const s = S.sprint || {}, p = S.project || {};
-  let m = "claim: <b>" + esc(G ? G.claim : "(no claim graph yet)") + "</b>";
-  if (G) m += " · type: " + esc(G.graph_type) + " · design hash: <code>" + esc(D.design_hash) + "</code>";
-  if (s.claim) m += " · sprint: <b>" + esc(s.claim) + "</b>";
-  if (s.ends_at) m += " · ends " + esc(String(s.ends_at).slice(0, 10));
-  if (S.active_experiment) m += " · active: <b>" + esc(S.active_experiment.id) + "</b> on " + esc(S.active_experiment.claim_graph_node);
+  let m = tr("claim") + ": <b>" + esc(G ? G.claim : tr("noClaimGraphYet")) + "</b>";
+  if (G) m += " · " + tr("type") + ": " + esc(G.graph_type) + " · " + tr("designHash") + ": <code>" + esc(D.design_hash) + "</code>";
+  if (s.claim) m += " · " + tr("sprint") + ": <b>" + esc(s.claim) + "</b>";
+  if (s.ends_at) m += " · " + tr("ends") + " " + esc(String(s.ends_at).slice(0, 10));
+  if (S.active_experiment) m += " · " + tr("active") + ": <b>" + esc(S.active_experiment.id) + "</b> " + tr("on") + " " + esc(S.active_experiment.claim_graph_node);
   if (D.proposal && D.proposal.status === "determined")
-    m += " · resolution map: <b>" + esc(D.proposal.then) + "</b>" + (D.proposal.expected_close ? " → close as " + esc(D.proposal.expected_close) : "");
+    m += " · " + tr("resolutionMapLabel") + ": <b>" + esc(D.proposal.then) + "</b>" + (D.proposal.expected_close ? " → " + tr("closeAs") + " " + esc(D.proposal.expected_close) : "");
   else if (D.proposal && D.proposal.status === "open")
-    m += " · resolution map: open (ready: " + esc((D.frontier || []).join(", ") || "none") + ")";
+    m += " · " + tr("resolutionMapLabel") + ": " + tr("open") + " (" + tr("ready") + ": " + esc((D.frontier || []).join(", ") || tr("none")) + ")";
   $("meta").innerHTML = m;
 
   const banner = $("guard-banner");
-  const warns = (D.warnings || []).map(w => "warning: " + w).join("<br/>");
-  const blocks = (D.blocks || []).map(b => "block: " + b).join("<br/>");
+  const warns = (D.warnings || []).map(w => tr("warning") + ": " + w).join("<br/>");
+  const blocks = (D.blocks || []).map(b => tr("blockLabel") + ": " + b).join("<br/>");
   if ((D.blocks || []).length)
     banner.className = "banner block", banner.innerHTML = "<div>" + blocks + "</div>" + (warns ? "<div class='l'>" + warns + "</div>" : "");
   else
-    banner.className = "banner pass", banner.innerHTML = "PASS: work may proceed within the frozen claim." + (warns ? "<div class='l'>" + warns + "</div>" : "");
+    banner.className = "banner pass", banner.innerHTML = tr("guardPass") + (warns ? "<div class='l'>" + warns + "</div>" : "");
 })();
 
 /* ---------- probe status helpers ---------- */
@@ -915,70 +1072,304 @@ function probeStatus(id, p) {
   return "waiting";
 }
 function probeDetail(id, p) {
-  let s = "probe " + id + "\n";
-  s += "tests: " + JSON.stringify(p.tests) + "\n";
-  s += "metric: " + p.metric + "\n";
-  s += "prereg: " + p.prereg + "\n";
-  if (p.controls && p.controls.length) s += "controls: " + p.controls.join(", ") + "\n";
-  if (p.guards_in && p.guards_in.length) s += "guards_in: " + p.guards_in.join(", ") + "\n";
-  s += "outcome: " + ((D.outcomes || {})[id] || "-") + "\n";
-  if (p.experiment_id) s += "experiment: " + p.experiment_id + "\n";
-  if (p.defect) s += "defect: " + p.defect;
+  let s = tr("probe") + " " + id + "\n";
+  s += tr("tests") + ": " + JSON.stringify(p.tests) + "\n";
+  s += tr("metric") + ": " + p.metric + "\n";
+  s += tr("prereg") + ": " + p.prereg + "\n";
+  if (p.controls && p.controls.length) s += tr("controls") + ": " + p.controls.join(", ") + "\n";
+  if (p.guards_in && p.guards_in.length) s += tr("guardsIn") + ": " + p.guards_in.join(", ") + "\n";
+  s += tr("outcome") + ": " + ((D.outcomes || {})[id] || "-") + "\n";
+  if (p.experiment_id) s += tr("experiment") + ": " + p.experiment_id + "\n";
+  if (p.defect) s += tr("defect") + ": " + p.defect;
   return s;
 }
 
 /* ---------- DAG layout + rendering ---------- */
 const ST = {
-  ready:     {fill:"#052e16", stroke:"#22c55e", badge:"READY"},
-  positive:  {fill:"#14532d", stroke:"#4ade80", badge:"positive"},
-  negative:  {fill:"#450a0a", stroke:"#f87171", badge:"negative"},
-  unresolved:{fill:"#1e293b", stroke:"#94a3b8", badge:"unresolved"},
-  skipped:   {fill:"#111a2e", stroke:"#475569", badge:"skipped", dim:true},
-  waiting:   {fill:"#111a2e", stroke:"#475569", badge:"waiting"}
+  ready:     {fill:"var(--probe-ready-fill)", stroke:"var(--probe-ready-stroke)", badge:tr("ready")},
+  positive:  {fill:"var(--probe-positive-fill)", stroke:"var(--probe-positive-stroke)", badge:tr("positive")},
+  negative:  {fill:"var(--probe-negative-fill)", stroke:"var(--probe-negative-stroke)", badge:tr("negative")},
+  unresolved:{fill:"var(--probe-neutral-fill)", stroke:"var(--probe-neutral-stroke)", badge:tr("unresolved")},
+  skipped:   {fill:"var(--probe-waiting-fill)", stroke:"var(--probe-waiting-stroke)", badge:tr("skipped"), dim:true},
+  waiting:   {fill:"var(--probe-waiting-fill)", stroke:"var(--probe-waiting-stroke)", badge:tr("waiting")}
 };
+function decisionLabel(value) {
+  const keys = {
+    supported:"supported", falsified:"falsified", inconclusive:"inconclusive", terminated:"terminated",
+    positive:"positive", negative:"negative", unresolved:"unresolved", ready:"ready", waiting:"waiting",
+    skipped:"skipped", open:"open", advance:"advance", continue:"continueDecision", narrow:"narrow",
+    active:"activeDecision", pending:"pendingResult"
+  };
+  return keys[value] ? tr(keys[value]) : (value || tr("pendingResult"));
+}
+function shortText(value, limit) {
+  const text = String(value == null ? "" : value).replace(/\s+/g, " ").trim();
+  return text.length > limit ? text.slice(0, Math.max(1, limit - 1)).trimEnd() + "…" : text;
+}
+function roleLabel(role) {
+  const keys = {
+    intervention:"roleIntervention", outcome:"roleOutcome", exposure:"roleExposure",
+    mediator:"roleMediator", confounder:"roleConfounder", covariate:"roleCovariate"
+  };
+  return keys[role] ? tr(keys[role]) : (role || "?");
+}
+function estimatedTextWidth(value) {
+  let width = 0;
+  for (const ch of String(value || "")) width += /[^\u0000-\u00ff]/.test(ch) ? 15 : 8.8;
+  return width;
+}
 const layout = (function(){
   const nodes = [], edges = [], byId = {};
   if (!G) return {nodes, edges};
-  const push = (n) => { n.label = n.id; n.w = Math.max(88, n.label.length * 9 + 30); n.h = n.kind === "probe" ? 44 : 38; nodes.push(n); byId[n.id] = n; };
+  const push = (n) => {
+    n.fullTitle = n.title || n.id;
+    n.fullSubtitle = n.subtitle || "";
+    n.title = shortText(n.fullTitle, 30);
+    n.subtitle = shortText(n.fullSubtitle, 40);
+    n.w = Math.min(340, Math.max(275, Math.max(estimatedTextWidth(n.title), estimatedTextWidth(n.subtitle)) + 38));
+    n.h = 92;
+    nodes.push(n);
+    byId[n.id] = n;
+    return n;
+  };
+
+  const events = S.events || [];
+  const experiments = {};
+  for (const event of events) {
+    if (event.event !== "experiment_started" && event.event !== "experiment_closed") continue;
+    const record = event.payload || {};
+    if (!record.id) continue;
+    experiments[record.id] = Object.assign({}, experiments[record.id] || {}, record,
+      { event_status: event.event === "experiment_closed" ? "closed" : "active" });
+  }
+  if (S.active_experiment && S.active_experiment.id)
+    experiments[S.active_experiment.id] = Object.assign({}, experiments[S.active_experiment.id] || {},
+      S.active_experiment, { event_status:"active" });
+
+  const sprintClosed = events.slice().reverse().map(e => e.event === "sprint_closed" ? e.payload : null)
+    .find(p => p && p.claim === G.claim) || null;
+  const sprintStarted = events.slice().reverse().map(e => e.event === "sprint_started" ? e.payload : null)
+    .find(p => p && p.claim === G.claim) || S.sprint || null;
+  const claimId = "$claim:" + (G.claim_id || "claim");
+  push({ id:claimId, kind:"claim", title:(G.claim_id || "Claim") + " · " + tr("claimNode"),
+    subtitle:G.claim || "", detail:tr("claim") + ": " + (G.claim || "") + "\n" +
+      tr("type") + ": " + (G.graph_type || "-") + "\n" + tr("designHash") + ": " + (D.design_hash || "-") +
+      (sprintStarted ? "\n" + tr("sprintStatus") + ": " + (sprintClosed ? sprintClosed.decision : sprintStarted.status || "active") : ""),
+    graphRecord:{ claim_id:G.claim_id, graph_type:G.graph_type, design_hash:D.design_hash,
+      variables:Object.keys(G.variables || {}), probes:Object.keys(G.probes || {}), resolution:G.resolution || [] },
+    sourceRecord:{ claim:G.claim, sprint:sprintStarted, closed:sprintClosed } });
+
+  const variableIds = Object.keys(G.variables || {});
+  const variableDepth = Object.fromEntries(variableIds.map(id => [id, 0]));
+  for (let pass = 0; pass < variableIds.length; pass++)
+    for (const e of (G.edges || []))
+      if (e.from in variableDepth && e.to in variableDepth)
+        variableDepth[e.to] = Math.max(variableDepth[e.to], variableDepth[e.from] + 1);
+
+  const probeIds = Object.keys(G.probes || {}).sort();
+  const probeLevel = {};
+  function levelOf(pid, seen) {
+    if (probeLevel[pid] != null) return probeLevel[pid];
+    if ((seen || []).indexOf(pid) >= 0) return 0;
+    const guards = ((G.probes[pid] || {}).guards_in || []).map(g => String(g).split("==")[0].trim());
+    const level = guards.length ? 1 + Math.max(...guards.map(dep => levelOf(dep, (seen || []).concat(pid)))) : 0;
+    probeLevel[pid] = level;
+    return level;
+  }
+  probeIds.forEach(pid => levelOf(pid, []));
+  probeIds.sort((a, b) => probeLevel[a] - probeLevel[b] || (a < b ? -1 : 1));
+  const laneY = Object.fromEntries(probeIds.map((pid, i) => [pid, 145 + i * 155]));
+  const centerY = probeIds.length ? probeIds.map(pid => laneY[pid]).reduce((a, b) => a + b, 0) / probeIds.length : 150;
+  byId[claimId].y = centerY;
+  byId[claimId].x = 30;
+
+  const references = {};
+  for (const pid of probeIds) {
+    const tests = (G.probes[pid] || {}).tests || {};
+    for (const value of Object.values(tests)) {
+      if (typeof value === "string" && variableDepth[value] != null)
+        (references[value] ||= []).push(laneY[pid]);
+      if (Array.isArray(value)) for (const v of value)
+        if (variableDepth[v] != null) (references[v] ||= []).push(laneY[pid]);
+    }
+  }
+  const COL = 380;
+  let fallbackY = 80;
+  for (const [id, v] of Object.entries(G.variables || {})) {
+    const ys = references[id] || [];
+    const n = push({ id, kind:"variable", latent:!v.observed,
+      title:id + " · " + (v.name || id),
+      subtitle:tr("role") + ": " + roleLabel(v.role) + " · " + (v.observed ? tr("observed") : tr("unobserved")),
+      detail:(v.name || "") + "\n" + tr("role") + ": " + (v.role || "?") + "\n" +
+        (v.observed ? tr("observed") : tr("unobserved")),
+      graphRecord:{ incoming:(G.edges || []).filter(e => e.to === id), outgoing:(G.edges || []).filter(e => e.from === id),
+        assumed_absent:(G.assumed_absent || []).filter(e => e.from === id || e.to === id) }, sourceRecord:v });
+    n.x = 30 + COL * (1 + (variableDepth[id] || 0));
+    n.y = ys.length ? ys.reduce((a, b) => a + b, 0) / ys.length : fallbackY;
+    fallbackY += 90;
+  }
+  const maxVariableDepth = Math.max(0, ...Object.values(variableDepth));
+  const probeX = 30 + COL * (maxVariableDepth + 2);
+  const experimentX = probeX + COL;
+  const resultX = experimentX + COL;
+  const decisionX = resultX + COL;
+
+  let earlyTheoryOffset = 0;
   for (const [id, m] of Object.entries(G.theory || {})) {
     if (m.retired_at) continue;
-    push({ id, kind: "theory", layer: 0,
-      detail: "statement: " + (m.statement || "") + "\nprovenance: " + (m.provenance || "?") + "\nentails: " + ((m.entails || []).join(", ") || "-") });
+    const induced = m.provenance === "induced" && (m.supported_by || []).length;
+    const n = push({ id, kind:"theory",
+      title: id + " · " + (m.statement || tr("theory")),
+      subtitle: tr("theory") + " · " + tr("provenance") + ": " + (m.provenance || "?"),
+      detail: tr("statement") + ": " + (m.statement || "") + "\n" + tr("provenance") + ": " + (m.provenance || "?") + "\n" + tr("entails") + ": " + ((m.entails || []).join(", ") || "-"),
+      graphRecord:{ entails:m.entails || [], supported_by:m.supported_by || [] }, sourceRecord:m });
+    n.x = induced ? decisionX : 30 + COL;
+    n.y = induced ? centerY + 130 : 20 + earlyTheoryOffset++ * 90;
   }
-  for (const [id, v] of Object.entries(G.variables || {}))
-    push({ id, kind: "variable", layer: 1, latent: !v.observed,
-      detail: (v.name || "") + "\nrole: " + (v.role || "?") + (v.observed ? "" : "\n(unobserved)") });
-  for (const [id, p] of Object.entries(G.probes || {}))
-    push({ id, kind: "probe", layer: 2, status: probeStatus(id, p), detail: probeDetail(id, p) });
+
+  function variableName(id) { return ((G.variables || {})[id] || {}).name || id || "?"; }
+  function probeSummary(tests) {
+    if (!tests) return tr("probe");
+    if (tests.kind === "edge")
+      return shortText(variableName(tests.from), 20) + " → " + shortText(variableName(tests.to), 20);
+    if (tests.kind === "independence")
+      return shortText(variableName(tests.x), 16) + " ⟂ " + shortText(variableName(tests.y), 16) +
+        ((tests.given || []).length ? " | " + tests.given.join(", ") : "");
+    if (tests.kind === "comparison")
+      return shortText(variableName(tests.stronger), 14) + " vs " + shortText(variableName(tests.weaker), 14) +
+        " → " + shortText(variableName(tests.on), 14);
+    return JSON.stringify(tests);
+  }
+  const resultByProbe = {};
+  for (const id of probeIds) {
+    const p = G.probes[id];
+    const status = probeStatus(id, p);
+    const exp = p.experiment_id ? experiments[p.experiment_id] :
+      (S.active_experiment && S.active_experiment.claim_graph_node === id ? experiments[S.active_experiment.id] : null);
+    const pnode = push({ id, kind:"probe", status,
+      title:id + " · " + probeSummary(p.tests),
+      subtitle:tr("hypothesisNode") + " · " + decisionLabel(exp && exp.decision ? exp.decision : status),
+      detail:probeDetail(id, p) + (exp && exp.hypothesis ? "\n" + tr("hypothesis") + ": " + exp.hypothesis : ""),
+      graphRecord:{ tests:p.tests || {}, guards_in:p.guards_in || [], outcome:(D.outcomes || {})[id] || null },
+      sourceRecord:Object.assign({id:id}, p, exp ? {experiment:exp} : {}) });
+    pnode.x = probeX;
+    pnode.y = laneY[id];
+
+    if (exp && exp.id) {
+      const expId = "$experiment:" + exp.id;
+      const enode = push({ id:expId, kind:"experiment", sourceId:exp.id,
+        title:exp.id + " · " + tr("experimentNode"), subtitle:exp.intervention || exp.question || "",
+        detail:tr("question") + ": " + (exp.question || "-") + "\n" + tr("hypothesis") + ": " + (exp.hypothesis || "-") +
+          "\n" + tr("intervention") + ": " + (exp.intervention || "-") + "\n" + tr("measurement") + ": " + (exp.measurement || "-"),
+        graphRecord:{ probe:id, tests:p.tests || {}, guards_in:p.guards_in || [] }, sourceRecord:exp });
+      enode.x = experimentX;
+      enode.y = laneY[id];
+      edges.push({ a:id, b:expId, kind:"workflow", label:tr("executedAs"), detail:tr("executedAs") + " " + exp.id });
+      if (exp.decision) {
+        const resultId = "$result:" + exp.id;
+        const rnode = push({ id:resultId, kind:"result", status:exp.decision, sourceId:exp.id,
+          title:tr("resultNode") + " · " + decisionLabel(exp.decision), subtitle:exp.conclusion || exp.evidence || "",
+          detail:tr("outcome") + ": " + exp.decision + "\n" + tr("evidenceLabel") + ": " + (exp.evidence || "-") +
+            "\n" + tr("conclusion") + ": " + (exp.conclusion || "-") + (exp.defect ? "\n" + tr("defect") + ": " + exp.defect : ""),
+          graphRecord:{ probe:id, outcome:exp.decision, contributes_to:G.resolution || [] }, sourceRecord:exp });
+        rnode.x = resultX;
+        rnode.y = laneY[id];
+        resultByProbe[id] = resultId;
+        edges.push({ a:expId, b:resultId, kind:"result", label:tr("produced"), detail:tr("produced") + " " + decisionLabel(exp.decision) });
+      }
+    }
+  }
+
   for (const e of (G.edges || []))
-    edges.push({ a: e.from, b: e.to, kind: (e.from_theory && e.from_theory.length) ? "theory-edge" : "edge" });
+    edges.push({ a:e.from, b:e.to, kind:(e.from_theory && e.from_theory.length) ? "theory-edge" : "edge",
+      label:e.from + " → " + e.to, detail:e.from + " → " + e.to });
   for (const a of (G.assumed_absent || []))
     edges.push({ a: a.from, b: a.to, kind: "absent", detail: a.justification });
-  for (const [id, p] of Object.entries(G.probes || {}))
+  const childVariables = new Set((G.edges || []).map(e => e.to));
+  for (const id of variableIds.filter(id => !childVariables.has(id)))
+    edges.push({ a:claimId, b:id, kind:"scope", label:tr("models"), detail:tr("models") + " " + id });
+
+  for (const [id, p] of Object.entries(G.probes || {})) {
+    const tests = p.tests || {};
+    const focus = tests.to || tests.on || tests.y || tests.x || tests.from;
+    if (focus && byId[focus])
+      edges.push({ a:focus, b:id, kind:"tests", label:tr("testedBy"), detail:tr("tests") + ": " + JSON.stringify(tests) });
+    else
+      edges.push({ a:claimId, b:id, kind:"scope", label:tr("contains"), detail:tr("contains") + " " + id });
     for (const g of (p.guards_in || [])) {
       const dep = String(g).split("==")[0].trim();
-      if (byId[dep]) edges.push({ a: dep, b: id, kind: "guard", label: g });
+      const source = resultByProbe[dep] || dep;
+      if (byId[source]) edges.push({ a:source, b:id, kind:"guard", label:tr("enabledBy"), detail:g });
     }
-  const M = 30, GAP_X = 36, GAP_Y = [150, 170, 0];
-  let y = M;
-  for (const layer of [0, 1, 2]) {
-    const row = (nodes.filter(n => n.layer === layer)).sort((a, b) => a.id < b.id ? -1 : 1);
-    let x = M;
-    for (const n of row) { n.x = x; n.y = y; x += n.w + GAP_X; }
-    if (row.length && layer < 2) y += GAP_Y[layer];
+  }
+
+  const proposal = D.proposal || {};
+  const decisionId = "$decision:" + (G.claim_id || "claim");
+  const finalVerdict = proposal.status === "determined" ? proposal.then : "open";
+  const workflowVerdict = sprintClosed ? sprintClosed.decision : (S.sprint ? "active" : "pending");
+  const dnode = push({ id:decisionId, kind:"decision", status:finalVerdict,
+    title:tr("decisionNode") + " · " + decisionLabel(finalVerdict),
+    subtitle:tr("workflowDecision") + ": " + decisionLabel(workflowVerdict),
+    detail:tr("resolutionMapLabel") + ": " + finalVerdict + "\n" + tr("workflowDecision") + ": " + workflowVerdict +
+      (proposal.rule ? "\n" + tr("sourceRecord") + ": " + JSON.stringify(proposal.rule, null, 2) : ""),
+    graphRecord:{ outcomes:D.outcomes || {}, rule:proposal.rule || null, resolution:G.resolution || [] },
+    sourceRecord:{ proposal:proposal, sprint_decision:sprintClosed } });
+  dnode.x = decisionX;
+  dnode.y = centerY;
+  const decisionSources = proposal.rule ? Object.keys(proposal.rule.when || {}) : probeIds;
+  for (const pid of decisionSources) {
+    const source = resultByProbe[pid] || pid;
+    if (byId[source]) edges.push({ a:source, b:decisionId, kind:"resolution", label:tr("contributes"), detail:tr("contributes") + " " + finalVerdict });
+  }
+
+  let derivedOffset = 0;
+  for (const [id, m] of Object.entries(G.theory || {})) {
+    if (!byId[id]) continue;
+    for (const expId of (m.supported_by || [])) {
+      const resultId = "$result:" + expId;
+      if (byId[resultId]) edges.push({ a:resultId, b:id, kind:"induction", label:tr("inducedBy"), detail:tr("inducedBy") + " " + expId });
+    }
+    if (m.provenance === "induced") {
+      byId[id].x = decisionX;
+      byId[id].y = centerY + 120 + derivedOffset++ * 90;
+    } else {
+      edges.push({ a:claimId, b:id, kind:"scope", label:tr("contains"), detail:tr("contains") + " " + id });
+    }
+  }
+  for (const amendment of (G.amendments || [])) {
+    const id = "$amendment:" + amendment.id;
+    const n = push({ id, kind:"amendment", title:amendment.id + " · " + tr("amendmentNode"),
+      subtitle:amendment.action + " · " + amendment.detail,
+      detail:JSON.stringify(amendment, null, 2), graphRecord:{ motivating_anomaly:amendment.motivating_anomaly || null },
+      sourceRecord:amendment });
+    n.x = decisionX;
+    n.y = centerY + 120 + derivedOffset++ * 90;
+    const context = amendment.motivating_anomaly || {};
+    const source = context.x && byId[context.x] ? context.x : claimId;
+    edges.push({ a:source, b:id, kind:"amendment", label:tr("motivatedBy"), detail:tr("motivatedBy") + " " + amendment.detail });
   }
   return { nodes, edges, byId };
 })();
 
 const EDGE_STYLE = {
-  "edge":        { stroke:"#64748b", width:2, dash:"", marker:"arr-edge" },
-  "theory-edge": { stroke:"#a78bfa", width:1.6, dash:"", marker:"arr-theory" },
-  "absent":      { stroke:"#ef4444", width:2, dash:"6 4", marker:"arr-absent" },
-  "guard":       { stroke:"#7dd3fc", width:1.4, dash:"2 4", marker:"arr-guard" }
+  "edge":        { stroke:"var(--edge-stroke)", width:2.8, dash:"", marker:"arr-edge" },
+  "theory-edge": { stroke:"var(--theory-stroke)", width:2.4, dash:"", marker:"arr-theory" },
+  "absent":      { stroke:"var(--red)", width:2.8, dash:"7 5", marker:"arr-absent" },
+  "guard":       { stroke:"var(--guard-stroke)", width:2.5, dash:"7 5", marker:"arr-guard" },
+  "scope":       { stroke:"var(--claim-stroke)", width:2.5, dash:"4 5", marker:"arr-claim" },
+  "tests":       { stroke:"var(--tests-stroke)", width:2.6, dash:"7 4", marker:"arr-tests" },
+  "workflow":    { stroke:"var(--experiment-stroke)", width:2.8, dash:"", marker:"arr-experiment" },
+  "result":      { stroke:"var(--result-stroke)", width:2.8, dash:"", marker:"arr-result" },
+  "resolution":  { stroke:"var(--decision-stroke)", width:3, dash:"", marker:"arr-decision" },
+  "induction":   { stroke:"var(--theory-stroke)", width:2.5, dash:"6 4", marker:"arr-theory" },
+  "amendment":   { stroke:"var(--amendment-stroke)", width:2.5, dash:"6 4", marker:"arr-amendment" }
 };
 const MARKERS = [
-  ["arr-edge", "#64748b"], ["arr-theory", "#a78bfa"],
-  ["arr-absent", "#ef4444"], ["arr-guard", "#7dd3fc"]
+  ["arr-edge", "var(--edge-stroke)"], ["arr-theory", "var(--theory-stroke)"],
+  ["arr-absent", "var(--red)"], ["arr-guard", "var(--guard-stroke)"],
+  ["arr-claim", "var(--claim-stroke)"], ["arr-tests", "var(--tests-stroke)"],
+  ["arr-experiment", "var(--experiment-stroke)"], ["arr-result", "var(--result-stroke)"],
+  ["arr-decision", "var(--decision-stroke)"], ["arr-amendment", "var(--amendment-stroke)"]
 ];
 
 const SVGNS = "http://www.w3.org/2000/svg";
@@ -991,7 +1382,7 @@ function svgEl(tag, attrs) {
 function svgText(x, y, content, attrs) {
   const t = svgEl("text", Object.assign({
     x: x, y: y, "text-anchor": "middle", "dominant-baseline": "central",
-    fill: "#e2e8f0", "font-size": "13", "font-weight": "600"
+    fill: "var(--node-text)", "font-size": "13", "font-weight": "600"
   }, attrs || {}));
   t.textContent = content;
   return t;
@@ -1002,9 +1393,41 @@ function clearNode(node) {
 function edgePath(e) {
   const a = layout.byId[e.a], b = layout.byId[e.b];
   if (!a || !b) return "";
-  const x1 = a.x + a.w / 2, y1 = a.y + a.h / 2, x2 = b.x + b.w / 2, y2 = b.y + b.h / 2;
-  const dx = (x2 - x1) * 0.35;
-  return "M" + x1 + "," + y1 + " C" + (x1 + dx) + "," + y1 + " " + (x2 - dx) + "," + y2 + " " + x2 + "," + y2;
+  const forward = b.x >= a.x;
+  const x1 = forward ? a.x + a.w : a.x, y1 = a.y + a.h / 2;
+  const x2 = forward ? b.x - 18 : b.x + b.w + 18, y2 = b.y + b.h / 2;
+  if (forward) {
+    const dx = Math.max(45, (x2 - x1) * 0.42);
+    return "M" + x1 + "," + y1 + " C" + (x1 + dx) + "," + y1 + " " + (x2 - dx) + "," + y2 + " " + x2 + "," + y2;
+  }
+  if (e.kind === "guard") {
+    /* A guard may point from a result on the right back to a later probe on
+       the left.  Attach that dependency to the bottoms of both nodes so the
+       return path reads as one deliberate connector, not a side hook. */
+    const sx = a.x + a.w / 2, sy = a.y + a.h;
+    const tx = b.x + b.w / 2, ty = b.y + b.h + 18;
+    const routeY = Math.max(sy, ty) + 52;
+    const direction = tx < sx ? -1 : 1;
+    const radius = Math.min(18, Math.abs(tx - sx) / 4);
+    return "M" + sx + "," + sy + " L" + sx + "," + (routeY - radius) +
+      " Q" + sx + "," + routeY + " " + (sx + direction * radius) + "," + routeY +
+      " L" + (tx - direction * radius) + "," + routeY +
+      " Q" + tx + "," + routeY + " " + tx + "," + (routeY - radius) +
+      " L" + tx + "," + ty;
+  }
+  const routeY = Math.max(y1, y2) + 72;
+  return "M" + x1 + "," + y1 + " C" + (x1 - 55) + "," + y1 + " " + (x1 - 55) + "," + routeY + " " + x1 + "," + routeY +
+    " L" + x2 + "," + routeY + " C" + (x2 + 55) + "," + routeY + " " + (x2 + 55) + "," + y2 + " " + x2 + "," + y2;
+}
+function edgeLabelPoint(e) {
+  const a = layout.byId[e.a], b = layout.byId[e.b];
+  if (!a || !b) return {x:0, y:0};
+  if (b.x >= a.x) return { x:(a.x + a.w + b.x) / 2, y:(a.y + a.h / 2 + b.y + b.h / 2) / 2 - 7 };
+  if (e.kind === "guard") return {
+    x:(a.x + a.w / 2 + b.x + b.w / 2) / 2,
+    y:Math.max(a.y + a.h, b.y + b.h + 18) + 44
+  };
+  return { x:(a.x + b.x + b.w) / 2, y:Math.max(a.y + a.h / 2, b.y + b.h / 2) + 65 };
 }
 
 function renderDag() {
@@ -1013,33 +1436,33 @@ function renderDag() {
     clearNode(svg);
     const noGraph = !G;
     const title = noGraph
-      ? "No claim graph in this repository yet"
-      : "The claim graph exists but has no nodes yet";
+      ? tr("noGraphTitle")
+      : tr("emptyGraphTitle");
     const hint = noGraph
-      ? "The claim graph is the engine \u2014 nodes appear here once it has content.<br/>" +
+      ? tr("graphEngineHint") + "<br/>" +
         "1. <code>claim_graph.py init --claim \"&lt;the sprint claim&gt;\"</code><br/>" +
-        "2. <code>add-variable --id X --name \"...\" --role \"...\"</code> then <code>add-edge / add-probe / add-resolution</code><br/>" +
+        "2. <code>add-variable --id X --name \"...\" --role \"...\"</code> " + tr("then") + " <code>add-edge / add-probe / add-resolution</code><br/>" +
         "3. <code>research_closure.py start-sprint ...</code>"
-      : "The graph skeleton has no variables or probes yet.<br/>" +
-        "<code>claim_graph.py add-variable --id X --name \"...\" --role \"...\"</code> then <code>add-edge / add-probe / add-resolution</code>";
+      : tr("graphSkeletonHint") + "<br/>" +
+        "<code>claim_graph.py add-variable --id X --name \"...\" --role \"...\"</code> " + tr("then") + " <code>add-edge / add-probe / add-resolution</code>";
     empty.innerHTML = '<div class="empty big"><div class="empty-title">' + title +
       "</div>" + hint +
-      '<div class="empty-sub">Theory (M), variable and probe (P) nodes render here as soon as the claim graph has content. The exact next commands are listed in the "Next events" panel below.</div></div>';
+      '<div class="empty-sub">' + tr("graphContentHint") + '</div></div>';
     return;
   }
   empty.innerHTML = "";
   let W = 0, H = 0;
   for (const n of layout.nodes) { W = Math.max(W, n.x + n.w); H = Math.max(H, n.y + n.h); }
-  W += 40; H += 50;
+  W += 40; H = Math.max(H + 58, 560);
   clearNode(svg);
 
   const defs = svgEl("defs", {});
   for (const mk of MARKERS) {
     const marker = svgEl("marker", {
-      id: mk[0], viewBox: "0 0 10 10", refX: "9", refY: "5",
-      markerWidth: "7", markerHeight: "7", orient: "auto-start-reverse",
+      id: mk[0], viewBox: "0 0 16 16", refX: "14", refY: "8",
+      markerWidth: "16", markerHeight: "16", markerUnits:"userSpaceOnUse", orient: "auto",
     });
-    marker.appendChild(svgEl("path", { d: "M0,0L10,5L0,10z", fill: mk[1] }));
+    marker.appendChild(svgEl("path", { d: "M0,0 L16,8 L0,16 L4,8 z", fill: mk[1] }));
     defs.appendChild(marker);
   }
   svg.appendChild(defs);
@@ -1047,6 +1470,7 @@ function renderDag() {
   const viewport = svgEl("g", { id: "viewport" });
   svg.appendChild(viewport);
 
+  const edgeRecords = [];
   for (const e of layout.edges) {
     const st = EDGE_STYLE[e.kind];
     const path = svgEl("path", {
@@ -1058,121 +1482,280 @@ function renderDag() {
     path.setAttribute("data-kind", e.kind);
     path.setAttribute("data-detail", e.detail || e.label || "");
     viewport.appendChild(path);
+    const edgeRecord = { edge:e, path:path, label:null, absentMark:null };
+    if (e.label && e.kind !== "edge") {
+      const lp = edgeLabelPoint(e);
+      const label = svgText(lp.x, lp.y, shortText(e.label, 24),
+        { "data-edge-label":e.kind, "font-size":"11", fill:"var(--subtle)", "font-weight":"700" });
+      viewport.appendChild(label);
+      edgeRecord.label = label;
+    }
     if (e.kind === "absent") {
       const a = layout.byId[e.a], b = layout.byId[e.b];
-      viewport.appendChild(svgText((a.x + a.w + b.x) / 2, (a.y + b.y + b.h) / 2, "\u2717",
-        { "font-size": "13", fill: "#f87171", "font-weight": "700" }));
+      edgeRecord.absentMark = svgText((a.x + a.w + b.x) / 2, (a.y + b.y + b.h) / 2, "\u2717",
+        { "font-size": "15", fill: "var(--red)", "font-weight": "800" });
+      viewport.appendChild(edgeRecord.absentMark);
     }
+    edgeRecords.push(edgeRecord);
   }
+  const nodeGroups = {};
   for (const n of layout.nodes) {
     const g = svgEl("g", {});
     g.setAttribute("data-node", n.id);
     g.setAttribute("data-kind", n.kind);
     g.setAttribute("data-detail", n.detail);
     g.setAttribute("data-probe", n.kind === "probe" ? n.id : "");
-    if (n.kind === "theory") {
-      g.appendChild(svgEl("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 9,
-        fill: "#2e1065", stroke: "#a78bfa", "stroke-width": 1.5 }));
-    } else if (n.kind === "variable") {
+    g.setAttribute("data-node-x", n.x);
+    g.setAttribute("data-node-y", n.y);
+    g.setAttribute("transform", "translate(" + n.x + "," + n.y + ")");
+    const accessibleTitle = svgEl("title", {});
+    accessibleTitle.textContent = n.fullTitle + " — " + n.fullSubtitle + "\n" + n.detail;
+    g.appendChild(accessibleTitle);
+    let fill = "var(--surface)", stroke = "var(--line)";
+    if (n.kind === "claim") fill = "var(--claim-fill)", stroke = "var(--claim-stroke)";
+    else if (n.kind === "theory") fill = "var(--theory-fill)", stroke = "var(--theory-stroke)";
+    else if (n.kind === "experiment") fill = "var(--experiment-fill)", stroke = "var(--experiment-stroke)";
+    else if (n.kind === "result") {
+      const st = n.status === "supported" ? ST.positive : n.status === "falsified" ? ST.negative : ST.unresolved;
+      fill = st.fill; stroke = st.stroke;
+    } else if (n.kind === "decision") {
+      if (n.status === "falsified") fill = ST.negative.fill, stroke = ST.negative.stroke;
+      else fill = "var(--decision-fill)", stroke = "var(--decision-stroke)";
+    } else if (n.kind === "amendment") fill = "var(--amendment-fill)", stroke = "var(--amendment-stroke)";
+    else if (n.kind === "variable") fill = n.latent ? "var(--latent-fill)" : "var(--variable-fill)", stroke = n.latent ? "var(--latent-stroke)" : "var(--variable-stroke)";
+    else if (n.kind === "probe") { const st = ST[n.status] || ST.waiting; fill = st.fill; stroke = st.stroke; }
+
+    if (n.kind === "variable") {
       if (n.latent) {
-        g.appendChild(svgEl("ellipse", { cx: n.x + n.w / 2, cy: n.y + n.h / 2,
-          rx: n.w / 2, ry: n.h / 2, fill: "#1e293b", stroke: "#64748b",
-          "stroke-width": 1.5, "stroke-dasharray": "5 3" }));
+        g.appendChild(svgEl("ellipse", { cx: n.w / 2, cy: n.h / 2,
+          rx: n.w / 2, ry: n.h / 2, fill, stroke,
+          "stroke-width": 2.2, "stroke-dasharray": "6 4" }));
       } else {
-        g.appendChild(svgEl("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 7,
-          fill: "#082f49", stroke: "#38bdf8", "stroke-width": 1.5 }));
+        g.appendChild(svgEl("rect", { x: 0, y: 0, width: n.w, height: n.h, rx: 9,
+          fill, stroke, "stroke-width": 2.2 }));
       }
     } else {
-      const st = ST[n.status] || ST.waiting;
-      g.appendChild(svgEl("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 10,
-        fill: st.fill, stroke: st.stroke, "stroke-width": 2 }));
-      if (st.badge) {
-        g.appendChild(svgText(n.x + n.w - 8, n.y + 10, st.badge,
-          { "text-anchor": "end", "font-size": "9", fill: "#7dd3fc", "font-weight": "700" }));
-      }
+      g.appendChild(svgEl("rect", { x: 0, y: 0, width: n.w, height: n.h, rx: 11,
+        fill, stroke, "stroke-width": n.kind === "claim" || n.kind === "decision" ? 3 : 2.3 }));
     }
-    g.appendChild(svgText(n.x + n.w / 2, n.y + n.h / 2, n.label));
+    g.appendChild(svgText(n.w / 2, 31, n.title,
+      { "data-label-line": "title", "font-size": "17", "font-weight": "750" }));
+    g.appendChild(svgText(n.w / 2, 66, n.subtitle,
+      { "data-label-line": "subtitle", "font-size": "13", fill: "var(--muted)", "font-weight": "600" }));
     viewport.appendChild(g);
+    nodeGroups[n.id] = g;
   }
   viewport.appendChild(svgText(20, H - 16,
-    "theory (M) \u2192 variables/edges (observed solid \u00b7 latent dashed \u00b7 \u2717 assumed absent) \u2192 probes (P)",
-    { "text-anchor": "start", "dominant-baseline": "auto", "font-size": "11", fill: "#64748b" }));
-  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    tr("graphCaption"),
+    { "text-anchor": "start", "dominant-baseline": "auto", "font-size": "13", fill: "var(--subtle)" }));
+  const defaultViewW = Math.min(W, 2200);
+  svg.setAttribute("viewBox", "0 0 " + defaultViewW + " " + H);
+  svg.setAttribute("preserveAspectRatio", "xMinYMin meet");
 
   const g = svg.querySelectorAll("g[data-node]"), epaths = svg.querySelectorAll("path[data-edge]");
   const tip = $("tooltip");
-  const showTip = (ev, text) => { tip.textContent = text; tip.style.display = "block"; moveTip(ev); };
-  const moveTip = (ev) => { const r = svg.getBoundingClientRect(); let x = ev.clientX - r.left + 14, y = ev.clientY - r.top + 14; if (x + 360 > r.width) x -= 380; tip.style.left = x + "px"; tip.style.top = y + "px"; };
-  const hideTip = () => { tip.style.display = "none"; };
-  for (const n of g) {
-    n.addEventListener("mouseenter", (ev) => showTip(ev, n.dataset.detail));
-    n.addEventListener("mousemove", moveTip);
-    n.addEventListener("mouseleave", hideTip);
-    if (n.dataset.probe) n.addEventListener("click", () => showProbeDetail(n.dataset.probe));
+  let tipHideTimer = null, pinnedNodeId = null;
+  const cancelTipHide = () => { if (tipHideTimer) clearTimeout(tipHideTimer); tipHideTimer = null; };
+  const showTip = (ev, html) => {
+    if (pinnedNodeId) return;
+    cancelTipHide(); tip.innerHTML = html; tip.style.display = "block"; moveTip(ev);
+  };
+  const moveTip = (ev) => {
+    const r = svg.getBoundingClientRect();
+    let x = ev.clientX - r.left + 16, y = ev.clientY - r.top + 16;
+    const tw = Math.min(480, r.width - 28), th = Math.min(tip.scrollHeight, 520);
+    if (x + tw > r.width - 8) x = Math.max(8, ev.clientX - r.left - tw - 16);
+    if (y + th > r.height - 8) y = Math.max(8, r.height - th - 8);
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  };
+  const hideTip = (immediate, force) => {
+    if (pinnedNodeId && !force) return;
+    cancelTipHide();
+    if (immediate) tip.style.display = "none";
+    else tipHideTimer = setTimeout(() => { tip.style.display = "none"; tipHideTimer = null; }, 140);
+  };
+  const unpinTip = () => {
+    pinnedNodeId = null;
+    tip.classList.remove("pinned");
+    tip.removeAttribute("data-pinned-node");
+    hideTip(true, true);
+  };
+  const pinNodeDetail = (ev, node) => {
+    cancelTipHide();
+    pinnedNodeId = node.id;
+    tip.classList.add("pinned");
+    tip.setAttribute("data-pinned-node", node.id);
+    tip.innerHTML = "<div class='pin-status'>" + esc(tr("pinnedDetail")) + "</div>" + renderNodeDetail(node);
+    tip.style.display = "block";
+    moveTip(ev);
+    showNodeDetail(node.id);
+  };
+  tip.addEventListener("mouseenter", cancelTipHide);
+  tip.addEventListener("mouseleave", () => { if (!pinnedNodeId) hideTip(true); });
+  let canvasDrag = null, nodeDrag = null, scale = 1, tx = 0, ty = 0;
+  const unitPerPixel = () => svg.viewBox.baseVal.width / Math.max(1, svg.getBoundingClientRect().width);
+  const refreshEdges = () => {
+    for (const item of edgeRecords) {
+      item.path.setAttribute("d", edgePath(item.edge));
+      if (item.label) {
+        const lp = edgeLabelPoint(item.edge);
+        item.label.setAttribute("x", lp.x); item.label.setAttribute("y", lp.y);
+      }
+      if (item.absentMark) {
+        const a = layout.byId[item.edge.a], b = layout.byId[item.edge.b];
+        item.absentMark.setAttribute("x", (a.x + a.w + b.x) / 2);
+        item.absentMark.setAttribute("y", (a.y + b.y + b.h) / 2);
+      }
+    }
+  };
+  for (const nodeGroup of g) {
+    const node = layout.byId[nodeGroup.dataset.node];
+    nodeGroup.addEventListener("mouseenter", (ev) => {
+      if (!nodeDrag && !pinnedNodeId) showTip(ev, renderNodeDetail(node));
+    });
+    nodeGroup.addEventListener("mousemove", (ev) => { if (!nodeDrag && !pinnedNodeId) moveTip(ev); });
+    nodeGroup.addEventListener("mouseleave", () => { if (!nodeDrag && !pinnedNodeId) hideTip(); });
+    nodeGroup.addEventListener("mousedown", (ev) => {
+      if (ev.button !== 0) return;
+      ev.preventDefault(); ev.stopPropagation(); unpinTip();
+      nodeDrag = { node:node, group:nodeGroup, x:ev.clientX, y:ev.clientY,
+        nodeX:node.x, nodeY:node.y, moved:false };
+      nodeGroup.classList.add("node-dragging");
+      viewport.appendChild(nodeGroup);
+    });
   }
   for (const p of epaths) {
     p.addEventListener("mouseenter", (ev) => {
-      const t = p.dataset.kind === "absent" ? "assumed absent: " + p.dataset.detail
-             : p.dataset.kind === "guard" ? "guard: " + p.dataset.detail : p.dataset.detail;
-      showTip(ev, t);
+      if (pinnedNodeId) return;
+      const t = p.dataset.kind === "absent" ? tr("assumedAbsent") + ": " + p.dataset.detail
+             : p.dataset.kind === "guard" ? tr("guard") + ": " + p.dataset.detail : p.dataset.detail;
+      showTip(ev, "<div class='detail-label'>" + esc(p.dataset.kind) + "</div><pre>" + esc(t) + "</pre>");
     });
-    p.addEventListener("mousemove", moveTip);
-    p.addEventListener("mouseleave", hideTip);
+    p.addEventListener("mousemove", (ev) => { if (!pinnedNodeId) moveTip(ev); });
+    p.addEventListener("mouseleave", () => { if (!pinnedNodeId) hideTip(); });
   }
 
   /* pan + zoom: transform the inner viewport group (the root <svg> element
      cannot carry a transform attribute — the old code silently did nothing) */
-  let drag = null, scale = 1, tx = 0, ty = 0;
-  const apply = () => viewport.setAttribute("transform", "translate(" + tx + "," + ty + ") scale(" + scale + ")");
-  svg.onmousedown = (ev) => { drag = { x: ev.clientX, y: ev.clientY, tx: tx, ty: ty }; svg.classList.add("dragging"); };
+  const apply = () => {
+    viewport.setAttribute("transform", "translate(" + tx + "," + ty + ") scale(" + scale + ")");
+    viewport.setAttribute("data-pan-x", tx); viewport.setAttribute("data-pan-y", ty); viewport.setAttribute("data-scale", scale);
+  };
+  apply();
+  svg.onmousedown = (ev) => {
+    if (ev.button !== 0) return;
+    canvasDrag = { x: ev.clientX, y: ev.clientY, tx:tx, ty:ty };
+    svg.classList.add("dragging");
+  };
   const doc = container.ownerDocument;
-  doc.addEventListener("mousemove", (ev) => {
-    if (!drag) return;
-    tx = drag.tx + (ev.clientX - drag.x); ty = drag.ty + (ev.clientY - drag.y); apply();
+  doc.addEventListener("mousedown", (ev) => {
+    if (pinnedNodeId && !tip.contains(ev.target)) unpinTip();
   });
-  doc.addEventListener("mouseup", () => { drag = null; svg.classList.remove("dragging"); });
+  doc.addEventListener("mousemove", (ev) => {
+    if (nodeDrag) {
+      const dx = (ev.clientX - nodeDrag.x) * unitPerPixel() / scale;
+      const dy = (ev.clientY - nodeDrag.y) * unitPerPixel() / scale;
+      nodeDrag.node.x = nodeDrag.nodeX + dx; nodeDrag.node.y = nodeDrag.nodeY + dy;
+      nodeDrag.moved = nodeDrag.moved || Math.abs(ev.clientX - nodeDrag.x) + Math.abs(ev.clientY - nodeDrag.y) > 4;
+      nodeDrag.group.setAttribute("transform", "translate(" + nodeDrag.node.x + "," + nodeDrag.node.y + ")");
+      nodeDrag.group.setAttribute("data-node-x", nodeDrag.node.x); nodeDrag.group.setAttribute("data-node-y", nodeDrag.node.y);
+      refreshEdges();
+      return;
+    }
+    if (!canvasDrag) return;
+    tx = canvasDrag.tx + (ev.clientX - canvasDrag.x) * unitPerPixel();
+    ty = canvasDrag.ty + (ev.clientY - canvasDrag.y) * unitPerPixel();
+    apply();
+  });
+  doc.addEventListener("mouseup", (ev) => {
+    if (nodeDrag) {
+      const finished = nodeDrag;
+      finished.group.classList.remove("node-dragging");
+      nodeDrag = null;
+      if (!finished.moved) pinNodeDetail(ev, finished.node);
+    }
+    canvasDrag = null; svg.classList.remove("dragging");
+  });
   svg.onwheel = (ev) => {
     ev.preventDefault();
     scale = Math.min(3, Math.max(0.3, scale * (ev.deltaY < 0 ? 1.12 : 0.9)));
     apply();
   };
-  $("reset-view").onclick = () => { scale = 1; tx = 0; ty = 0; apply(); };
+  $("reset-view").onclick = () => {
+    svg.setAttribute("viewBox", "0 0 " + defaultViewW + " " + H);
+    scale = 1; tx = 0; ty = 0; apply();
+  };
+  $("fit-view").onclick = () => {
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    scale = 1; tx = 0; ty = 0; apply();
+  };
 }
 
-/* ---------- probe detail panel ---------- */
-function showProbeDetail(id) {
-  const p = (G && G.probes && G.probes[id]) || null;
-  const panel = $("probe-detail");
-  if (!p) { panel.innerHTML = "Unknown probe."; return; }
-  let h = "<b>" + esc(id) + "</b> — " + esc(probeStatus(id, p)) + "<br/>" + esc(p.metric) + "<br/>";
-  h += "outcome: <b>" + esc((D.outcomes || {})[id] || "-") + "</b>" + (p.experiment_id ? " (experiment " + esc(p.experiment_id) + ")" : "") + "<br/>";
-  h += "guards_in: " + (p.guards_in && p.guards_in.length ? esc(p.guards_in.join(", ")) : "none") + "<br/>";
-  h += "controls: " + (p.controls && p.controls.length ? esc(p.controls.join(", ")) : "-");
-  h += "<pre>" + esc(JSON.stringify(p.tests, null, 1)) + "</pre>";
-  h += "<div>pre-registration:</div><pre>" + esc(p.prereg) + "</pre>";
-  const rules = ((G.resolution || []).map((r, i) => ({ r, i }))).filter(x => Object.keys(x.r.when || {}).indexOf(id) >= 0);
-  if (rules.length) {
-    h += "<div style='margin-top:8px'>resolution rules mentioning " + esc(id) + ":</div>";
-    for (const x of rules) h += "<pre>" + esc(JSON.stringify(x.r.when)) + " → " + esc(x.r.then) + "</pre>";
+/* ---------- detail panel for any projected node ---------- */
+function artifactRefs(node) {
+  const record = node && node.sourceRecord ? node.sourceRecord : {};
+  const values = [];
+  for (const key of ["expected_figure", "figure", "figures", "graph", "graph_path", "expected_artifact", "evidence"]) {
+    const value = record[key];
+    if (Array.isArray(value)) values.push(...value);
+    else if (value) values.push(...String(value).split(/[,\n]/));
   }
-  panel.innerHTML = h;
+  const refs = [], seen = new Set();
+  for (const raw of values) {
+    const path = String(raw || "").trim();
+    if (!path || seen.has(path)) continue;
+    if (!/^(https?:\/\/|file:\/\/|\/)|[\\/]|\.(png|jpe?g|gif|webp|svg|pdf|html?|json|csv)$/i.test(path)) continue;
+    seen.add(path); refs.push(path);
+  }
+  return refs;
 }
+function artifactHref(path) {
+  if (/^(https?:\/\/|file:\/\/)/i.test(path)) return path;
+  const root = String(DATA.project_root || "").replace(/\/$/, "");
+  const absolute = path.startsWith("/") ? path : root + "/" + path;
+  return "file://" + absolute.split("/").map(encodeURIComponent).join("/");
+}
+function artifactHtml(node) {
+  const refs = artifactRefs(node);
+  if (!refs.length) return "";
+  return "<div class='detail-label'>" + tr("artifacts") + "</div><div class='artifact-list'>" + refs.map(path => {
+    const href = artifactHref(path), image = /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(path);
+    return "<div class='artifact-ref'><a href='" + esc(href) + "' target='_blank' rel='noopener'>" +
+      esc(path) + "</a>" + (image ? "<img src='" + esc(href) + "' alt='" + esc(path) + "' onerror=\"this.style.display='none'\"/>" : "") + "</div>";
+  }).join("") + "</div>";
+}
+function renderNodeDetail(node) {
+  if (!node) return tr("unknownProbe");
+  const graph = JSON.stringify(node.graphRecord || {}, null, 2);
+  const source = JSON.stringify(node.sourceRecord || {}, null, 2);
+  return "<div class='detail-title'>" + esc(node.fullTitle || node.title) + "</div>" +
+    "<div class='detail-subtitle'>" + esc(node.fullSubtitle || node.subtitle) + "</div>" +
+    "<div class='detail-label'>" + tr("graphRecord") + "</div><pre>" + esc(graph) + "</pre>" + artifactHtml(node) +
+    "<div class='detail-label'>" + tr("sourceRecord") + "</div><pre>" + esc(source) + "</pre>";
+}
+function showNodeDetail(id) {
+  const node = layout.byId[id] || null;
+  const panel = $("probe-detail");
+  if (!node) { panel.innerHTML = tr("unknownProbe"); return; }
+  panel.innerHTML = renderNodeDetail(node);
+}
+function showProbeDetail(id) { showNodeDetail(id); }
 
 /* ---------- resolution map ---------- */
 (function renderResolution() {
   const box = $("resolution");
-  if (!G) { box.innerHTML = '<div class="empty">No resolution map until the claim graph exists.</div>'; return; }
+  if (!G) { box.innerHTML = '<div class="empty">' + tr("noResolutionMap") + '</div>'; return; }
   const rules = G.resolution || [];
-  if (!rules.length) { box.innerHTML = '<div class="empty">No resolution rules pre-registered.</div>'; return; }
+  if (!rules.length) { box.innerHTML = '<div class="empty">' + tr("noResolutionRules") + '</div>'; return; }
   const outs = D.outcomes || {};
   box.innerHTML = rules.map((r, i) => {
     const fired = Object.entries(r.when || {}).every(kv => outs[kv[0]] === kv[1]);
     const whenTxt = Object.keys(r.when || {}).map(k => esc(k) + "=" + esc(r.when[k])).join(", ");
     let h = '<div class="rule' + (fired ? " fires" : "") + '">';
-    h += '<span class="when">when { ' + whenTxt + ' }</span>';
-    h += '<div class="then">→ ' + esc(r.then) + (r.rung ? " <span style='color:var(--amber)'>(" + esc(r.rung) + ")</span>" : "") + (fired ? ' <span class="chip ok">FIRES</span>' : "") + '</div>';
-    if (r.skip && r.skip.length) h += '<div class="note">skips: ' + esc(r.skip.join(", ")) + "</div>";
-    if (r.depends_on_assumption) h += '<div class="note">depends on assumption: ' + esc(r.depends_on_assumption) + "</div>";
+    h += '<span class="when">' + tr("when") + ' { ' + whenTxt + ' }</span>';
+    h += '<div class="then">→ ' + esc(r.then) + (r.rung ? " <span style='color:var(--amber)'>(" + esc(r.rung) + ")</span>" : "") + (fired ? ' <span class="chip ok">' + tr("fires") + '</span>' : "") + '</div>';
+    if (r.skip && r.skip.length) h += '<div class="note">' + tr("skips") + ': ' + esc(r.skip.join(", ")) + "</div>";
+    if (r.depends_on_assumption) h += '<div class="note">' + tr("dependsAssumption") + ': ' + esc(r.depends_on_assumption) + "</div>";
     if (r.note) h += '<div class="note">' + esc(r.note) + "</div>";
     return h + "</div>";
   }).join("");
@@ -1180,16 +1763,16 @@ function showProbeDetail(id) {
 
 /* ---------- next events / state / events log ---------- */
 (function renderNext() {
-  $("next-list").innerHTML = (D.next_events || ["(nothing to do)"]).map(e => "<li><code>" + esc(e) + "</code></li>").join("");
+  $("next-list").innerHTML = (D.next_events || [tr("nothingToDo")]).map(e => "<li><code>" + esc(e) + "</code></li>").join("");
 })();
 
 (function renderState() {
   const s = S.sprint || {}, p = S.project || {}, ex = S.active_experiment || {};
   const rows = [
-    ["mode", fmt(S.mode)], ["project question", fmt(p.question)],
-    ["sprint claim", fmt(s.claim)], ["sprint status", fmt(s.status)],
-    ["active experiment", ex.id ? ex.id + " on " + ex.claim_graph_node : "-"],
-    ["backlogged ideas", fmt(S.backlogged_ideas)], ["events", String((S.events || []).length)]
+    [tr("mode"), fmt(S.mode)], [tr("projectQuestion"), fmt(p.question)],
+    [tr("sprintClaim"), fmt(s.claim)], [tr("sprintStatus"), fmt(s.status)],
+    [tr("activeExperiment"), ex.id ? ex.id + " " + tr("on") + " " + ex.claim_graph_node : "-"],
+    [tr("backloggedIdeas"), fmt(S.backlogged_ideas)], [tr("events"), String((S.events || []).length)]
   ];
   $("state-table").innerHTML = rows.map(r => "<tr><td>" + esc(r[0]) + "</td><td class='mono'>" + esc(r[1]) + "</td></tr>").join("");
 })();
@@ -1200,16 +1783,17 @@ function showProbeDetail(id) {
     const pl = JSON.stringify(e.payload || {});
     return "<tr><td class='mono'>" + esc(String(e.at).slice(11, 19)) + "</td><td>" + esc(e.event) + "</td>" +
       "<td class='mono' title='" + esc(pl) + "'>" + esc(pl.length > 60 ? pl.slice(0, 57) + "..." : pl) + "</td></tr>";
-  }).join("") || "<tr><td colspan='3'>no events yet</td></tr>";
+  }).join("") || "<tr><td colspan='3'>" + tr("noEvents") + "</td></tr>";
 })();
 
 /* ---------- legend ---------- */
 (function renderLegend() {
   const items = [
-    ["#2e1065", "theory (M)"], ["#082f49", "variable (observed)"], ["#1e293b", "variable (latent, dashed)"],
-    ["#052e16", "probe ready"], ["#14532d", "probe positive"], ["#450a0a", "probe negative"],
-    ["#1e293b", "unresolved"], ["#111a2e", "waiting/skipped"],
-    ["#a78bfa", "theory→observation"], ["#64748b", "edge"], ["#ef4444", "assumed absent"], ["#7dd3fc", "probe guard"]
+    ["var(--claim-fill)", tr("claimNode")], ["var(--variable-fill)", tr("variableObserved")],
+    ["var(--probe-ready-fill)", tr("hypothesisNode")], ["var(--experiment-fill)", tr("experimentNode")],
+    ["var(--result-fill)", tr("resultNode")], ["var(--decision-fill)", tr("decisionNode")],
+    ["var(--theory-fill)", tr("theory")], ["var(--amendment-fill)", tr("amendmentNode")],
+    ["var(--tests-stroke)", tr("testedBy")], ["var(--guard-stroke)", tr("enabledBy")]
   ];
   $("legend").innerHTML = items.map(i => "<span><i class='sw' style='background:" + i[0] + "'></i>" + i[1] + "</span>").join("");
 })();
@@ -1253,17 +1837,18 @@ def render_dashboard_page(name: str,
 <title>Research Closure Dashboard</title>
 <style>
 {DASHBOARD_CSS}
-:root{{--bg:#0b1220;--panel:#111a2e;--line:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--blue:#38bdf8;
---green:#22c55e;--amber:#fbbf24;--red:#f87171}}
 *{{box-sizing:border-box}}
 body{{margin:0;font-family:system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text)}}
 #controls{{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;
 padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}}
 h1{{font-size:15px;margin:0 8px 0 0}}
 #idx{{font-size:12px;color:var(--muted);min-width:52px}}
-button{{background:#082f49;color:var(--blue);border:1px solid #0c4a6e;border-radius:6px;
+button{{background:var(--info-bg);color:var(--info-text);border:1px solid var(--info-border);border-radius:6px;
 padding:4px 12px;font-size:12px;cursor:pointer}}
-button:hover{{background:#0c4a6e}}
+button:hover{{background:var(--button-hover)}}
+.control-select{{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:11px}}
+.control-select select{{background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:6px;
+padding:4px 7px;font-size:12px;cursor:pointer}}
 #slider{{flex:1;min-width:180px;accent-color:var(--blue)}}
 #label{{flex-basis:100%;font-size:12px;color:var(--muted)}}
 #state{{font-size:11px;font-weight:600;border-radius:99px;padding:2px 10px;border:1px solid var(--line)}}
@@ -1277,15 +1862,27 @@ button:hover{{background:#0c4a6e}}
 </head>
 <body>
 <div id="controls">
-  <h1>Research Dashboard {html_escape(name)}</h1>
+  <h1><span data-i18n="researchDashboard">Research Dashboard</span> {html_escape(name)}</h1>
   <span id="idx">1/{len(frames)}</span>
   <span id="state"></span>
   <span id="gen-at-tl" style="font-size:11px;color:var(--muted)"></span>
-  <button id="prev">&#9664; prev</button>
-  <button id="play">&#9654; play</button>
-  <button id="next">next &#9654;</button>
-  <button id="first-content" title="jump to the first frame where the DAG has nodes">first content &#9193;</button>
-  <button id="latest" title="jump to the latest state">latest &#9195;</button>
+  <label class="control-select" for="theme-select"><span data-i18n="theme">theme</span>
+    <select id="theme-select" aria-label="Dashboard theme" data-i18n-aria="dashboardTheme">
+      <option value="dark" data-i18n="dark">Dark</option>
+      <option value="light" data-i18n="light">Light</option>
+    </select>
+  </label>
+  <label class="control-select" for="locale-select"><span data-i18n="language">language</span>
+    <select id="locale-select" aria-label="Dashboard language" data-i18n-aria="dashboardLanguage">
+      <option value="en" data-i18n="english">English</option>
+      <option value="zh" data-i18n="chinese">中文</option>
+    </select>
+  </label>
+  <button id="prev">&#9664; <span data-i18n="prev">prev</span></button>
+  <button id="play">&#9654; <span data-i18n="play">play</span></button>
+  <button id="next"><span data-i18n="next">next</span> &#9654;</button>
+  <button id="first-content" title="jump to the first frame where the DAG has nodes" data-i18n-title="firstContentTitle"><span data-i18n="firstContent">first content</span> &#9193;</button>
+  <button id="latest" title="jump to the latest state" data-i18n-title="latestTitle"><span data-i18n="latest">latest</span> &#9195;</button>
   <input id="slider" type="range" min="0" max="{len(frames) - 1}" value="{len(frames) - 1}" step="1"/>
   <div id="label"></div>
 </div>
@@ -1294,10 +1891,32 @@ button:hover{{background:#0c4a6e}}
 {DASHBOARD_JS}
 </script>
 <script>
+const THEME_STORAGE_KEY = "rch-dashboard-theme";
+const themeSelect = document.getElementById("theme-select");
+const localeSelect = document.getElementById("locale-select");
+function readStoredTheme() {{
+  try {{ return localStorage.getItem(THEME_STORAGE_KEY); }} catch (_) {{ return null; }}
+}}
+function applyTheme(theme) {{
+  const selected = theme === "light" ? "light" : "dark";
+  document.documentElement.dataset.theme = selected;
+  themeSelect.value = selected;
+  try {{ localStorage.setItem(THEME_STORAGE_KEY, selected); }} catch (_) {{}}
+}}
+themeSelect.onchange = () => applyTheme(themeSelect.value);
+applyTheme(readStoredTheme() || "dark");
+localeSelect.value = RCH_LOCALE;
+localeSelect.onchange = () => {{
+  try {{ localStorage.setItem(RCH_LOCALE_STORAGE_KEY, localeSelect.value); }} catch (_) {{}}
+  location.reload();
+}};
+translateStatic(document);
+document.title = tr("closureDashboard");
+
 const PAYLOADS = {payloads};
 const labels = {labels};
 const marks = {marks};
-const STATE_TEXT = {{ none: "no claim graph yet", empty: "graph skeleton (no nodes yet)", nodes: "nodes rendered" }};
+const STATE_TEXT = {{ none: tr("stateNone"), empty: tr("stateEmpty"), nodes: tr("stateNodes") }};
 const stagesWrap = document.getElementById("stages");
 PAYLOADS.forEach((p, i) => {{
   const div = document.createElement("div");
@@ -1312,7 +1931,7 @@ const labelEl = document.getElementById("label");
 const stateEl = document.getElementById("state");
 const genAtEl = document.getElementById("gen-at-tl");
 if (genAtEl && PAYLOADS[PAYLOADS.length - 1] && PAYLOADS[PAYLOADS.length - 1].generated_at) {{
-  genAtEl.textContent = "latest " + String(PAYLOADS[PAYLOADS.length - 1].generated_at).slice(0, 19).replace("T", " ");
+  genAtEl.textContent = tr("latestGenerated") + " " + String(PAYLOADS[PAYLOADS.length - 1].generated_at).slice(0, 19).replace("T", " ");
 }}
 let current = 0, timer = null;
 function show(i) {{
@@ -1326,8 +1945,8 @@ function show(i) {{
   stateEl.className = mark;
 }}
 function play() {{
-  if (timer) {{ clearInterval(timer); timer = null; document.getElementById("play").textContent = "\\u25b6 play"; return; }}
-  document.getElementById("play").textContent = "\\u23f8 pause";
+  if (timer) {{ clearInterval(timer); timer = null; document.getElementById("play").innerHTML = "\\u25b6 <span>" + tr("play") + "</span>"; return; }}
+  document.getElementById("play").innerHTML = "\\u23f8 <span>" + tr("pause") + "</span>";
   timer = setInterval(() => {{ show((current + 1) % stages.length); }}, 1600);
 }}
 document.getElementById("prev").onclick = () => show(Math.max(0, current - 1));
@@ -1369,6 +1988,7 @@ def dashboard_payload(state: dict[str, Any], graph: dict[str, Any] | None) -> di
     derived["warnings"] = warnings
     return {
         "generated_at": now_iso(),
+        "project_root": str(ROOT),
         "state": state,
         "graph": graph,
         "derived": derived,
