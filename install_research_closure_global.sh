@@ -36,9 +36,11 @@ Installed locations:
                     ${CLAUDE_CONFIG_DIR:-~/.claude}/skills/auto-research-fast/
                     ${CLAUDE_CONFIG_DIR:-~/.claude}/skills/auto-research-slow/
   Claude guidance:  ${CLAUDE_CONFIG_DIR:-~/.claude}/CLAUDE.md
-  DeepSeek skills:  ${DEEPSEEK_HOME:-~/.deepseek}/skills/auto-research-fast/
-                    ${DEEPSEEK_HOME:-~/.deepseek}/skills/auto-research-slow/
-  DeepSeek guidance:${DEEPSEEK_HOME:-~/.deepseek}/DEEPSEEK.md
+  DeepSeek Harness skills:
+                    ${DSH_HOME:-~/.dsh}/skills/auto-research-fast/
+                    ${DSH_HOME:-~/.dsh}/skills/auto-research-slow/
+  DeepSeek Harness guidance:
+                    ${DSH_HOME:-~/.dsh}/AGENTS.md
   Harness data:     ${XDG_DATA_HOME:-~/.local/share}/research-closure-harness/
   CLI commands:     ~/.local/bin/research-closure
                     ~/.local/bin/research-closure-init
@@ -109,15 +111,15 @@ CLAUDE_SKILL_DIR="$CLAUDE_HOME_DIR/skills/research-closure"
 CLAUDE_HANDOFF_SKILL_DIR="$CLAUDE_HOME_DIR/skills/research-handoff"
 CLAUDE_AR_FAST_DIR="$CLAUDE_HOME_DIR/skills/auto-research-fast"
 CLAUDE_AR_SLOW_DIR="$CLAUDE_HOME_DIR/skills/auto-research-slow"
-DEEPSEEK_HOME_DIR="${DEEPSEEK_HOME:-$HOME/.deepseek}"
-DEEPSEEK_AR_FAST_DIR="$DEEPSEEK_HOME_DIR/skills/auto-research-fast"
-DEEPSEEK_AR_SLOW_DIR="$DEEPSEEK_HOME_DIR/skills/auto-research-slow"
+DSH_HOME_DIR="${DSH_HOME:-$HOME/.dsh}"
+DSH_AR_FAST_DIR="$DSH_HOME_DIR/skills/auto-research-fast"
+DSH_AR_SLOW_DIR="$DSH_HOME_DIR/skills/auto-research-slow"
 DATA_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/research-closure-harness"
 BIN_DIR="$HOME/.local/bin"
 BACKUP_ROOT="$HOME/.research-closure-backups/$TIMESTAMP"
 CODEX_AGENTS="$CODEX_HOME_DIR/AGENTS.md"
 CLAUDE_MD="$CLAUDE_HOME_DIR/CLAUDE.md"
-DEEPSEEK_MD="$DEEPSEEK_HOME_DIR/DEEPSEEK.md"
+DSH_AGENTS="$DSH_HOME_DIR/AGENTS.md"
 CLAUDE_HOOK="$CLAUDE_HOME_DIR/hooks/research_closure_guard.py"
 CLAUDE_SETTINGS="$CLAUDE_HOME_DIR/settings.json"
 BEGIN="<!-- research-closure-harness:start -->"
@@ -270,11 +272,11 @@ if [[ "$UNINSTALL" -eq 1 ]]; then
   backup_path "$CLAUDE_HANDOFF_SKILL_DIR"
   backup_path "$CLAUDE_AR_FAST_DIR"
   backup_path "$CLAUDE_AR_SLOW_DIR"
-  backup_path "$DEEPSEEK_AR_FAST_DIR"
-  backup_path "$DEEPSEEK_AR_SLOW_DIR"
+  backup_path "$DSH_AR_FAST_DIR"
+  backup_path "$DSH_AR_SLOW_DIR"
   backup_path "$CODEX_AGENTS"
   backup_path "$CLAUDE_MD"
-  backup_path "$DEEPSEEK_MD"
+  backup_path "$DSH_AGENTS"
   backup_path "$CLAUDE_SETTINGS"
 
   run rm -rf \
@@ -286,8 +288,8 @@ if [[ "$UNINSTALL" -eq 1 ]]; then
     "$CLAUDE_HANDOFF_SKILL_DIR" \
     "$CLAUDE_AR_FAST_DIR" \
     "$CLAUDE_AR_SLOW_DIR" \
-    "$DEEPSEEK_AR_FAST_DIR" \
-    "$DEEPSEEK_AR_SLOW_DIR" \
+    "$DSH_AR_FAST_DIR" \
+    "$DSH_AR_SLOW_DIR" \
     "$DATA_ROOT"
   if [[ -L "$BIN_DIR/research-closure" || -f "$BIN_DIR/research-closure" ]]; then
     run rm -f "$BIN_DIR/research-closure"
@@ -303,7 +305,7 @@ if [[ "$UNINSTALL" -eq 1 ]]; then
   fi
   remove_managed_block "$CODEX_AGENTS"
   remove_managed_block "$CLAUDE_MD"
-  remove_managed_block "$DEEPSEEK_MD"
+  remove_managed_block "$DSH_AGENTS"
   remove_claude_hook_setting
   run rm -f "$CLAUDE_HOOK"
 
@@ -374,13 +376,13 @@ backup_path "$CLAUDE_SKILL_DIR"
 backup_path "$CLAUDE_HANDOFF_SKILL_DIR"
 backup_path "$CLAUDE_AR_FAST_DIR"
 backup_path "$CLAUDE_AR_SLOW_DIR"
-backup_path "$DEEPSEEK_AR_FAST_DIR"
-backup_path "$DEEPSEEK_AR_SLOW_DIR"
+backup_path "$DSH_AR_FAST_DIR"
+backup_path "$DSH_AR_SLOW_DIR"
 backup_path "$DATA_ROOT"
 if [[ "$INSTALL_GLOBAL_RULES" -eq 1 ]]; then
   backup_path "$CODEX_AGENTS"
   backup_path "$CLAUDE_MD"
-  backup_path "$DEEPSEEK_MD"
+  backup_path "$DSH_AGENTS"
 fi
 if [[ "$WITH_CLAUDE_HOOK" -eq 1 ]]; then
   backup_path "$CLAUDE_SETTINGS"
@@ -390,7 +392,7 @@ fi
 run mkdir -p \
   "$(dirname "$CODEX_SKILL_DIR")" \
   "$(dirname "$CLAUDE_SKILL_DIR")" \
-  "$(dirname "$DEEPSEEK_AR_FAST_DIR")" \
+  "$(dirname "$DSH_AR_FAST_DIR")" \
   "$(dirname "$DATA_ROOT")" \
   "$BIN_DIR"
 
@@ -406,8 +408,8 @@ run rm -rf \
   "$CLAUDE_HANDOFF_SKILL_DIR" \
   "$CLAUDE_AR_FAST_DIR" \
   "$CLAUDE_AR_SLOW_DIR" \
-  "$DEEPSEEK_AR_FAST_DIR" \
-  "$DEEPSEEK_AR_SLOW_DIR"
+  "$DSH_AR_FAST_DIR" \
+  "$DSH_AR_SLOW_DIR"
 run mkdir -p \
   "$CODEX_SKILL_DIR" \
   "$CODEX_HANDOFF_SKILL_DIR" \
@@ -417,18 +419,18 @@ run mkdir -p \
   "$CLAUDE_HANDOFF_SKILL_DIR" \
   "$CLAUDE_AR_FAST_DIR" \
   "$CLAUDE_AR_SLOW_DIR" \
-  "$DEEPSEEK_AR_FAST_DIR" \
-  "$DEEPSEEK_AR_SLOW_DIR"
+  "$DSH_AR_FAST_DIR" \
+  "$DSH_AR_SLOW_DIR"
 run cp "$HARNESS_ROOT/SKILL.md" "$CODEX_SKILL_DIR/SKILL.md"
 run cp "$HARNESS_ROOT/SKILL.md" "$CLAUDE_SKILL_DIR/SKILL.md"
 run cp "$HARNESS_ROOT/HANDOFF_SKILL.md" "$CODEX_HANDOFF_SKILL_DIR/SKILL.md"
 run cp "$HARNESS_ROOT/HANDOFF_SKILL.md" "$CLAUDE_HANDOFF_SKILL_DIR/SKILL.md"
 run cp "$HARNESS_ROOT/AUTO_RESEARCH_FAST_SKILL.md" "$CODEX_AR_FAST_DIR/SKILL.md"
 run cp "$HARNESS_ROOT/AUTO_RESEARCH_FAST_SKILL.md" "$CLAUDE_AR_FAST_DIR/SKILL.md"
-run cp "$HARNESS_ROOT/AUTO_RESEARCH_FAST_SKILL.md" "$DEEPSEEK_AR_FAST_DIR/SKILL.md"
+run cp "$HARNESS_ROOT/AUTO_RESEARCH_FAST_SKILL.md" "$DSH_AR_FAST_DIR/SKILL.md"
 run cp "$HARNESS_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" "$CODEX_AR_SLOW_DIR/SKILL.md"
 run cp "$HARNESS_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" "$CLAUDE_AR_SLOW_DIR/SKILL.md"
-run cp "$HARNESS_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" "$DEEPSEEK_AR_SLOW_DIR/SKILL.md"
+run cp "$HARNESS_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" "$DSH_AR_SLOW_DIR/SKILL.md"
 
 run chmod +x \
   "$DATA_ROOT/tools/research_closure.py" \
@@ -447,7 +449,7 @@ run ln -sfn "$DATA_ROOT/tools/auto_research.py" "$BIN_DIR/auto-research"
 if [[ "$INSTALL_GLOBAL_RULES" -eq 1 ]]; then
   CODEX_BLOCK="$(mktemp)"
   CLAUDE_BLOCK="$(mktemp)"
-  DEEPSEEK_BLOCK="$(mktemp)"
+  DSH_BLOCK="$(mktemp)"
   cat >"$CODEX_BLOCK" <<'EOF'
 ## Research Closure + Auto-Research A/B
 
@@ -488,7 +490,7 @@ For research planning, experiment implementation, result analysis, scope changes
 - Treat new ideas as backlog items unless they directly test the frozen sprint claim.
 - End substantial research work with: artifact, evidence, decision, and one next action.
 EOF
-  cat >"$DEEPSEEK_BLOCK" <<'EOF'
+  cat >"$DSH_BLOCK" <<'EOF'
 ## Research Closure + Auto-Research A/B
 
 In repositories containing `.research/auto_research.json`:
@@ -508,8 +510,8 @@ For research planning, experiment implementation, result analysis, scope changes
 EOF
   upsert_managed_block "$CODEX_AGENTS" "$CODEX_BLOCK"
   upsert_managed_block "$CLAUDE_MD" "$CLAUDE_BLOCK"
-  upsert_managed_block "$DEEPSEEK_MD" "$DEEPSEEK_BLOCK"
-  rm -f "$CODEX_BLOCK" "$CLAUDE_BLOCK" "$DEEPSEEK_BLOCK"
+  upsert_managed_block "$DSH_AGENTS" "$DSH_BLOCK"
+  rm -f "$CODEX_BLOCK" "$CLAUDE_BLOCK" "$DSH_BLOCK"
 fi
 
 if [[ "$WITH_CLAUDE_HOOK" -eq 1 ]]; then
@@ -535,9 +537,9 @@ Claude Code skills:
   $CLAUDE_AR_FAST_DIR/SKILL.md
   $CLAUDE_AR_SLOW_DIR/SKILL.md
 
-DeepSeek harness skills:
-  $DEEPSEEK_AR_FAST_DIR/SKILL.md
-  $DEEPSEEK_AR_SLOW_DIR/SKILL.md
+DeepSeek Harness skills:
+  $DSH_AR_FAST_DIR/SKILL.md
+  $DSH_AR_SLOW_DIR/SKILL.md
 
 Commands:
   $BIN_DIR/research-closure
@@ -560,6 +562,10 @@ Auto-research:
   auto-research ab-next
 
 EOF
+
+if [[ "$INSTALL_GLOBAL_RULES" -eq 1 ]]; then
+  echo "DeepSeek Harness guidance: $DSH_AGENTS"
+fi
 
 case ":$PATH:" in
   *":$BIN_DIR:"*) ;;

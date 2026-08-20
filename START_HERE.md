@@ -27,7 +27,7 @@ research-closure-init
 ```
 
 `research-closure-init` now also copies `tools/auto_research.py`, the A/B
-skills for Codex, Claude Code and DeepSeek harness, `DEEPSEEK.md`, and the
+skills for Codex, Claude Code and DeepSeek Harness (`.dsh/skills/`), and the
 bootstrap `.research/auto_research.json`.
 
 ## Auto-load A/B auto-research
@@ -41,8 +41,9 @@ python tools/auto_research.py ab-next
 
 - Codex auto-loads `AGENTS.md`.
 - Claude Code auto-loads `CLAUDE.md`.
-- DeepSeek harness auto-loads `DEEPSEEK.md` (and falls back to `AGENTS.md`
-  when it follows that convention).
+- DeepSeek Harness auto-loads `AGENTS.md` and `CLAUDE.md` by default; its
+  project skill root is `.dsh/skills/`, with `.agents/skills/` as the shared
+  compatible root.
 
 A (fast) proposes. B (slow) criticises, verifies, applies, and revalidates.
 
@@ -50,7 +51,9 @@ A (fast) proposes. B (slow) criticises, verifies, applies, and revalidates.
 
 ## 1. Copy this harness into the research repository
 
-Keep `AGENTS.md`, `CLAUDE.md`, `SKILL.md`, `HANDOFF_SKILL.md`, `tools/`, `templates/`, and `.research/` at repository root.
+Keep `AGENTS.md`, `CLAUDE.md`, `SKILL.md`, `HANDOFF_SKILL.md`,
+`AUTO_RESEARCH_FAST_SKILL.md`, `AUTO_RESEARCH_SLOW_SKILL.md`, `.agents/`,
+`.claude/`, `.dsh/`, `tools/`, `templates/`, and `.research/` at repository root.
 
 ## 2. Record the project
 
@@ -95,7 +98,8 @@ python tools/research_closure.py start-sprint \
 ## 5. Ask Codex, Claude Code, or DeepSeek harness
 
 ```text
-Read the auto-loaded rules (AGENTS.md / CLAUDE.md / DEEPSEEK.md).
+Read the auto-loaded rules (AGENTS.md / CLAUDE.md). DeepSeek Harness loads
+the same AGENTS.md by default.
 Run auto-research ab-status and ab-next first, then decide A or B role.
 For PhD research work, also run the closure guard, the probe frontier, and
 the next-event command.

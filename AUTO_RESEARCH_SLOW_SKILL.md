@@ -1,6 +1,9 @@
 ---
 name: auto-research-slow
 description: Slow layer (B) of the Self-Evolved Research Harness. Use when criticising A proposals, running hard verification, applying verified modifications, or revalidating deprecated nodes.
+whenToUse: Run this skill whenever acting as B (slow layer) of the auto-research loop. B owns critic review, hard verification, application, and revalidation.
+disable-model-invocation: false
+user-invocable: true
 ---
 
 # Auto-Research Slow (B)

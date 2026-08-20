@@ -240,7 +240,7 @@ three harnesses:
 |---|---|---|
 | Codex | `AGENTS.md` | `.agents/skills/auto-research-fast/`, `.agents/skills/auto-research-slow/` |
 | Claude Code | `CLAUDE.md` | `.claude/skills/auto-research-fast/`, `.claude/skills/auto-research-slow/` |
-| DeepSeek harness | `DEEPSEEK.md` (falls back to `AGENTS.md` when the harness reads that convention) | `.deepseek/skills/auto-research-fast/`, `.deepseek/skills/auto-research-slow/` |
+| DeepSeek Harness (`dsh`) | `AGENTS.md` (default workspace loader also reads `CLAUDE.md`) | `.dsh/skills/auto-research-fast/`, `.dsh/skills/auto-research-slow/` (`.agents/skills/` is also discovered) |
 
 At session start every harness is instructed to run:
 
@@ -259,6 +259,11 @@ The two roles are the fast and slow versions of the same auto-research process:
 
 The loop contract is `A proposes -> B criticises -> B hard-verifies ->
 B applies -> trust decay + dependency closure -> A revises or proposes again`.
+
+DeepSeek Harness specifics are documented in
+[docs/deepseek_harness.md](docs/deepseek_harness.md): `dsh` auto-loads
+`AGENTS.md` (and `CLAUDE.md`) and discovers skills from `.dsh/skills/` and
+`.agents/skills/`.
 
 ### Quick start
 
@@ -432,8 +437,7 @@ AUTO_RESEARCH_SLOW_SKILL.md       Canonical skill: auto-research B (slow)
 .claude/skills/research-closure/  Repository skill for Claude Code
 .claude/skills/research-handoff/  Repository skill for Claude Code
 .claude/skills/auto-research-*/  A/B self-evolution skills for Claude Code
-.deepseek/skills/auto-research-*/ A/B self-evolution skills for DeepSeek harness
-DEEPSEEK.md                       DeepSeek harness auto-loaded rules
+.dsh/skills/auto-research-*/     A/B self-evolution skills for DeepSeek Harness
 .research/state.json              CLI state and event log
 .research/logs/                   Sprint, experiment and decision logs
 templates/                        Research planning and decision templates
@@ -445,6 +449,7 @@ example/                          Annotated event scripts + materialised half-fi
 .claude/hooks/closure_guard.py    Optional mechanical gate for Claude Code
 docs/protocol.md                  Complete research-closure protocol
 docs/claim_graph_protocol.md      Claim-graph protocol: probes and resolution maps
+docs/deepseek_harness.md          DeepSeek Harness (dsh) integration notes
 examples/continual_option_learning/
                                   Worked example for a research project
 ```
@@ -713,7 +718,7 @@ python tools/auto_research.py next
 |---|---|---|
 | Codex | `AGENTS.md` | `.agents/skills/auto-research-fast/`、`.agents/skills/auto-research-slow/` |
 | Claude Code | `CLAUDE.md` | `.claude/skills/auto-research-fast/`、`.claude/skills/auto-research-slow/` |
-| DeepSeek harness | `DEEPSEEK.md`（若该 harness 读取 `AGENTS.md` 约定，则已有同样规则） | `.deepseek/skills/auto-research-fast/`、`.deepseek/skills/auto-research-slow/` |
+| DeepSeek Harness（`dsh`） | `AGENTS.md`（默认 workspace loader 也读取 `CLAUDE.md`） | `.dsh/skills/auto-research-fast/`、`.dsh/skills/auto-research-slow/`（`.agents/skills/` 同样会被发现） |
 
 每个会话开始时，harness 被要求先运行：
 
@@ -732,6 +737,11 @@ python tools/auto_research.py ab-next
 
 循环契约：`A 提案 -> B 批评 -> B 硬验证 -> B 应用 -> 信任衰减与依赖闭包 ->
 A 修订或重新提案`。
+
+DeepSeek Harness 的具体适配见
+[docs/deepseek_harness.md](docs/deepseek_harness.md)：`dsh` 默认自动加载
+`AGENTS.md`（以及 `CLAUDE.md`），并从 `.dsh/skills/` 与 `.agents/skills/`
+发现 skills。
 
 ### 快速开始
 
@@ -899,8 +909,7 @@ AUTO_RESEARCH_SLOW_SKILL.md       auto-research B（慢速层）技能主副本
 .claude/skills/research-closure/  Claude Code 仓库级 skill
 .claude/skills/research-handoff/  Claude Code 仓库级 skill
 .claude/skills/auto-research-*/  Claude Code 的 A/B 自进化 skill
-.deepseek/skills/auto-research-*/ DeepSeek harness 的 A/B 自进化 skill
-DEEPSEEK.md                       DeepSeek harness 自动加载规则
+.dsh/skills/auto-research-*/     DeepSeek Harness 的 A/B 自进化 skill
 .research/state.json              CLI 状态与事件日志
 .research/logs/                   Sprint、实验与决策日志
 templates/                        研究计划与决策模板
@@ -912,6 +921,7 @@ example/                          带注释的事件脚本 + 物化的半成品�
 .claude/hooks/closure_guard.py    Claude Code 可选机械门禁
 docs/protocol.md                  完整研究 closure 协议
 docs/claim_graph_protocol.md      claim graph 协议：探针集合与 resolution map
+docs/deepseek_harness.md          DeepSeek Harness（dsh）集成说明
 examples/continual_option_learning/
                                   研究项目示例
 ```

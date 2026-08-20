@@ -69,8 +69,8 @@ mkdir -p \
   "$TARGET/.claude/skills/research-handoff" \
   "$TARGET/.claude/skills/auto-research-fast" \
   "$TARGET/.claude/skills/auto-research-slow" \
-  "$TARGET/.deepseek/skills/auto-research-fast" \
-  "$TARGET/.deepseek/skills/auto-research-slow" \
+  "$TARGET/.dsh/skills/auto-research-fast" \
+  "$TARGET/.dsh/skills/auto-research-slow" \
   "$TARGET/.claude/hooks"
 
 cp "$SOURCE_ROOT/tools/research_closure.py" "$TARGET/tools/research_closure.py"
@@ -102,14 +102,13 @@ cp "$SOURCE_ROOT/AUTO_RESEARCH_FAST_SKILL.md" \
 cp "$SOURCE_ROOT/AUTO_RESEARCH_FAST_SKILL.md" \
    "$TARGET/.claude/skills/auto-research-fast/SKILL.md"
 cp "$SOURCE_ROOT/AUTO_RESEARCH_FAST_SKILL.md" \
-   "$TARGET/.deepseek/skills/auto-research-fast/SKILL.md"
+   "$TARGET/.dsh/skills/auto-research-fast/SKILL.md"
 cp "$SOURCE_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" \
    "$TARGET/.agents/skills/auto-research-slow/SKILL.md"
 cp "$SOURCE_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" \
    "$TARGET/.claude/skills/auto-research-slow/SKILL.md"
 cp "$SOURCE_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" \
-   "$TARGET/.deepseek/skills/auto-research-slow/SKILL.md"
-cp "$SOURCE_ROOT/DEEPSEEK.md" "$TARGET/DEEPSEEK.md"
+   "$TARGET/.dsh/skills/auto-research-slow/SKILL.md"
 
 if [[ ! -f "$TARGET/.research/state.json" ]]; then
   cp "$SOURCE_ROOT/.research/state.json" "$TARGET/.research/state.json"
@@ -123,8 +122,8 @@ merge_markdown_block "$TARGET/AGENTS.md" "$SOURCE_ROOT/AGENTS.md" \
   "Self-Evolved Research Harness Rules"
 merge_markdown_block "$TARGET/CLAUDE.md" "$SOURCE_ROOT/CLAUDE.md" \
   "Self-Evolved Research Harness Rules"
-merge_markdown_block "$TARGET/DEEPSEEK.md" "$SOURCE_ROOT/DEEPSEEK.md" \
-  "Self-Evolved Research Harness Rules"
+# DeepSeek Harness auto-loads AGENTS.md (and CLAUDE.md) by default, so no
+# separate DEEPSEEK.md is copied. .dsh/skills carries its project skill roots.
 
 cat <<EOF
 Self-Evolved Research Harness initialized in:

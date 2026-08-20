@@ -1,6 +1,9 @@
 ---
 name: auto-research-fast
 description: Fast layer (A) of the Self-Evolved Research Harness. Use when drafting candidate self-modifications, adding draft nodes, or proposing cheap-to-verify improvements before slow-layer review.
+whenToUse: Run this skill whenever acting as A (fast layer) of the auto-research loop. A explores and proposes; A never critiques, verifies, or applies.
+disable-model-invocation: false
+user-invocable: true
 ---
 
 # Auto-Research Fast (A)
