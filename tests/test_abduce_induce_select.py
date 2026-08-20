@@ -29,16 +29,17 @@ class TempPaths(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.tmp = Path(self._tmp.name)
-        self._saved = (cg.GRAPH_PATH, cg.CANDIDATES_PATH, cg.LOG_DIR)
+        self._saved = (cg.GRAPH_PATH, cg.CANDIDATES_PATH, cg.LOG_DIR, cg.STATE_PATH)
         cg.GRAPH_PATH = self.tmp / ".research" / "claim_graph.json"
         cg.CANDIDATES_PATH = self.tmp / ".research" / "candidates.json"
         cg.LOG_DIR = self.tmp / ".research" / "logs"
+        cg.STATE_PATH = self.tmp / ".research" / "state.json"
         cg.GRAPH_PATH.parent.mkdir(parents=True, exist_ok=True)
         self.addCleanup(self._tmp.cleanup)
         self.addCleanup(self._restore)
 
     def _restore(self):
-        cg.GRAPH_PATH, cg.CANDIDATES_PATH, cg.LOG_DIR = self._saved
+        cg.GRAPH_PATH, cg.CANDIDATES_PATH, cg.LOG_DIR, cg.STATE_PATH = self._saved
 
 
 class TestAbduction(unittest.TestCase):

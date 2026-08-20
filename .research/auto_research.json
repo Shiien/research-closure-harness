@@ -1,0 +1,231 @@
+{
+  "schema_version": 1,
+  "meta_goal": {
+    "id": "M0",
+    "statement": "Improve this system's own auto-research capability.",
+    "immutable": true
+  },
+  "layers": {
+    "L1": {
+      "scope": "operational metrics",
+      "policy": "Operational metrics are research products. They may change, but only when checked indirectly against L0."
+    },
+    "L2": {
+      "scope": "question generation",
+      "policy": "How problems are defined, decomposed, and prioritised is itself research content."
+    },
+    "L3": {
+      "scope": "reasoning and verification strategy",
+      "policy": "Reasoning modes and verification procedures are modifiable research content."
+    },
+    "L4": {
+      "scope": "concrete research content",
+      "policy": "Concrete nodes and experiments change frequently."
+    }
+  },
+  "trust_decay": 0.9,
+  "affected_trust_decay": 0.5,
+  "revalidation_threshold": 0.25,
+  "self_test_command": "python3 -m unittest discover -s tests",
+  "nodes": {
+    "M0": {
+      "type": "assumption",
+      "statement": "Improve this system's own auto-research capability.",
+      "layer": "L0",
+      "status": "validated",
+      "trust": 1.0,
+      "immutable": true,
+      "created_at": "2026-08-20T21:06:16+08:00",
+      "updated_at": "2026-08-20T21:06:16+08:00"
+    },
+    "A1": {
+      "type": "assumption",
+      "statement": "tools/auto_research.py implements a deterministic self-evolution substrate: immutable L0, strict patch vocabulary, critic gate, hard verification, invalidation closure and rollback.",
+      "layer": "L1",
+      "status": "validated",
+      "trust": 1.0,
+      "immutable": false,
+      "created_at": "2026-08-20T21:06:16+08:00",
+      "updated_at": "2026-08-20T21:06:16+08:00"
+    },
+    "A2": {
+      "type": "assumption",
+      "statement": "A self-modification is safe to apply only after passing critic review and an exit-0 hard verification command.",
+      "layer": "L3",
+      "status": "validated",
+      "trust": 1.0,
+      "immutable": false,
+      "created_at": "2026-08-20T21:06:16+08:00",
+      "updated_at": "2026-08-20T21:06:16+08:00"
+    },
+    "I1": {
+      "type": "inference",
+      "statement": "The proposal pipeline (propose -> critique -> verify -> apply) preserves structural invariants, decays trust and deprecates the dependency closure of changed nodes.",
+      "layer": "L3",
+      "status": "validated",
+      "trust": 1.0,
+      "immutable": false,
+      "created_at": "2026-08-20T21:06:16+08:00",
+      "updated_at": "2026-08-20T21:06:16+08:00"
+    },
+    "V1": {
+      "type": "verify",
+      "statement": "Full unittest suite passes on the auto-research branch.",
+      "layer": "L4",
+      "status": "validated",
+      "trust": 1.0,
+      "immutable": false,
+      "created_at": "2026-08-20T21:06:16+08:00",
+      "updated_at": "2026-08-20T21:06:16+08:00"
+    }
+  },
+  "edges": [
+    {
+      "from": "A1",
+      "to": "I1",
+      "kind": "dependency"
+    },
+    {
+      "from": "A2",
+      "to": "I1",
+      "kind": "dependency"
+    },
+    {
+      "from": "I1",
+      "to": "V1",
+      "kind": "dependency"
+    }
+  ],
+  "proposals": {},
+  "verifications": [
+    {
+      "exit_code": 0,
+      "timeout": false,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_tail": "................................................................................................................\n----------------------------------------------------------------------\nRan 112 tests in 13.614s\n\nOK\n",
+      "at": "2026-08-20T21:06:37+08:00",
+      "level": "self_test",
+      "command": "python3 -m unittest discover -s tests",
+      "node": null
+    },
+    {
+      "exit_code": 0,
+      "timeout": false,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_tail": "................................................................................................................\n----------------------------------------------------------------------\nRan 112 tests in 13.625s\n\nOK\n",
+      "at": "2026-08-20T21:07:55+08:00",
+      "level": "self_test",
+      "command": "python3 -m unittest discover -s tests",
+      "node": null
+    }
+  ],
+  "last_self_test": {
+    "passed": true,
+    "exit_code": 0,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "at": "2026-08-20T21:07:55+08:00"
+  },
+  "events": [
+    {
+      "at": "2026-08-20T21:06:16+08:00",
+      "event": "init",
+      "payload": {
+        "goal": "Improve this system's own auto-research capability."
+      }
+    },
+    {
+      "at": "2026-08-20T21:06:16+08:00",
+      "event": "node_added",
+      "payload": {
+        "node": "A1",
+        "type": "assumption",
+        "layer": "L1",
+        "status": "validated"
+      }
+    },
+    {
+      "at": "2026-08-20T21:06:16+08:00",
+      "event": "node_added",
+      "payload": {
+        "node": "A2",
+        "type": "assumption",
+        "layer": "L3",
+        "status": "validated"
+      }
+    },
+    {
+      "at": "2026-08-20T21:06:16+08:00",
+      "event": "node_added",
+      "payload": {
+        "node": "I1",
+        "type": "inference",
+        "layer": "L3",
+        "status": "validated"
+      }
+    },
+    {
+      "at": "2026-08-20T21:06:16+08:00",
+      "event": "edge_added",
+      "payload": {
+        "from": "A1",
+        "to": "I1",
+        "kind": "dependency"
+      }
+    },
+    {
+      "at": "2026-08-20T21:06:16+08:00",
+      "event": "edge_added",
+      "payload": {
+        "from": "A2",
+        "to": "I1",
+        "kind": "dependency"
+      }
+    },
+    {
+      "at": "2026-08-20T21:06:16+08:00",
+      "event": "node_added",
+      "payload": {
+        "node": "V1",
+        "type": "verify",
+        "layer": "L4",
+        "status": "validated"
+      }
+    },
+    {
+      "at": "2026-08-20T21:06:16+08:00",
+      "event": "edge_added",
+      "payload": {
+        "from": "I1",
+        "to": "V1",
+        "kind": "dependency"
+      }
+    },
+    {
+      "at": "2026-08-20T21:06:37+08:00",
+      "event": "self_test_passed",
+      "payload": {
+        "passed": true,
+        "exit_code": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "at": "2026-08-20T21:06:37+08:00"
+      }
+    },
+    {
+      "at": "2026-08-20T21:07:55+08:00",
+      "event": "self_test_passed",
+      "payload": {
+        "passed": true,
+        "exit_code": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "at": "2026-08-20T21:07:55+08:00"
+      }
+    }
+  ],
+  "counters": {
+    "node": 1,
+    "proposal": 0,
+    "verification": 2
+  }
+}

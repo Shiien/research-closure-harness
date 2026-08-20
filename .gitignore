@@ -3,6 +3,7 @@ __pycache__/
 .research/tmp/
 .research/candidates.json
 **/.research/snapshots/
+**/.research/auto_snapshots/
 .jsdomtest/
 
 # Local SSH keys (never commit)

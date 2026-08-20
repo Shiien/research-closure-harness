@@ -175,12 +175,61 @@ being repositioned around.
 
 | Target concept | Already present in this repository | Still to build |
 |---|---|---|
-| Research ontology | `claim_graph.py`: theory, observations, probes, resolution map | Modification/Intervention nodes; dependency vs modification edges; `draft`/`validated`/`deprecated` labels |
-| Hard verification | Pre-registered probes, `validate`, `guard`, decision taxonomy | Sandboxed self-modification verification; critic gate |
-| Versioning/snapshots | `.research/snapshots/`, dashboard history, replay script | Semantic diff between self-versions; invalidation closure over versions |
-| Layered goals | `docs/protocol.md` levels 0–3 | Explicit L0–L4 self-reference layers with only L0 immutable |
-| Fast/slow dynamics | Not implemented | A/B fast/slow loop, trust decay, fast pre-screening |
-| Global rollback/self-test | Snapshot replay restores states | Automated global evaluation, rollback policy, capability self-test |
+| Research ontology | `claim_graph.py` plus `auto_research.py` self-graph: four node kinds, dependency/modification edges, `draft`/`validated`/`deprecated` labels | Bidirectional integration between the claim graph and the self-graph |
+| Hard verification | Pre-registered probes, `validate`, `guard`, proposal `verify`, capability `self-test` | True sandbox isolation for untrusted self-modifications |
+| Versioning/snapshots | `.research/snapshots/`, dashboard replay, `.research/auto_snapshots/`, `rollback` | Semantic diff between self-versions; invalidation closure across versions |
+| Layered goals | `docs/protocol.md` levels 0–3 plus explicit L0–L4 layers with only L0 immutable | Automatic L1 metric checks against L0 |
+| Fast/slow dynamics | Proposal pipeline and trust decay in `auto_research.py` | Autonomous A/B scheduling, fast-layer pre-screening policy |
+| Global rollback/self-test | Snapshot replay and `self-test` in `auto_research.py` | Automated global evaluation and rollback policy |
+
+### Self-evolution engine (first implemented slice)
+
+`tools/auto_research.py` is the deterministic substrate for the loop. An LLM
+(or the researcher) still generates proposals and criticises them; the engine
+enforces the hard part: immutable L0, strict patch vocabulary, critic gate,
+reproducible verification, invalidation closure and trust decay.
+
+```bash
+# Bootstrap the self-graph (the L0 meta-goal is the only immutable node)
+python tools/auto_research.py init
+
+# Fast layer: add draft nodes and dependency edges
+python tools/auto_research.py add-node \
+  --id N1 --type assumption --statement "candidate metric" --layer L1 --status draft
+python tools/auto_research.py add-node \
+  --id N2 --type inference --statement "derived from N1" --layer L4 --status draft
+python tools/auto_research.py add-edge --from N1 --to N2 --kind dependency
+
+# Propose a self-modification with a strict patch
+cat > patch.json <<'JSON'
+[
+  {"op": "set_node_statement", "node": "N1", "statement": "candidate metric v2"},
+  {"op": "set_trust_decay", "value": 0.85}
+]
+JSON
+python tools/auto_research.py propose \
+  --title "revise L1 metric" --statement "narrower operational metric" \
+  --targets N1 --patch-file patch.json \
+  --verification "python3 -m unittest discover -s tests"
+
+# Soft gate -> hard verification -> apply + invalidate dependents
+python tools/auto_research.py critique \
+  --proposal P-001 --verdict pass --critic researcher --reason "local change"
+python tools/auto_research.py verify --proposal P-001
+python tools/auto_research.py apply --proposal P-001
+
+# Keep checking basic capability and inspect the self-graph
+python tools/auto_research.py self-test
+python tools/auto_research.py validate
+python tools/auto_research.py status
+python tools/auto_research.py next
+```
+
+Applying a modification creates a `modification` node, decays trust on every
+pre-existing non-L0 node, and marks the dependency closure of the changed nodes
+`deprecated`. Re-validate a node with `revalidate --level syntax` or
+`--level hard --command '<reproducible command>'`. Snapshots are written to
+`.research/auto_snapshots/`; roll back with `rollback --to <n>`.
 
 ### Quick start
 
@@ -355,6 +404,7 @@ HANDOFF_SKILL.md                  Canonical skill: research-handoff
 templates/                        Research planning and decision templates
 tools/research_closure.py         Dependency-free lifecycle CLI (event-driven)
 tools/claim_graph.py              Dependency-free claim-graph CLI (the engine)
+tools/auto_research.py            Dependency-free self-evolution engine (L0-L4 self-graph)
 tools/research_replay.py          Replay: script<->directory, step-by-step timeline
 example/                          Annotated event scripts + materialised half-finished research
 .claude/hooks/closure_guard.py    Optional mechanical gate for Claude Code
@@ -566,12 +616,59 @@ python tools/claim_graph.py reasoning
 
 | 目标概念 | 本仓库已有 | 尚待建设 |
 |---|---|---|
-| 研究本体 | `claim_graph.py`：理论、观测、探针、resolution map | Modification/Intervention 节点；依赖边/修改边；`draft`/`validated`/`deprecated` 标签 |
-| 硬验证 | 预注册探针、`validate`、`guard`、决策分类 | 沙盒中的自修改验证；批评者门禁 |
-| 版本化与快照 | `.research/snapshots/`、dashboard 历史、replay 脚本 | 自身版本之间的语义 diff；跨版本失效闭包 |
-| 分层目标 | `docs/protocol.md` 的 level 0–3 | 显式 L0–L4 自指分层，且只有 L0 不可修改 |
-| 快慢动态 | 尚未实现 | A/B 快慢循环、信任度衰减、快速层预筛选 |
-| 全局回溯与自检 | 快照 replay 可恢复状态 | 自动全局评估、回溯策略、能力自检 |
+| 研究本体 | `claim_graph.py` 加 `auto_research.py` 自图：四类节点、依赖/修改边、`draft`/`validated`/`deprecated` 标签 | claim graph 与自图的双向整合 |
+| 硬验证 | 预注册探针、`validate`、`guard`、提案 `verify`、能力 `self-test` | 对不受信自修改的真正沙盒隔离 |
+| 版本化与快照 | `.research/snapshots/`、dashboard 回放、`.research/auto_snapshots/`、`rollback` | 自身版本之间的语义 diff；跨版本失效闭包 |
+| 分层目标 | `docs/protocol.md` level 0–3 加显式 L0–L4 分层，且只有 L0 不可修改 | 自动用 L0 间接检验 L1 指标 |
+| 快慢动态 | `auto_research.py` 中的提案流水线与信任度衰减 | 自主 A/B 调度、快速层预筛选策略 |
+| 全局回溯与自检 | `auto_research.py` 中的快照回放与 `self-test` | 自动全局评估与回溯策略 |
+
+### 自进化引擎（已实现的第一个切片）
+
+`tools/auto_research.py` 是这个循环的确定性基座。大模型（或研究者）仍然负责
+生成提案和批评；引擎强制执行不可妥协的部分：L0 不可修改、严格 patch 词汇表、
+批评者门禁、可复现验证、失效闭包与信任度衰减。
+
+```bash
+# 初始化自图（L0 元目标是唯一不可修改节点）
+python tools/auto_research.py init
+
+# 快速层：添加 draft 节点和依赖边
+python tools/auto_research.py add-node \
+  --id N1 --type assumption --statement "候选指标" --layer L1 --status draft
+python tools/auto_research.py add-node \
+  --id N2 --type inference --statement "由 N1 推出" --layer L4 --status draft
+python tools/auto_research.py add-edge --from N1 --to N2 --kind dependency
+
+# 用严格 patch 提出自修改
+cat > patch.json <<'JSON'
+[
+  {"op": "set_node_statement", "node": "N1", "statement": "候选指标 v2"},
+  {"op": "set_trust_decay", "value": 0.85}
+]
+JSON
+python tools/auto_research.py propose \
+  --title "修订 L1 指标" --statement "更窄的可操作指标" \
+  --targets N1 --patch-file patch.json \
+  --verification "python3 -m unittest discover -s tests"
+
+# 软门禁 -> 硬验证 -> 应用并失效依赖闭包
+python tools/auto_research.py critique \
+  --proposal P-001 --verdict pass --critic researcher --reason "局部变更"
+python tools/auto_research.py verify --proposal P-001
+python tools/auto_research.py apply --proposal P-001
+
+# 持续自检并查看自图
+python tools/auto_research.py self-test
+python tools/auto_research.py validate
+python tools/auto_research.py status
+python tools/auto_research.py next
+```
+
+应用修改时会创建 `modification` 节点，对所有已存在的非 L0 节点做信任度衰减，
+并把变更点的依赖闭包标为 `deprecated`。用 `revalidate --level syntax` 或
+`--level hard --command '<可复现命令>'` 重新验证节点。快照写入
+`.research/auto_snapshots/`，用 `rollback --to <n>` 回溯。
 
 ### 快速开始
 
@@ -740,6 +837,7 @@ HANDOFF_SKILL.md                  research-handoff 技能主副本
 templates/                        研究计划与决策模板
 tools/research_closure.py         无依赖生命周期 CLI（事件驱动）
 tools/claim_graph.py              无依赖 claim graph CLI（引擎）
+tools/auto_research.py            无依赖自进化引擎（L0-L4 自图）
 tools/research_replay.py          回放：脚本<->目录互转、逐步时间线
 example/                          带注释的事件脚本 + 物化的半成品研究
 .claude/hooks/closure_guard.py    Claude Code 可选机械门禁

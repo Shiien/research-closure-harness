@@ -24,6 +24,19 @@ The guard reports blocking violations; `frontier` shows which probe is ready to 
 
 For human progress tracking, run `python tools/research_closure.py dashboard` to open the interactive DAG view (theory → variables/edges → probes, with outcomes, frontier and the resolution map).
 
+## Auto-research mode (this branch)
+
+When the session objective is to improve the harness itself, not the PhD
+research project:
+
+1. Read `.research/auto_research.json`.
+2. Run `python tools/auto_research.py validate`, `python tools/auto_research.py status`, and `python tools/auto_research.py next`.
+3. Drive self-modifications through `propose -> critique -> verify -> apply`. A critic verdict is soft judgment and never replaces an exit-0 hard verification.
+4. `M0` is the immutable L0 meta-goal; the engine blocks any patch that targets it.
+5. End a self-modification session with `python tools/auto_research.py self-test`.
+
+Ordinary PhD-research work still follows the closure workflow below.
+
 ## Non-negotiable workflow
 
 Every task must map to the current frozen claim and to a probe of the claim graph.

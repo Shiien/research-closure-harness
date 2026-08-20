@@ -96,3 +96,20 @@ Before ending a productive session, require:
 Close the active experiment with the CLI and let the harness compute the verdict:
 `python tools/research_closure.py close-experiment ...`, then check
 `python tools/research_closure.py next` for what the harness expects next.
+
+## Auto-research substrate (this branch)
+
+When the session objective is to improve the harness itself, read
+`.research/auto_research.json` and run:
+
+```bash
+python tools/auto_research.py validate
+python tools/auto_research.py status
+python tools/auto_research.py next
+```
+
+Self-modifications go through `propose -> critique -> verify -> apply`. The
+critic gate is soft judgment; only an exit-0 hard verification command or a
+syntax revalidation restores `validated` status. `M0` is immutable, and every
+self-modification decays trust and deprecates the dependency closure of the
+changed nodes. End such sessions with `python tools/auto_research.py self-test`.
