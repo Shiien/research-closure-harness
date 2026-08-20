@@ -263,7 +263,9 @@ B applies -> trust decay + dependency closure -> A revises or proposes again`.
 DeepSeek Harness specifics are documented in
 [docs/deepseek_harness.md](docs/deepseek_harness.md): `dsh` auto-loads
 `AGENTS.md` (and `CLAUDE.md`) and discovers skills from `.dsh/skills/` and
-`.agents/skills/`.
+`.agents/skills/`. The stock `minimal` preset cannot auto-load workspace rules
+or skills; use `standard`/`code`, or install the shipped
+`auto-research-minimal` preset derived from `minimal`.
 
 ### Quick start
 
@@ -438,6 +440,7 @@ AUTO_RESEARCH_SLOW_SKILL.md       Canonical skill: auto-research B (slow)
 .claude/skills/research-handoff/  Repository skill for Claude Code
 .claude/skills/auto-research-*/  A/B self-evolution skills for Claude Code
 .dsh/skills/auto-research-*/     A/B self-evolution skills for DeepSeek Harness
+dsh/agent-presets/               dsh user preset templates (auto-research-minimal)
 .research/state.json              CLI state and event log
 .research/logs/                   Sprint, experiment and decision logs
 templates/                        Research planning and decision templates
@@ -741,7 +744,9 @@ A 修订或重新提案`。
 DeepSeek Harness 的具体适配见
 [docs/deepseek_harness.md](docs/deepseek_harness.md)：`dsh` 默认自动加载
 `AGENTS.md`（以及 `CLAUDE.md`），并从 `.dsh/skills/` 与 `.agents/skills/`
-发现 skills。
+发现 skills。原版 `minimal` preset 不会自动加载 workspace 规则或 skills；
+请使用 `standard`/`code`，或安装本仓库提供的、从 `minimal` 派生的
+`auto-research-minimal` preset。
 
 ### 快速开始
 
@@ -910,6 +915,7 @@ AUTO_RESEARCH_SLOW_SKILL.md       auto-research B（慢速层）技能主副本
 .claude/skills/research-handoff/  Claude Code 仓库级 skill
 .claude/skills/auto-research-*/  Claude Code 的 A/B 自进化 skill
 .dsh/skills/auto-research-*/     DeepSeek Harness 的 A/B 自进化 skill
+dsh/agent-presets/               dsh 用户 preset 模板（auto-research-minimal）
 .research/state.json              CLI 状态与事件日志
 .research/logs/                   Sprint、实验与决策日志
 templates/                        研究计划与决策模板

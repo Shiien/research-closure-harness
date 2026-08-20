@@ -71,6 +71,7 @@ mkdir -p \
   "$TARGET/.claude/skills/auto-research-slow" \
   "$TARGET/.dsh/skills/auto-research-fast" \
   "$TARGET/.dsh/skills/auto-research-slow" \
+  "$TARGET/dsh/agent-presets/auto-research-minimal" \
   "$TARGET/.claude/hooks"
 
 cp "$SOURCE_ROOT/tools/research_closure.py" "$TARGET/tools/research_closure.py"
@@ -109,6 +110,8 @@ cp "$SOURCE_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" \
    "$TARGET/.claude/skills/auto-research-slow/SKILL.md"
 cp "$SOURCE_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" \
    "$TARGET/.dsh/skills/auto-research-slow/SKILL.md"
+cp -R "$SOURCE_ROOT/dsh/agent-presets/auto-research-minimal" \
+   "$TARGET/dsh/agent-presets/"
 
 if [[ ! -f "$TARGET/.research/state.json" ]]; then
   cp "$SOURCE_ROOT/.research/state.json" "$TARGET/.research/state.json"

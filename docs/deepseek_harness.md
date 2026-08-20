@@ -58,6 +58,52 @@ python tools/auto_research.py ab-next
 
 then choose A (`auto-research-fast`) or B (`auto-research-slow`).
 
+## Stock `minimal` preset cannot auto-load auto-research
+
+The shipped `minimal` preset is a fixed-prompt, two-tool coding-agent
+composition. It mounts only persistent bash/pwsh and `str_replace_editor`. It
+does **not** mount:
+
+- `@deepseek-ai/dsh-agent-instructions` — so `AGENTS.md`/`CLAUDE.md` are not
+  rendered into the session;
+- `@deepseek-ai/dsh-skill-filesystem` or `@deepseek-ai/dsh-tool-skill` — so
+  `.dsh/skills/` and `.agents/skills/` are neither discovered nor loadable;
+- any filesystem tool, subagent, todo, or compaction stack.
+
+A stock `minimal` conversation therefore starts auto-research **only manually**:
+the model still has bash and can follow a user instruction such as
+"read AGENTS.md and run `python tools/auto_research.py ab-next`". Nothing is
+auto-loaded.
+
+## Auto-research preset derived from minimal
+
+This repository ships a user-authored preset template:
+
+```text
+dsh/agent-presets/auto-research-minimal/
+  agent.cordis.yml
+  preset.yml
+```
+
+It keeps the same two tools as `minimal` and adds the missing rows:
+
+- `@deepseek-ai/dsh-persona` with `complete: false`;
+- `@deepseek-ai/dsh-agent-instructions` with `maxBytes: 65536`;
+- `@deepseek-ai/dsh-skill-filesystem`;
+- `@deepseek-ai/dsh-tool-skill`.
+
+Install it to the dsh user preset root:
+
+```sh
+mkdir -p "${DSH_HOME:-$HOME/.dsh}/.agent-presets"
+cp -R dsh/agent-presets/auto-research-minimal \
+  "${DSH_HOME:-$HOME/.dsh}/.agent-presets/"
+```
+
+Then start a new dsh conversation and select the **Auto Research Minimal**
+preset. It behaves like `minimal` but auto-loads `AGENTS.md`, discovers the A/B
+skills, and can run the auto-research loop through bash.
+
 ## Global installation
 
 `install_research_closure_global.sh` installs dsh skills to:
@@ -67,8 +113,10 @@ ${DSH_HOME:-~/.dsh}/skills/auto-research-fast/
 ${DSH_HOME:-~/.dsh}/skills/auto-research-slow/
 ```
 
-and writes the managed auto-research block into the dsh user-global
-instruction file `${DSH_HOME:-~/.dsh}/AGENTS.md`.
+writes the managed auto-research block into the dsh user-global
+instruction file `${DSH_HOME:-~/.dsh}/AGENTS.md`, and installs the
+`auto-research-minimal` preset under
+`${DSH_HOME:-~/.dsh}/.agent-presets/`.
 
 ## Configuration note
 

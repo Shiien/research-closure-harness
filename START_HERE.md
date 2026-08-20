@@ -44,6 +44,10 @@ python tools/auto_research.py ab-next
 - DeepSeek Harness auto-loads `AGENTS.md` and `CLAUDE.md` by default; its
   project skill root is `.dsh/skills/`, with `.agents/skills/` as the shared
   compatible root.
+- Stock dsh `minimal` preset does not auto-load workspace rules or skills. Use
+  `standard`/`code`, or install the shipped `auto-research-minimal` preset:
+  copy `dsh/agent-presets/auto-research-minimal/` to
+  `${DSH_HOME:-$HOME/.dsh}/.agent-presets/`.
 
 A (fast) proposes. B (slow) criticises, verifies, applies, and revalidates.
 

@@ -39,6 +39,21 @@ class TestHarnessAutoLoad(unittest.TestCase):
         self.assertIn("${DSH_HOME:-$HOME/.dsh}", text)
         self.assertIn("$DSH_AGENTS", text)
 
+    def test_auto_research_minimal_preset_template(self):
+        path = ROOT / "dsh" / "agent-presets" / "auto-research-minimal" / "agent.cordis.yml"
+        self.assertTrue(path.exists(), path)
+        text = path.read_text()
+        self.assertIn("@deepseek-ai/dsh-agent-instructions", text)
+        self.assertIn("@deepseek-ai/dsh-skill-filesystem", text)
+        self.assertIn("@deepseek-ai/dsh-tool-skill", text)
+        self.assertIn("str_replace_editor", text)
+        self.assertIn("complete: false", text)
+
+    def test_installer_installs_auto_research_preset(self):
+        text = (ROOT / "install_research_closure_global.sh").read_text()
+        self.assertIn("$DSH_AR_PRESET_DIR", text)
+        self.assertIn("auto-research-minimal", text)
+
 
 if __name__ == "__main__":
     unittest.main()

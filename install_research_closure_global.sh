@@ -39,6 +39,8 @@ Installed locations:
   DeepSeek Harness skills:
                     ${DSH_HOME:-~/.dsh}/skills/auto-research-fast/
                     ${DSH_HOME:-~/.dsh}/skills/auto-research-slow/
+  DeepSeek Harness preset:
+                    ${DSH_HOME:-~/.dsh}/.agent-presets/auto-research-minimal/
   DeepSeek Harness guidance:
                     ${DSH_HOME:-~/.dsh}/AGENTS.md
   Harness data:     ${XDG_DATA_HOME:-~/.local/share}/research-closure-harness/
@@ -114,6 +116,7 @@ CLAUDE_AR_SLOW_DIR="$CLAUDE_HOME_DIR/skills/auto-research-slow"
 DSH_HOME_DIR="${DSH_HOME:-$HOME/.dsh}"
 DSH_AR_FAST_DIR="$DSH_HOME_DIR/skills/auto-research-fast"
 DSH_AR_SLOW_DIR="$DSH_HOME_DIR/skills/auto-research-slow"
+DSH_AR_PRESET_DIR="$DSH_HOME_DIR/.agent-presets/auto-research-minimal"
 DATA_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/research-closure-harness"
 BIN_DIR="$HOME/.local/bin"
 BACKUP_ROOT="$HOME/.research-closure-backups/$TIMESTAMP"
@@ -274,6 +277,7 @@ if [[ "$UNINSTALL" -eq 1 ]]; then
   backup_path "$CLAUDE_AR_SLOW_DIR"
   backup_path "$DSH_AR_FAST_DIR"
   backup_path "$DSH_AR_SLOW_DIR"
+  backup_path "$DSH_AR_PRESET_DIR"
   backup_path "$CODEX_AGENTS"
   backup_path "$CLAUDE_MD"
   backup_path "$DSH_AGENTS"
@@ -290,6 +294,7 @@ if [[ "$UNINSTALL" -eq 1 ]]; then
     "$CLAUDE_AR_SLOW_DIR" \
     "$DSH_AR_FAST_DIR" \
     "$DSH_AR_SLOW_DIR" \
+    "$DSH_AR_PRESET_DIR" \
     "$DATA_ROOT"
   if [[ -L "$BIN_DIR/research-closure" || -f "$BIN_DIR/research-closure" ]]; then
     run rm -f "$BIN_DIR/research-closure"
@@ -378,6 +383,7 @@ backup_path "$CLAUDE_AR_FAST_DIR"
 backup_path "$CLAUDE_AR_SLOW_DIR"
 backup_path "$DSH_AR_FAST_DIR"
 backup_path "$DSH_AR_SLOW_DIR"
+backup_path "$DSH_AR_PRESET_DIR"
 backup_path "$DATA_ROOT"
 if [[ "$INSTALL_GLOBAL_RULES" -eq 1 ]]; then
   backup_path "$CODEX_AGENTS"
@@ -393,6 +399,7 @@ run mkdir -p \
   "$(dirname "$CODEX_SKILL_DIR")" \
   "$(dirname "$CLAUDE_SKILL_DIR")" \
   "$(dirname "$DSH_AR_FAST_DIR")" \
+  "$(dirname "$DSH_AR_PRESET_DIR")" \
   "$(dirname "$DATA_ROOT")" \
   "$BIN_DIR"
 
@@ -409,7 +416,8 @@ run rm -rf \
   "$CLAUDE_AR_FAST_DIR" \
   "$CLAUDE_AR_SLOW_DIR" \
   "$DSH_AR_FAST_DIR" \
-  "$DSH_AR_SLOW_DIR"
+  "$DSH_AR_SLOW_DIR" \
+  "$DSH_AR_PRESET_DIR"
 run mkdir -p \
   "$CODEX_SKILL_DIR" \
   "$CODEX_HANDOFF_SKILL_DIR" \
@@ -420,7 +428,8 @@ run mkdir -p \
   "$CLAUDE_AR_FAST_DIR" \
   "$CLAUDE_AR_SLOW_DIR" \
   "$DSH_AR_FAST_DIR" \
-  "$DSH_AR_SLOW_DIR"
+  "$DSH_AR_SLOW_DIR" \
+  "$DSH_AR_PRESET_DIR"
 run cp "$HARNESS_ROOT/SKILL.md" "$CODEX_SKILL_DIR/SKILL.md"
 run cp "$HARNESS_ROOT/SKILL.md" "$CLAUDE_SKILL_DIR/SKILL.md"
 run cp "$HARNESS_ROOT/HANDOFF_SKILL.md" "$CODEX_HANDOFF_SKILL_DIR/SKILL.md"
@@ -431,6 +440,8 @@ run cp "$HARNESS_ROOT/AUTO_RESEARCH_FAST_SKILL.md" "$DSH_AR_FAST_DIR/SKILL.md"
 run cp "$HARNESS_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" "$CODEX_AR_SLOW_DIR/SKILL.md"
 run cp "$HARNESS_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" "$CLAUDE_AR_SLOW_DIR/SKILL.md"
 run cp "$HARNESS_ROOT/AUTO_RESEARCH_SLOW_SKILL.md" "$DSH_AR_SLOW_DIR/SKILL.md"
+run cp -R "$HARNESS_ROOT/dsh/agent-presets/auto-research-minimal" \
+   "$DSH_HOME_DIR/.agent-presets/"
 
 run chmod +x \
   "$DATA_ROOT/tools/research_closure.py" \
@@ -540,6 +551,9 @@ Claude Code skills:
 DeepSeek Harness skills:
   $DSH_AR_FAST_DIR/SKILL.md
   $DSH_AR_SLOW_DIR/SKILL.md
+
+DeepSeek Harness preset:
+  $DSH_AR_PRESET_DIR
 
 Commands:
   $BIN_DIR/research-closure
