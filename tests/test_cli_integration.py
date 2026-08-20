@@ -416,7 +416,10 @@ class TestDashboard(RepoCase):
         ))
         self.install_graph()
         self.assertOk(self.start_sprint())
-        self.assertOk(self.new_experiment("--node", "P1", "--controls", "E"))
+        self.assertOk(self.new_experiment(
+            "--node", "P1", "--controls", "E",
+            "--figure", "figures/probe-p1.png",
+        ))
         proc = self.assertOk(self.run_cli(
             "dashboard", "--no-open", "--out", "dash.html",
         ))
@@ -428,7 +431,85 @@ class TestDashboard(RepoCase):
         self.assertIn("probeStatus", html)           # the interactive JS is present
         self.assertIn('\\n"', html)                  # JS escapes survive Python (raw template)
         self.assertIn("Next events", html)
-        self.assertIn("Resolution map", html)
+        self.assertIn("Decision rules (audit)", html)
+        # Presentation theme is selectable, self-contained, and persistent.
+        self.assertIn('id="theme-select"', html)
+        self.assertIn('<option value="dark" data-i18n="dark">Dark</option>', html)
+        self.assertIn('<option value="light" data-i18n="light">Light</option>', html)
+        self.assertIn(':root[data-theme="light"]', html)
+        self.assertIn('rch-dashboard-theme', html)
+        self.assertIn('document.documentElement.dataset.theme', html)
+        self.assertIn('var(--variable-fill)', html)
+        # Presentation chrome is selectable in English or Chinese. Research
+        # payloads (for example the sprint claim above) remain verbatim.
+        self.assertIn('id="locale-select"', html)
+        self.assertIn('<option value="en" data-i18n="english">English</option>', html)
+        self.assertIn('<option value="zh" data-i18n="chinese">中文</option>', html)
+        self.assertIn('rch-dashboard-locale', html)
+        self.assertIn('document.documentElement.lang', html)
+        self.assertIn('研究闭环仪表盘', html)
+        self.assertIn('完整研究流程网络', html)
+        self.assertIn('判定规则（审计）', html)
+        self.assertIn('下一事件', html)
+        self.assertIn('事件日志', html)
+        self.assertIn('节点详情', html)
+        self.assertIn('研究状态', html)
+        self.assertIn('location.reload()', html)
+        # The graph is a read-only UI projection that joins existing state
+        # events to the claim graph; no workflow or engine schema is replaced.
+        self.assertIn('n.title = shortText', html)
+        self.assertIn('event.event !== "experiment_started"', html)
+        self.assertIn('event.event !== "experiment_closed"', html)
+        self.assertIn('"$claim:"', html)
+        self.assertIn('"$experiment:"', html)
+        self.assertIn('"$result:"', html)
+        self.assertIn('"$decision:"', html)
+        self.assertIn('exp.hypothesis', html)
+        self.assertIn('exp.intervention', html)
+        self.assertIn('exp.evidence', html)
+        self.assertIn('exp.conclusion', html)
+        self.assertIn('kind:"workflow"', html)
+        self.assertIn('kind:"result"', html)
+        self.assertIn('kind:"resolution"', html)
+        self.assertIn('kind:"induction"', html)
+        self.assertIn('kind:"amendment"', html)
+        self.assertIn('"data-label-line": "title"', html)
+        self.assertIn('"data-label-line": "subtitle"', html)
+        self.assertIn('accessibleTitle.textContent', html)
+        self.assertIn('showNodeDetail', html)
+        # The connected graph is readable and explicitly directional at its
+        # default full-width presentation.
+        self.assertIn('grid-template-columns:minmax(0,1fr)', html)
+        self.assertIn('"font-size": "17"', html)
+        self.assertIn('markerWidth: "16"', html)
+        self.assertIn('markerUnits:"userSpaceOnUse"', html)
+        self.assertIn('b.x - 18', html)
+        self.assertIn('e.kind === "guard"', html)
+        self.assertIn('const sx = a.x + a.w / 2, sy = a.y + a.h', html)
+        self.assertIn('" Q" + sx + "," + routeY', html)
+        self.assertIn('id=\\"fit-view\\"', html)
+        # Nodes drag independently from the canvas and update their incident
+        # paths; a click is distinguished from a completed drag.
+        self.assertIn('let canvasDrag = null, nodeDrag = null', html)
+        self.assertIn('classList.add("node-dragging")', html)
+        self.assertIn('data-node-x', html)
+        self.assertIn('refreshEdges()', html)
+        self.assertIn('if (!finished.moved) pinNodeDetail', html)
+        # Hover and click share the structured source/graph/artifact view. An
+        # expected figure remains discoverable without changing state schema.
+        self.assertIn('addEventListener("mouseenter"', html)
+        self.assertIn('renderNodeDetail(node)', html)
+        self.assertIn('graphRecord', html)
+        self.assertIn('artifactRefs(node)', html)
+        self.assertIn('figures/probe-p1.png', html)
+        self.assertIn('"project_root":', html)
+        # Clicking pins the floating detail; clicking outside dismisses it,
+        # while the panel itself remains interactive for scrolling and links.
+        self.assertIn('pinnedNodeId = node.id', html)
+        self.assertIn('data-pinned-node', html)
+        self.assertIn('tip.classList.add("pinned")', html)
+        self.assertIn('!tip.contains(ev.target)', html)
+        self.assertIn('详情已固定 · 点击其他位置关闭', html)
         # the dashboard is now the unified scrubbable page (snapshot journal)
         self.assertIn("const PAYLOADS", html)
         self.assertIn("show(stages.length - 1)", html)   # opens at latest
