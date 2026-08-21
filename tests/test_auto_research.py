@@ -661,5 +661,22 @@ class TestACheck(RepoCase):
         self.assertIn("novelty", proc.stdout)
 
 
+class TestEventsTail(RepoCase):
+    def test_events_tail_json(self):
+        self.add_node("N1")
+        out = self.assertOk(self.run_auto("events", "--json", "--tail", "1")).stdout
+        events = json.loads(out)
+        self.assertEqual(len(events), 1)
+
+    def test_events_tail_text(self):
+        self.add_node("N1")
+        out = self.assertOk(self.run_auto("events", "--tail", "1")).stdout
+        self.assertIn("EVENT LOG (1 events)", out)
+
+    def test_events_invalid_since_is_blocked(self):
+        proc = self.run_auto("events", "--since", "not-a-date")
+        self.assertBlocked(proc, "invalid --since")
+
+
 if __name__ == "__main__":
     unittest.main()

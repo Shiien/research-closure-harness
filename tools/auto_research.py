@@ -2059,6 +2059,28 @@ def cmd_next(_: argparse.Namespace) -> int:
 def cmd_events(args: argparse.Namespace) -> int:
     state = load_state()
     events = state.get("events", [])
+    if args.since:
+        try:
+            since = datetime.fromisoformat(args.since)
+            if since.tzinfo is None:
+                since = since.astimezone()
+        except ValueError:
+            raise SystemExit(
+                "BLOCKED: invalid --since timestamp " + repr(args.since)
+            )
+        filtered = []
+        for e in events:
+            try:
+                at = datetime.fromisoformat(e.get("at", ""))
+                if at.tzinfo is None:
+                    at = at.astimezone()
+            except ValueError:
+                continue
+            if at >= since:
+                filtered.append(e)
+        events = filtered
+    if args.tail is not None and args.tail > 0:
+        events = events[-args.tail:]
     if args.json:
         print(json.dumps(events, indent=2))
         return 0
@@ -2758,6 +2780,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("events", help="show the event log")
     sp.add_argument("--json", action="store_true")
+    sp.add_argument("--tail", type=int, help="show only the last N events")
+    sp.add_argument("--since", help="ISO timestamp lower bound")
     sp.set_defaults(func=cmd_events)
     return p
 
