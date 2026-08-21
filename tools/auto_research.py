@@ -33,6 +33,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
@@ -110,6 +111,15 @@ DEFAULT_SNAPSHOT_RETENTION = {
     "keep_last": 25,
     "keep_labels": ["init", "modification_applied"],
 }
+DEFAULT_HEALTH_LIMITS = {
+    "max_open_proposal_age_hours": 24,
+    "max_self_test_age_hours": 24,
+    "max_last_event_age_hours": 6,
+    "max_reject_streak": 5,
+    "max_snapshot_bytes": 2_000_000_000,
+    "max_state_bytes": 100_000_000,
+    "max_retro_age_days": 7,
+}
 
 
 def now_iso() -> str:
@@ -147,6 +157,7 @@ def skeleton(goal: str = META_GOAL_STATEMENT) -> dict[str, Any]:
         "revalidation_threshold": 0.25,
         "self_test_command": "python3 -m unittest discover -s tests",
         "snapshot_retention": copy.deepcopy(DEFAULT_SNAPSHOT_RETENTION),
+        "health_limits": copy.deepcopy(DEFAULT_HEALTH_LIMITS),
         "tracks": TRACK_ROLES,
         "nodes": {
             META_GOAL_ID: {
@@ -195,6 +206,7 @@ def load_state(path: Path | None = None) -> dict[str, Any]:
         ("retrospectives", {}),
         ("file_backups", []),
         ("snapshot_retention", copy.deepcopy(DEFAULT_SNAPSHOT_RETENTION)),
+        ("health_limits", copy.deepcopy(DEFAULT_HEALTH_LIMITS)),
     ):
         state.setdefault(key, default)
     return state
@@ -464,6 +476,15 @@ def validate(state: dict[str, Any]) -> tuple[list[str], list[str]]:
             isinstance(item, str) and item for item in keep_labels
         ):
             blocks.append("snapshot_retention.keep_labels must be a list of non-empty strings")
+
+    limits = state.get("health_limits", {})
+    if not isinstance(limits, dict):
+        blocks.append("health_limits must be an object")
+    else:
+        for key in DEFAULT_HEALTH_LIMITS:
+            value = limits.get(key)
+            if not isinstance(value, (int, float)) or isinstance(value, bool) or value <= 0:
+                blocks.append(f"health_limits.{key} must be a positive number")
 
     for pid, prop in state.get("proposals", {}).items():
         if prop.get("status") not in PROPOSAL_STATUSES:
@@ -1597,6 +1618,195 @@ def cmd_snapshot_prune(_: argparse.Namespace) -> int:
     return 0
 
 
+def age_seconds(iso: str | None) -> float | None:
+    if not iso:
+        return None
+    try:
+        then = datetime.fromisoformat(iso)
+    except ValueError:
+        return None
+    if then.tzinfo is None:
+        then = then.astimezone()
+    return max(0.0, (datetime.now().astimezone() - then).total_seconds())
+
+
+def build_health_report(state: dict[str, Any]) -> dict[str, Any]:
+    blocks, warnings = validate(state)
+    limits = state.get("health_limits", copy.deepcopy(DEFAULT_HEALTH_LIMITS))
+    proposals = state.get("proposals", {})
+    nodes = state.get("nodes", {})
+    events = state.get("events", [])
+
+    active_statuses = ("proposed", "challenged", "passed_critic", "verified")
+    open_props = [
+        (pid, prop) for pid, prop in proposals.items()
+        if prop.get("status") in active_statuses
+    ]
+    open_ages = [
+        age_seconds(prop.get("proposed_at")) for _, prop in open_props
+    ]
+    open_ages = [age for age in open_ages if age is not None]
+    oldest_open_age = max(open_ages) if open_ages else 0.0
+
+    last_self_test = state.get("last_self_test") or {}
+    self_test_passed = bool(last_self_test.get("passed"))
+    self_test_age = age_seconds(last_self_test.get("at"))
+
+    last_event_age = age_seconds(events[-1].get("at")) if events else None
+
+    draft_deprecated = sum(
+        1 for node in nodes.values()
+        if node.get("status") in ("draft", "deprecated")
+    )
+
+    ordered = sorted(proposals.items(), key=lambda item: int(item[0][2:]) if item[0].startswith("P-") and item[0][2:].isdigit() else 0)
+    reject_streak = 0
+    for _, prop in reversed(ordered):
+        if prop.get("status") == "rejected":
+            reject_streak += 1
+        else:
+            break
+
+    recent = ordered[-20:]
+    recent_tracks = [prop.get("track") for _, prop in recent]
+    track_a = recent_tracks.count("A")
+    track_b = recent_tracks.count("B")
+    track_balance_ok = len(recent_tracks) < 4 or (track_a > 0 and track_b > 0)
+
+    op_counts: dict[str, int] = {}
+    recent_applied = [prop for _, prop in reversed(ordered) if prop.get("status") == "applied"][:20]
+    for prop in recent_applied:
+        for op in prop.get("patch", []):
+            name = op.get("op", "?")
+            op_counts[name] = op_counts.get(name, 0) + 1
+    top_op = max(op_counts, key=op_counts.get) if op_counts else None
+    top_ratio = (op_counts[top_op] / sum(op_counts.values())) if top_op else 0.0
+
+    snap_files = list_snapshots()
+    snapshot_bytes = sum(path.stat().st_size for path in snap_files)
+    state_bytes = STATE_PATH.stat().st_size if STATE_PATH.exists() else 0
+
+    open_retros = [
+        (rid, retro) for rid, retro in state.get("retrospectives", {}).items()
+        if retro.get("status") == "open"
+    ]
+    retro_ages = [age_seconds(retro.get("created_at")) for _, retro in open_retros]
+    retro_ages = [age for age in retro_ages if age is not None]
+    oldest_retro_age = max(retro_ages) if retro_ages else 0.0
+
+    checks: dict[str, Any] = {
+        "structural_valid": {"ok": not blocks, "blocks": blocks, "warnings": warnings},
+        "open_proposals": {
+            "ok": oldest_open_age <= float(limits.get("max_open_proposal_age_hours", 24)) * 3600,
+            "count": len(open_props),
+            "oldest_age_seconds": oldest_open_age,
+        },
+        "last_self_test": {
+            "ok": self_test_passed and (self_test_age is None or self_test_age <= float(limits.get("max_self_test_age_hours", 24)) * 3600),
+            "passed": self_test_passed,
+            "age_seconds": self_test_age,
+        },
+        "last_event": {
+            "ok": last_event_age is not None and last_event_age <= float(limits.get("max_last_event_age_hours", 6)) * 3600,
+            "age_seconds": last_event_age,
+        },
+        "draft_deprecated": {
+            "ok": draft_deprecated == 0,
+            "count": draft_deprecated,
+        },
+        "reject_streak": {
+            "ok": reject_streak < int(limits.get("max_reject_streak", 5)),
+            "streak": reject_streak,
+        },
+        "recent_track_balance": {
+            "ok": track_balance_ok,
+            "A": track_a,
+            "B": track_b,
+        },
+        "patch_op_concentration": {
+            "ok": top_ratio <= 0.8,
+            "top_op": top_op,
+            "ratio": round(top_ratio, 3),
+        },
+        "snapshot_journal": {
+            "ok": snapshot_bytes <= float(limits.get("max_snapshot_bytes", 2_000_000_000)),
+            "files": len(snap_files),
+            "bytes": snapshot_bytes,
+        },
+        "state_size": {
+            "ok": state_bytes <= float(limits.get("max_state_bytes", 100_000_000)),
+            "bytes": state_bytes,
+        },
+        "open_retrospectives": {
+            "ok": not open_retros or oldest_retro_age <= float(limits.get("max_retro_age_days", 7)) * 86400,
+            "count": len(open_retros),
+            "oldest_age_seconds": oldest_retro_age,
+        },
+    }
+    critical_names = {
+        "structural_valid",
+        "open_proposals",
+        "last_self_test",
+        "last_event",
+        "reject_streak",
+        "snapshot_journal",
+        "state_size",
+    }
+    critical = [name for name, check in checks.items() if not check.get("ok") and name in critical_names]
+    warning_names = [name for name, check in checks.items() if not check.get("ok") and name not in critical_names]
+    report = {
+        "generated_at": now_iso(),
+        "ok": not critical,
+        "checks": checks,
+        "critical": critical,
+        "warnings": warning_names,
+    }
+    return report
+
+
+def print_health_report(report: dict[str, Any]) -> None:
+    print("AUTO-RESEARCH HEALTH")
+    for name, check in report["checks"].items():
+        mark = "OK " if check.get("ok") else "BAD"
+        extras = {k: v for k, v in check.items() if k not in ("ok", "blocks", "warnings")}
+        detail = json.dumps(extras, sort_keys=True, default=str)
+        print(f"  [{mark}] {name} {detail}")
+    if report["critical"]:
+        print("CRITICAL: " + ", ".join(report["critical"]))
+    if report.get("warnings"):
+        print("WARNINGS: " + ", ".join(report["warnings"]))
+    if not report["critical"] and not report.get("warnings"):
+        print("HEALTH OK")
+
+
+def cmd_health(args: argparse.Namespace) -> int:
+    state = load_state()
+    report = build_health_report(state)
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True, default=str))
+    else:
+        print_health_report(report)
+    if report["critical"]:
+        return 2
+    if args.strict and report.get("warnings"):
+        return 1
+    return 0
+
+
+def cmd_watch(args: argparse.Namespace) -> int:
+    while True:
+        state = load_state()
+        report = build_health_report(state)
+        print_health_report(report)
+        if args.once:
+            if report["critical"]:
+                return 2
+            if args.strict and report.get("warnings"):
+                return 1
+            return 0
+        time.sleep(max(1, args.interval))
+
+
 def cmd_rollback(args: argparse.Namespace) -> int:
     files = list_snapshots()
     if not files:
@@ -2193,6 +2403,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("snapshot-prune", help="apply snapshot retention policy now")
     sp.set_defaults(func=cmd_snapshot_prune)
+
+    sp = sub.add_parser("health", help="run auto-research health checks")
+    sp.add_argument("--json", action="store_true", help="emit a JSON report")
+    sp.add_argument("--strict", action="store_true", help="exit non-zero on warnings too")
+    sp.set_defaults(func=cmd_health)
+
+    sp = sub.add_parser("watch", help="watch auto-research health")
+    sp.add_argument("--interval", type=int, default=30, help="seconds between checks")
+    sp.add_argument("--once", action="store_true", help="run one check and exit")
+    sp.add_argument("--strict", action="store_true", help="exit non-zero on warnings too")
+    sp.set_defaults(func=cmd_watch)
 
     sp = sub.add_parser("rollback", help="roll back to a snapshot (1 = oldest)")
     sp.add_argument("--to", type=int, required=True)

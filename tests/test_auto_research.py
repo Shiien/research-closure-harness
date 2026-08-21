@@ -512,5 +512,42 @@ print("snapshot-dedup-and-prune-ok")
         self.assertIn("Snapshot prune:", pruned)
 
 
+class TestHealthWatch(RepoCase):
+    def test_health_json_passes_after_self_test(self):
+        self.assertOk(self.run_auto("self-test", "--command", PASS_CMD))
+        proc = self.assertOk(self.run_auto("health", "--json"))
+        report = json.loads(proc.stdout)
+        self.assertTrue(report["ok"])
+        self.assertIn("last_self_test", report["checks"])
+        self.assertIn("snapshot_journal", report["checks"])
+
+    def test_health_detects_stale_last_event(self):
+        self.assertOk(self.run_auto("self-test", "--command", PASS_CMD))
+        st = self.state()
+        st["events"][-1]["at"] = "2000-01-01T00:00:00+00:00"
+        (self.repo / ".research" / "auto_research.json").write_text(
+            json.dumps(st, indent=2) + "\n"
+        )
+        proc = self.run_auto("health", "--json")
+        self.assertNotEqual(proc.returncode, 0)
+        report = json.loads(proc.stdout)
+        self.assertIn("last_event", report["critical"])
+
+    def test_health_default_does_not_fail_on_warning_level_draft(self):
+        self.assertOk(self.run_auto("self-test", "--command", PASS_CMD))
+        self.add_node("N-DRAFT", status="draft")
+        proc = self.assertOk(self.run_auto("health", "--json"))
+        report = json.loads(proc.stdout)
+        self.assertIn("draft_deprecated", report["warnings"])
+        strict = self.run_auto("health", "--json", "--strict")
+        self.assertNotEqual(strict.returncode, 0)
+
+    def test_watch_once_runs_health(self):
+        self.assertOk(self.run_auto("self-test", "--command", PASS_CMD))
+        out = self.assertOk(self.run_auto("watch", "--once", "--interval", "1")).stdout
+        self.assertIn("AUTO-RESEARCH HEALTH", out)
+        self.assertIn("HEALTH OK", out)
+
+
 if __name__ == "__main__":
     unittest.main()
