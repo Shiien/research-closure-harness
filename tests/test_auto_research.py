@@ -773,5 +773,14 @@ class TestSelfTestJson(RepoCase):
         self.assertEqual(data["record"]["exit_code"], 0)
 
 
+class TestRollbackPreview(RepoCase):
+    def test_rollback_dry_run_does_not_mutate(self):
+        self.add_node("N1")
+        before = self.state()
+        out = self.assertOk(self.run_auto("rollback", "--to", "1", "--dry-run")).stdout
+        self.assertIn("ROLLBACK PREVIEW", out)
+        self.assertEqual(self.state(), before)
+
+
 if __name__ == "__main__":
     unittest.main()

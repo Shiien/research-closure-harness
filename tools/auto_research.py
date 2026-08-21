@@ -1988,12 +1988,35 @@ def cmd_watch(args: argparse.Namespace) -> int:
 def cmd_rollback(args: argparse.Namespace) -> int:
     files = list_snapshots()
     if not files:
+        if args.dry_run:
+            print("ROLLBACK PREVIEW")
+            print("  no snapshots available")
+            return 0
         raise SystemExit("No snapshots available")
     idx = args.to - 1
     if idx < 0 or idx >= len(files):
         raise SystemExit(f"Snapshot index must be 1..{len(files)}")
     restored = json.loads(files[idx].read_text())
     current = load_state()
+    if args.dry_run:
+        target_mods = {
+            entry.get("modification_node")
+            for entry in restored.get("file_backups", [])
+            if isinstance(entry, dict)
+        }
+        undo_entries = [
+            entry for entry in current.get("file_backups", [])
+            if isinstance(entry, dict) and entry.get("modification_node") not in target_mods
+        ]
+        files_to_restore = sorted({
+            rel for entry in undo_entries for rel in entry.get("files", {})
+        })
+        print("ROLLBACK PREVIEW")
+        print(f"  target snapshot : {files[idx].name}")
+        print(f"  state           : proposals {len(current.get('proposals', {}))} -> {len(restored.get('proposals', {}))}")
+        print(f"  file backups to undo: {len(undo_entries)}")
+        print(f"  files touched   : {files_to_restore or 'none'}")
+        return 0
     restore_files_to_target(current, restored)
     append_event(restored, "rolled_back", {"from_snapshot": files[idx].name, "to_snapshot_index": args.to})
     save_state(restored, "rolled_back")
@@ -2974,6 +2997,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("rollback", help="roll back to a snapshot (1 = oldest)")
     sp.add_argument("--to", type=int, required=True)
+    sp.add_argument("--dry-run", action="store_true", help="preview without restoring")
     sp.set_defaults(func=cmd_rollback)
 
     sp = sub.add_parser("validate", help="run structural self-checks")
