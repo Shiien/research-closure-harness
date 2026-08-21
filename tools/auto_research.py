@@ -1201,6 +1201,120 @@ def load_patch(args: argparse.Namespace) -> list[dict[str, Any]]:
     return raw
 
 
+def novelty_norm(text: str) -> str:
+    text = text.lower()
+    text = re.sub(
+        r"\b(a|b)\s+optimizes\s+(a|b)\b",
+        "<track> optimizes <track>",
+        text,
+    )
+    text = re.sub(r"(?<![a-z0-9])l\d(?![a-z0-9])", "<layer>", text)
+    text = re.sub(
+        r"\b(assumption|inference|verify|modification)\b", "<type>", text
+    )
+    text = re.sub(r"\bepoch\s+\d+\b", "epoch <n>", text)
+    text = re.sub(r"\bP-\d+\b", "p-<n>", text)
+    text = re.sub(r"\b[a-z][a-z0-9-]*-\d+\b", "<id>", text)
+    text = re.sub(r"\d+", "<n>", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def novelty_blocks(
+    state: dict[str, Any],
+    title: str,
+    statement: str,
+    patch: list[dict[str, Any]],
+) -> list[str]:
+    blocks: list[str] = []
+    candidate_ops = [op.get("op") for op in patch]
+    candidate_norm_title = novelty_norm(title)
+    candidate_norm_statement = novelty_norm(statement)
+    candidate_norm_targets = ",".join(
+        sorted(novelty_norm(target) for target in
+               [op.get("node", "") for op in patch] +
+               [op.get("from", "") for op in patch] +
+               [op.get("to", "") for op in patch] +
+               [op.get("path", "") for op in patch])
+    )
+    closest: tuple[float, str, str] | None = None
+
+    for pid, prop in sorted(state.get("proposals", {}).items()):
+        prior_ops = [op.get("op") for op in prop.get("patch", [])]
+        prior_norm_title = novelty_norm(prop.get("title", ""))
+        prior_norm_statement = novelty_norm(prop.get("statement", ""))
+        prior_norm_targets = ",".join(
+            sorted(novelty_norm(target) for target in
+                   [op.get("node", "") for op in prop.get("patch", [])] +
+                   [op.get("from", "") for op in prop.get("patch", [])] +
+                   [op.get("to", "") for op in prop.get("patch", [])] +
+                   [op.get("path", "") for op in prop.get("patch", [])])
+        )
+        title_ratio = difflib.SequenceMatcher(None, candidate_norm_title, prior_norm_title).ratio()
+        statement_ratio = difflib.SequenceMatcher(None, candidate_norm_statement, prior_norm_statement).ratio()
+        score = max(title_ratio, statement_ratio)
+        if closest is None or score > closest[0]:
+            closest = (score, pid, prop.get("title", ""))
+        same_ops = candidate_ops == prior_ops
+        same_targets = candidate_norm_targets == prior_norm_targets
+        candidate_file_text = combined_file_patch(patch)
+        prior_file_text = combined_file_patch(prop.get("patch", []))
+        file_similarity = (
+            difflib.SequenceMatcher(None, candidate_file_text, prior_file_text).ratio()
+            if "patch_file" in candidate_ops and "patch_file" in prior_ops
+            else 1.0
+        )
+        state_only = "patch_file" not in candidate_ops and "patch_file" not in prior_ops
+        if same_ops and same_targets and (
+            candidate_norm_title == prior_norm_title
+            or candidate_norm_statement == prior_norm_statement
+            or (title_ratio >= 0.92 and statement_ratio >= 0.85)
+        ) and (state_only or file_similarity >= 0.99):
+            blocks.append(
+                f"semantically equivalent to prior proposal {pid}: "
+                f"{prop.get('title', '')[:80]}"
+            )
+
+    recent_applied = [
+        prop for _, prop in sorted(state.get("proposals", {}).items())
+        if prop.get("status") == "applied"
+    ][-20:]
+    op_counts: dict[str, int] = {}
+    for prop in recent_applied:
+        for op in prop.get("patch", []):
+            name = op.get("op", "?")
+            op_counts[name] = op_counts.get(name, 0) + 1
+    top_op = max(op_counts, key=op_counts.get) if op_counts else None
+    top_ratio = (op_counts[top_op] / sum(op_counts.values())) if top_op else 0.0
+    state_only_ops = {
+        "add_node",
+        "remove_node",
+        "set_node_status",
+        "set_node_statement",
+        "add_edge",
+        "remove_edge",
+        "set_layer_policy",
+        "set_trust_decay",
+        "set_affected_trust_decay",
+        "set_revalidation_threshold",
+        "set_self_test_command",
+    }
+    if (
+        top_op in state_only_ops
+        and top_ratio > 0.8
+        and candidate_ops
+        and all(op == top_op for op in candidate_ops)
+    ):
+        blocks.append(
+            f"patch-op concentration guard: {top_op} is {top_ratio:.0%} of the "
+            "last 20 applied patches; add a file patch or a second op that changes capability"
+        )
+    if closest:
+        print(f"A novelty check: closest prior is {closest[1]} "
+              f"(score {closest[0]:.2f}): {closest[2][:80]}")
+    return blocks
+
+
 def cmd_propose(args: argparse.Namespace) -> int:
     state = load_state()
     patch = load_patch(args)
@@ -1220,6 +1334,11 @@ def cmd_propose(args: argparse.Namespace) -> int:
             raise SystemExit(
                 f"BLOCKED: retrospective {args.retro} is {retro.get('status')}, not open"
             )
+    novelty = novelty_blocks(state, args.title, args.statement, patch)
+    if novelty:
+        raise SystemExit(
+            "BLOCKED: semantic-novelty guard:\n  " + "\n  ".join(novelty)
+        )
     blocks = validate_patch(state, patch)
     if blocks:
         raise SystemExit("BLOCKED: invalid patch:\n  " + "\n  ".join(blocks))

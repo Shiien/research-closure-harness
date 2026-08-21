@@ -566,5 +566,44 @@ class TestLaunchPreflight(RepoCase):
         self.assertEqual(st["events"][-1]["payload"]["role"], "A")
 
 
+class TestSemanticNoveltyGuard(RepoCase):
+    def test_rejects_epoch_recycled_set_node_status_title(self):
+        self.add_node("N1", "trust accounting", "L4", ntype="inference",
+                      status="validated")
+        first = self.patch_file(
+            [{"op": "set_node_status", "node": "N1", "status": "validated"}]
+        )
+        self.assertOk(self.run_auto(
+            "propose", "--title",
+            "A optimizes B: trust accounting via inference L4 (epoch 1)",
+            "--statement", "candidate", "--targets", "N1",
+            "--patch-file", first,
+        ))
+        second = self.patch_file(
+            [{"op": "set_node_status", "node": "N1", "status": "validated"}]
+        )
+        proc = self.run_auto(
+            "propose", "--title",
+            "B optimizes A: trust accounting via assumption L2 (epoch 2)",
+            "--statement", "candidate", "--targets", "N1",
+            "--patch-file", second,
+        )
+        self.assertBlocked(proc, "semantic-novelty guard")
+
+    def test_distinct_patch_file_proposals_pass(self):
+        self.add_node("N1", "patch target", "L4", ntype="verify",
+                      status="validated")
+        first = self.make_file_patch("tools/helper_a.py", "x = 1\n", "a.json")
+        self.assertOk(self.run_auto(
+            "propose", "--title", "add helper A", "--statement", "file patch",
+            "--targets", "N1", "--patch-file", first, "--verification", PASS_CMD,
+        ))
+        second = self.make_file_patch("tools/helper_b.py", "x = 2\n", "b.json")
+        self.assertOk(self.run_auto(
+            "propose", "--title", "add helper B", "--statement", "file patch",
+            "--targets", "N1", "--patch-file", second, "--verification", PASS_CMD,
+        ))
+
+
 if __name__ == "__main__":
     unittest.main()
