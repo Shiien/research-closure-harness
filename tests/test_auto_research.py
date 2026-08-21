@@ -748,5 +748,21 @@ class TestRetroImport(RepoCase):
         self.assertEqual(len(st["retrospectives"]), 2)
 
 
+class TestSnapshotIndexCli(RepoCase):
+    def test_snapshot_reindex_rebuilds_index(self):
+        self.add_node("N1")
+        index = self.repo / ".research" / "auto_snapshots" / "index.json"
+        index.unlink()
+        out = self.assertOk(self.run_auto("snapshot-reindex")).stdout
+        self.assertIn("rebuilt", out)
+        self.assertTrue(json.loads(index.read_text())["files"])
+
+    def test_file_backup_stats_json(self):
+        out = self.assertOk(self.run_auto("file-backup-stats", "--json")).stdout
+        data = json.loads(out)
+        self.assertEqual(data["mode"], "file-backup-stats")
+        self.assertEqual(data["entries"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()

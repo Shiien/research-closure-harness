@@ -1750,6 +1750,35 @@ def cmd_snapshot_stats(_: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_snapshot_reindex(_: argparse.Namespace) -> int:
+    index = rebuild_snapshot_index()
+    print(f"Snapshot index rebuilt: {len(index.get('files', {}))} entries")
+    return 0
+
+
+def cmd_file_backup_stats(args: argparse.Namespace) -> int:
+    state = load_state()
+    entries = state.get("file_backups", [])
+    total_files = sum(len(entry.get("files", {})) for entry in entries)
+    total_bytes = 0
+    for entry in entries:
+        backup_dir = ROOT / entry.get("backup_dir", "")
+        if backup_dir.exists():
+            total_bytes += sum(p.stat().st_size for p in backup_dir.rglob("*") if p.is_file())
+    data = {
+        "mode": "file-backup-stats",
+        "entries": len(entries),
+        "files": total_files,
+        "bytes": total_bytes,
+    }
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+        return 0
+    print("FILE BACKUPS")
+    print(f"  entries={len(entries)} files={total_files} bytes={total_bytes}")
+    return 0
+
+
 def cmd_snapshot_prune(_: argparse.Namespace) -> int:
     state = load_state()
     index = load_snapshot_index()
@@ -2916,6 +2945,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("snapshot-prune", help="apply snapshot retention policy now")
     sp.set_defaults(func=cmd_snapshot_prune)
+
+    sp = sub.add_parser("snapshot-reindex", help="rebuild the snapshot hash index")
+    sp.set_defaults(func=cmd_snapshot_reindex)
+
+    sp = sub.add_parser("file-backup-stats", help="summarize patch_file rollback backups")
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_file_backup_stats)
 
     sp = sub.add_parser("health", help="run auto-research health checks")
     sp.add_argument("--json", action="store_true", help="emit a JSON report")
