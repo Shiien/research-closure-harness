@@ -734,5 +734,19 @@ class TestVerificationStats(RepoCase):
         self.assertGreaterEqual(data["self_test_streak"], 1)
 
 
+class TestRetroImport(RepoCase):
+    def test_retro_import_batch(self):
+        batch = self.repo / "retro_batch.json"
+        batch.write_text(json.dumps([
+            {"observation": "first batch item", "class": "defect", "source": "test"},
+            {"observation": "second batch item", "class": "risk", "source": "test"},
+        ]))
+        out = self.assertOk(self.run_auto("retro", "import", "--file", str(batch))).stdout
+        self.assertIn("Imported 2 retrospectives", out)
+        st = self.state()
+        self.assertEqual(st["counters"]["retrospective"], 2)
+        self.assertEqual(len(st["retrospectives"]), 2)
+
+
 if __name__ == "__main__":
     unittest.main()

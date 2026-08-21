@@ -2178,6 +2178,44 @@ def cmd_retro_add(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_retro_import(args: argparse.Namespace) -> int:
+    state = load_state()
+    raw = json.loads(Path(args.file).read_text())
+    if not isinstance(raw, list) or not raw:
+        raise SystemExit("BLOCKED: retro import file must contain a non-empty JSON array")
+    for i, item in enumerate(raw):
+        if not isinstance(item, dict) or not item.get("observation"):
+            raise SystemExit(f"BLOCKED: retro import item {i} must have an observation")
+    next_number = int(state.get("counters", {}).get("retrospective", 0)) + 1
+    ids = [f"R-{next_number + i:03d}" for i in range(len(raw))]
+
+    def mutate(st: dict[str, Any]) -> None:
+        for rid, item in zip(ids, raw):
+            next_id(st, "R", "retrospective")
+            st.setdefault("retrospectives", {})[rid] = {
+                "id": rid,
+                "created_at": now_iso(),
+                "class": item.get("class", "other"),
+                "source": item.get("source", "unknown"),
+                "observation": item["observation"],
+                "evidence": list(item.get("evidence") or []),
+                "suggested": item.get("suggested") or {},
+                "status": "open",
+                "proposal_id": None,
+                "resolved_at": None,
+                "resolution_note": None,
+            }
+
+    mutate_validated(
+        state,
+        "retrospective_imported",
+        {"retrospectives": ids, "count": len(ids)},
+        mutate,
+    )
+    print(f"Imported {len(ids)} retrospectives: {', '.join(ids)}")
+    return 0
+
+
 def cmd_retro_list(args: argparse.Namespace) -> int:
     state = load_state()
     retros = state.get("retrospectives", {})
@@ -2809,6 +2847,10 @@ def build_parser() -> argparse.ArgumentParser:
     rsp.add_argument("--suggested-patch")
     rsp.add_argument("--suggested-verification")
     rsp.set_defaults(func=cmd_retro_add)
+
+    rsp = retro_sub.add_parser("import", help="import a JSON array of retrospective items")
+    rsp.add_argument("--file", required=True)
+    rsp.set_defaults(func=cmd_retro_import)
 
     rsp = retro_sub.add_parser("list", help="list retrospective items")
     rsp.add_argument("--all", action="store_true", help="include closed items")
