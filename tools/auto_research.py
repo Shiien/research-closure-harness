@@ -2383,6 +2383,63 @@ def cmd_a_brief(_: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_a_check(args: argparse.Namespace) -> int:
+    state = load_state()
+    patch = load_patch(args)
+    if not patch:
+        raise SystemExit("BLOCKED: a-check requires --patch-file or --patch")
+    targets = [item.strip() for item in (args.targets or "").split(",") if item.strip()]
+    print("A PREFLIGHT CHECK")
+    print(f"  title      : {args.title or '(not provided)'}")
+    print(f"  targets    : {targets or 'none declared'}")
+    print(f"  patch ops  : {[op.get('op') for op in patch]}")
+    file_ops = file_patch_ops(patch)
+    if file_ops:
+        try:
+            paths = file_patch_paths(combined_file_patch(patch), ROOT)
+        except ValueError as exc:
+            paths = []
+            print(f"  file paths : BLOCKED: {exc}")
+        else:
+            print(f"  file paths : {paths}")
+    if args.retro:
+        retro = state.get("retrospectives", {}).get(args.retro)
+        if not retro:
+            print(f"  retro      : UNKNOWN {args.retro}")
+        elif retro.get("status") != "open":
+            print(f"  retro      : {args.retro} is {retro.get('status')}, not open")
+        else:
+            print(f"  retro      : {args.retro} open")
+    else:
+        print("  retro      : none linked")
+
+    novelty = novelty_blocks(state, args.title or "", args.statement or "", patch)
+    print(f"  novelty    : {'PASS' if not novelty else 'BLOCKED'}")
+    for block in novelty:
+        print(f"    - {block}")
+
+    blocks = validate_patch(state, patch)
+    print(f"  patch      : {'PASS' if not blocks else 'BLOCKED'}")
+    for block in blocks[:6]:
+        print(f"    - {block}")
+
+    origins = patch_origins(state, patch) | set(targets)
+    affected = sorted(descendants_dependency(state, origins))
+    print(f"  invalidation impact estimate: {affected or 'none'}")
+
+    if file_ops:
+        print("  verification note: B will run the command in an isolated temporary copy with the patch applied")
+    if not args.verification:
+        print("  verification command: MISSING (propose will still require one for verify)")
+    else:
+        print(f"  verification command: {args.verification}")
+
+    if novelty or blocks:
+        return 2
+    print("A CHECK PASS: ready for propose")
+    return 0
+
+
 def cmd_ab_status(_: argparse.Namespace) -> int:
     state = load_state()
     proposals = state.get("proposals", {})
@@ -2644,6 +2701,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("a-brief", help="compact A-layer session brief")
     sp.set_defaults(func=cmd_a_brief)
+
+    sp = sub.add_parser("a-check", help="read-only A preflight before propose")
+    sp.add_argument("--title")
+    sp.add_argument("--statement")
+    sp.add_argument("--targets", default="")
+    sp.add_argument("--patch-file")
+    sp.add_argument("--patch")
+    sp.add_argument("--verification")
+    sp.add_argument("--retro")
+    sp.set_defaults(func=cmd_a_check)
 
     sp = sub.add_parser("ab-status", help="show the A/B fast/slow queue")
     sp.set_defaults(func=cmd_ab_status)

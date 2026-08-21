@@ -626,5 +626,40 @@ class TestABrief(RepoCase):
         self.assertEqual(len(rebuilt["files"]), len(journal) - 1)
 
 
+class TestACheck(RepoCase):
+    def test_a_check_passes_valid_patch_without_proposing(self):
+        self.add_node("N1", "patch target", "L4", ntype="verify",
+                      status="validated")
+        patch = self.make_file_patch("tools/checked.py", "x = 1\n", "check.json")
+        out = self.assertOk(self.run_auto(
+            "a-check", "--title", "add checked helper",
+            "--statement", "file patch", "--targets", "N1",
+            "--patch-file", patch, "--verification", PASS_CMD,
+        )).stdout
+        self.assertIn("A CHECK PASS", out)
+        self.assertNotIn("P-001", self.state()["proposals"])
+
+    def test_a_check_blocks_recycled_candidate(self):
+        self.add_node("N1", "trust accounting", "L4", ntype="inference",
+                      status="validated")
+        first = self.patch_file(
+            [{"op": "set_node_status", "node": "N1", "status": "validated"}]
+        )
+        self.assertOk(self.run_auto(
+            "propose", "--title",
+            "A optimizes B: trust accounting via inference L4 (epoch 1)",
+            "--statement", "candidate", "--targets", "N1",
+            "--patch-file", first,
+        ))
+        proc = self.run_auto(
+            "a-check", "--title",
+            "B optimizes A: trust accounting via assumption L2 (epoch 2)",
+            "--statement", "candidate", "--targets", "N1",
+            "--patch-file", first,
+        )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("novelty", proc.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()
