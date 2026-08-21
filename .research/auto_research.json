@@ -13280,6 +13280,113 @@
         }
       ],
       "proposed_at": "2026-08-21T22:49:47+08:00"
+    },
+    "P-199": {
+      "id": "P-199",
+      "track": "B",
+      "title": "Add B-TIMEOUT-GUARD: reject verification commands without an explicit timeout",
+      "statement": "B must reject any proposal whose verification command lacks an explicit timeout; a verification that hits timeout is a failure, not a pass.",
+      "targets": [
+        "B-TIMEOUT-GUARD"
+      ],
+      "patch": [
+        {
+          "op": "add_node",
+          "node": {
+            "id": "B-TIMEOUT-GUARD",
+            "type": "assumption",
+            "statement": "B must reject any proposal whose verification command lacks an explicit timeout; a verification that hits timeout is a failure, not a pass.",
+            "layer": "L4",
+            "status": "draft"
+          }
+        }
+      ],
+      "verification_command": "python3 -c 'import json,glob; paths=glob.glob(\".research/**/graph.json\",recursive=True)+glob.glob(\"**/graph.json\",recursive=True); g=json.load(open(paths[0])); ns=g.get(\"nodes\",g); m=[n for n in ns if n.get(\"id\")==\"B-TIMEOUT-GUARD\"]; assert m and \"timeout\" in m[0][\"statement\"].lower()'",
+      "retrospective_id": null,
+      "status": "rejected",
+      "critic": {
+        "track": "B",
+        "verdict": "reject",
+        "critic": "auto-runner-critic",
+        "reason": "terminal rejection after challenge: a corrected replacement proposal is required",
+        "at": "2026-08-21T22:53:43+08:00"
+      },
+      "verification": null,
+      "revisions": [
+        {
+          "note": "The patch writes the assertion string 'timeout' verbatim in the statement, so the text-match satisfiability check passes, and add_node is a single state-only op. But the proposal is self-inconsistent: its own verification_command has no explicit timeout wrapper, so under the very rule it adds, B would reject this proposal's command. Also the command only checks the literal word 'timeout' in the node text, not the enforced rejection behavior, and globbing paths[0] can pick a graph without the node and false-fail. Ask A to resubmit with the command wrapped in an explicit timeout (e.g. 'timeout 60 python3 ...') and to state that textual presence is the only verifiable target for an assumption node.",
+          "at": "2026-08-21T22:53:43+08:00"
+        }
+      ],
+      "proposed_at": "2026-08-21T22:53:23+08:00"
+    },
+    "P-200": {
+      "id": "P-200",
+      "track": "B",
+      "title": "Hash applied patches in B-VERIFY-RECORD",
+      "statement": "B-VERIFY-RECORD must store a canonical SHA-256 of the serialized patch operations and reject any applied status whose recorded hash differs from the proposal patch field. Marker: B-PATCH-HASH-RECORD-V1.",
+      "targets": [
+        "B-VERIFY-RECORD"
+      ],
+      "patch": [
+        {
+          "op": "set_node_statement",
+          "node": "B-VERIFY-RECORD",
+          "statement": "B-VERIFY-RECORD must store a canonical SHA-256 of the serialized patch operations and reject any applied status whose recorded hash differs from the proposal patch field. Marker: B-PATCH-HASH-RECORD-V1."
+        }
+      ],
+      "verification_command": "python3 -c \"import pathlib; p=next(p for p in [pathlib.Path('.research/auto_research.json'),pathlib.Path('../../auto_research.json'),pathlib.Path('auto_research.json')] if p.exists()); t=p.read_text(); assert 'B-PATCH-HASH-RECORD-V1' in t, 'marker missing'; print('verified')\"",
+      "retrospective_id": null,
+      "status": "rejected",
+      "critic": {
+        "track": "B",
+        "verdict": "reject",
+        "critic": "auto-runner-critic",
+        "reason": "terminal rejection after challenge: a corrected replacement proposal is required",
+        "at": "2026-08-21T22:55:31+08:00"
+      },
+      "verification": null,
+      "revisions": [
+        {
+          "note": "The single state-only set_node_statement is acceptable, but verification only greps for 'B-PATCH-HASH-RECORD-V1' in auto_research.json; it never tests that SHA-256 is stored or that mismatched hashes are rejected. It asserts a string the patch writes verbatim, so the satisfiability check is trivially true yet vacuous. Worse, the proposal changes only the B-VERIFY-RECORD statement, not any recording code or schema; existing applied-status entries carry no hash, so the new rule makes all current records non-compliant with no patch to add hash fields. That is an unclosed dependency: the mandate has no enforcing mechanism and would reject the very records it governs. Ask A to either add patch ops/code that actually persist and compare hashes, or reframe the node as a forward-only rule with an exit-0 verification that fails before and passes after while exercising the hash logic, not marker presence.",
+          "at": "2026-08-21T22:55:31+08:00"
+        }
+      ],
+      "proposed_at": "2026-08-21T22:55:08+08:00"
+    },
+    "P-201": {
+      "id": "P-201",
+      "track": "B",
+      "title": "Require verbatim replay of original verification command on B revalidation",
+      "statement": "B-REVALIDATE-GATE: when B revalidates an applied proposal, B must re-run the original verification command verbatim; any substituted equivalent command is invalid, and the revalidation record must store the exact command string and its exit code.",
+      "targets": [
+        "B-REVALIDATE-GATE"
+      ],
+      "patch": [
+        {
+          "op": "set_node_statement",
+          "node": "B-REVALIDATE-GATE",
+          "statement": "B-REVALIDATE-GATE: when B revalidates an applied proposal, B must re-run the original verification command verbatim; any substituted equivalent command is invalid, and the revalidation record must store the exact command string and its exit code."
+        }
+      ],
+      "verification_command": "python3 -c \"t=open('../../auto_research.json').read(); assert 'B-REVALIDATE-GATE' in t and 're-run the original verification command verbatim' in t\"",
+      "retrospective_id": null,
+      "status": "rejected",
+      "critic": {
+        "track": "B",
+        "verdict": "reject",
+        "critic": "auto-runner-critic",
+        "reason": "terminal rejection after challenge: a corrected replacement proposal is required",
+        "at": "2026-08-21T22:56:57+08:00"
+      },
+      "verification": null,
+      "revisions": [
+        {
+          "note": "Patch op set_node_statement targets node B-REVALIDATE-GATE, but it is unconfirmed whether that node already exists in auto_research.json. If it is absent, set_node_statement may not create it, so the verification command (which asserts the statement text in auto_research.json) would either fail or pass against a pre-existing stale string rather than the applied patch. The satisfiability check between the two asserted strings and the written statement does hold verbatim, but the closure risk is unfalsifiable without confirming node existence and observing exit code fail-before/pass-after. Ask A to confirm the node exists or use a create-if-missing op, and require the verification command to fail before the patch and pass after.",
+          "at": "2026-08-21T22:56:57+08:00"
+        }
+      ],
+      "proposed_at": "2026-08-21T22:56:14+08:00"
     }
   },
   "verifications": [
@@ -98202,11 +98309,125 @@
         "verdict": "reject",
         "critic": "auto-runner-critic"
       }
+    },
+    {
+      "at": "2026-08-21T22:53:23+08:00",
+      "event": "proposal_proposed",
+      "payload": {
+        "track": "B",
+        "proposal": "P-199",
+        "title": "Add B-TIMEOUT-GUARD: reject verification commands without an explicit timeout",
+        "retrospective": null
+      }
+    },
+    {
+      "at": "2026-08-21T22:53:43+08:00",
+      "event": "proposal_critiqued",
+      "payload": {
+        "track": "B",
+        "proposal": "P-199",
+        "verdict": "challenge",
+        "critic": "auto-runner-critic"
+      }
+    },
+    {
+      "at": "2026-08-21T22:53:43+08:00",
+      "event": "proposal_revised",
+      "payload": {
+        "proposal": "P-199",
+        "note": "The patch writes the assertion string 'timeout' verbatim in the statement, so the text-match satisfiability check passes, and add_node is a single state-only op. But the proposal is self-inconsistent: its own verification_command has no explicit timeout wrapper, so under the very rule it adds, B would reject this proposal's command. Also the command only checks the literal word 'timeout' in the node text, not the enforced rejection behavior, and globbing paths[0] can pick a graph without the node and false-fail. Ask A to resubmit with the command wrapped in an explicit timeout (e.g. 'timeout 60 python3 ...') and to state that textual presence is the only verifiable target for an assumption node."
+      }
+    },
+    {
+      "at": "2026-08-21T22:53:43+08:00",
+      "event": "proposal_critiqued",
+      "payload": {
+        "track": "B",
+        "proposal": "P-199",
+        "verdict": "reject",
+        "critic": "auto-runner-critic"
+      }
+    },
+    {
+      "at": "2026-08-21T22:55:08+08:00",
+      "event": "proposal_proposed",
+      "payload": {
+        "track": "B",
+        "proposal": "P-200",
+        "title": "Hash applied patches in B-VERIFY-RECORD",
+        "retrospective": null
+      }
+    },
+    {
+      "at": "2026-08-21T22:55:31+08:00",
+      "event": "proposal_critiqued",
+      "payload": {
+        "track": "B",
+        "proposal": "P-200",
+        "verdict": "challenge",
+        "critic": "auto-runner-critic"
+      }
+    },
+    {
+      "at": "2026-08-21T22:55:31+08:00",
+      "event": "proposal_revised",
+      "payload": {
+        "proposal": "P-200",
+        "note": "The single state-only set_node_statement is acceptable, but verification only greps for 'B-PATCH-HASH-RECORD-V1' in auto_research.json; it never tests that SHA-256 is stored or that mismatched hashes are rejected. It asserts a string the patch writes verbatim, so the satisfiability check is trivially true yet vacuous. Worse, the proposal changes only the B-VERIFY-RECORD statement, not any recording code or schema; existing applied-status entries carry no hash, so the new rule makes all current records non-compliant with no patch to add hash fields. That is an unclosed dependency: the mandate has no enforcing mechanism and would reject the very records it governs. Ask A to either add patch ops/code that actually persist and compare hashes, or reframe the node as a forward-only rule with an exit-0 verification that fails before and passes after while exercising the hash logic, not marker presence."
+      }
+    },
+    {
+      "at": "2026-08-21T22:55:31+08:00",
+      "event": "proposal_critiqued",
+      "payload": {
+        "track": "B",
+        "proposal": "P-200",
+        "verdict": "reject",
+        "critic": "auto-runner-critic"
+      }
+    },
+    {
+      "at": "2026-08-21T22:56:14+08:00",
+      "event": "proposal_proposed",
+      "payload": {
+        "track": "B",
+        "proposal": "P-201",
+        "title": "Require verbatim replay of original verification command on B revalidation",
+        "retrospective": null
+      }
+    },
+    {
+      "at": "2026-08-21T22:56:57+08:00",
+      "event": "proposal_critiqued",
+      "payload": {
+        "track": "B",
+        "proposal": "P-201",
+        "verdict": "challenge",
+        "critic": "auto-runner-critic"
+      }
+    },
+    {
+      "at": "2026-08-21T22:56:57+08:00",
+      "event": "proposal_revised",
+      "payload": {
+        "proposal": "P-201",
+        "note": "Patch op set_node_statement targets node B-REVALIDATE-GATE, but it is unconfirmed whether that node already exists in auto_research.json. If it is absent, set_node_statement may not create it, so the verification command (which asserts the statement text in auto_research.json) would either fail or pass against a pre-existing stale string rather than the applied patch. The satisfiability check between the two asserted strings and the written statement does hold verbatim, but the closure risk is unfalsifiable without confirming node existence and observing exit code fail-before/pass-after. Ask A to confirm the node exists or use a create-if-missing op, and require the verification command to fail before the patch and pass after."
+      }
+    },
+    {
+      "at": "2026-08-21T22:56:57+08:00",
+      "event": "proposal_critiqued",
+      "payload": {
+        "track": "B",
+        "proposal": "P-201",
+        "verdict": "reject",
+        "critic": "auto-runner-critic"
+      }
     }
   ],
   "counters": {
     "node": 172,
-    "proposal": 198,
+    "proposal": 201,
     "verification": 3857,
     "retrospective": 27
   },
