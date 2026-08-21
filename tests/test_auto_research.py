@@ -694,5 +694,16 @@ class TestABJson(RepoCase):
         self.assertIsInstance(data["b_actions"], list)
 
 
+class TestStatusJson(RepoCase):
+    def test_status_json_summary(self):
+        self.add_node("N1", "candidate", "L1", ntype="assumption", status="validated")
+        out = self.assertOk(self.run_auto("status", "--json")).stdout
+        data = json.loads(out)
+        self.assertEqual(data["mode"], "status")
+        self.assertEqual(data["nodes"], 2)
+        self.assertEqual(data["status"]["validated"], 2)
+        self.assertIsInstance(data["proposal_rows"], list)
+
+
 if __name__ == "__main__":
     unittest.main()

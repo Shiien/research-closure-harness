@@ -1978,15 +1978,45 @@ def cmd_validate(_: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_status(_: argparse.Namespace) -> int:
+def cmd_status(args: argparse.Namespace) -> int:
     state = load_state()
     nodes = state.get("nodes", {})
-    print("SELF-EVOLVED RESEARCH HARNESS")
-    print(f"L0 meta-goal: {state.get('meta_goal', {}).get('statement')}")
-    print(f"Nodes: {len(nodes)}  Edges: {len(state.get('edges', []))}  Snapshots: {len(list_snapshots())}")
     by_status: dict[str, int] = {}
     for node in nodes.values():
         by_status[node.get("status", "?")] = by_status.get(node.get("status", "?"), 0) + 1
+    proposal_rows = [
+        {
+            "id": pid,
+            "track": prop.get("track", "?"),
+            "status": prop.get("status", "?"),
+            "title": prop.get("title", ""),
+        }
+        for pid, prop in sorted(state.get("proposals", {}).items())
+    ]
+    open_retros = sorted(
+        rid for rid, retro in state.get("retrospectives", {}).items()
+        if retro.get("status") == "open"
+    )
+    if args.json:
+        print(json.dumps({
+            "mode": "status",
+            "meta_goal": state.get("meta_goal", {}).get("statement"),
+            "nodes": len(nodes),
+            "edges": len(state.get("edges", [])),
+            "snapshots": len(list_snapshots()),
+            "status": by_status,
+            "proposals": len(state.get("proposals", {})),
+            "proposal_rows": proposal_rows,
+            "retrospectives": len(state.get("retrospectives", {})),
+            "open_retrospectives": open_retros,
+            "file_backups": len(state.get("file_backups", [])),
+            "last_self_test": state.get("last_self_test"),
+        }, indent=2, sort_keys=True))
+        return 0
+
+    print("SELF-EVOLVED RESEARCH HARNESS")
+    print(f"L0 meta-goal: {state.get('meta_goal', {}).get('statement')}")
+    print(f"Nodes: {len(nodes)}  Edges: {len(state.get('edges', []))}  Snapshots: {len(list_snapshots())}")
     print(f"Status: {by_status}")
     for nid, node in sorted(nodes.items()):
         if nid == META_GOAL_ID:
@@ -1996,10 +2026,6 @@ def cmd_status(_: argparse.Namespace) -> int:
     print(f"Proposals: {len(state.get('proposals', {}))}")
     for pid, prop in sorted(state.get("proposals", {}).items()):
         print(f"  {pid:8s} [{prop.get('track','?')}] {prop.get('status','?'):18s} {prop.get('title','')[:60]}")
-    open_retros = sorted(
-        rid for rid, retro in state.get("retrospectives", {}).items()
-        if retro.get("status") == "open"
-    )
     print(f"Retrospectives: {len(state.get('retrospectives', {}))} "
           f"(open: {open_retros or 'none'})  File backups: {len(state.get('file_backups', []))}")
     if state.get("last_self_test"):
@@ -2794,6 +2820,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.set_defaults(func=cmd_validate)
 
     sp = sub.add_parser("status", help="show self-graph and proposal pipeline")
+    sp.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     sp.set_defaults(func=cmd_status)
 
     sp = sub.add_parser("next", help="show the next event in the loop")
