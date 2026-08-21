@@ -105,6 +105,11 @@ def discover_root() -> Path:
 ROOT = discover_root()
 STATE_PATH = ROOT / ".research" / "auto_research.json"
 SNAP_DIR = ROOT / ".research" / "auto_snapshots"
+SNAP_INDEX_NAME = "index.json"
+DEFAULT_SNAPSHOT_RETENTION = {
+    "keep_last": 25,
+    "keep_labels": ["init", "modification_applied"],
+}
 
 
 def now_iso() -> str:
@@ -141,6 +146,7 @@ def skeleton(goal: str = META_GOAL_STATEMENT) -> dict[str, Any]:
         "affected_trust_decay": 0.5,
         "revalidation_threshold": 0.25,
         "self_test_command": "python3 -m unittest discover -s tests",
+        "snapshot_retention": copy.deepcopy(DEFAULT_SNAPSHOT_RETENTION),
         "tracks": TRACK_ROLES,
         "nodes": {
             META_GOAL_ID: {
@@ -188,28 +194,103 @@ def load_state(path: Path | None = None) -> dict[str, Any]:
         ("tracks", dict(TRACK_ROLES)),
         ("retrospectives", {}),
         ("file_backups", []),
+        ("snapshot_retention", copy.deepcopy(DEFAULT_SNAPSHOT_RETENTION)),
     ):
         state.setdefault(key, default)
     return state
 
 
+def snapshot_name_label(name: str) -> str:
+    return "_".join(Path(name).stem.split("_")[3:])
+
+
+def snapshot_files() -> list[Path]:
+    if not SNAP_DIR.exists():
+        return []
+    return sorted(
+        path for path in SNAP_DIR.glob("*.json")
+        if path.name != SNAP_INDEX_NAME
+    )
+
+
+def load_snapshot_index() -> dict[str, Any]:
+    path = SNAP_DIR / SNAP_INDEX_NAME
+    if not path.exists():
+        return {"version": 1, "files": {}}
+    try:
+        raw = json.loads(path.read_text())
+    except Exception:
+        return {"version": 1, "files": {}}
+    files = raw.get("files", {})
+    return {
+        "version": 1,
+        "files": files if isinstance(files, dict) else {},
+    }
+
+
+def save_snapshot_index(index: dict[str, Any]) -> None:
+    path = SNAP_DIR / SNAP_INDEX_NAME
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(index, indent=2, sort_keys=True) + "\n")
+    tmp.replace(path)
+
+
+def prune_snapshots(state: dict[str, Any], index: dict[str, Any]) -> None:
+    files = snapshot_files()
+    if not files:
+        return
+    retention = state.get("snapshot_retention", copy.deepcopy(DEFAULT_SNAPSHOT_RETENTION))
+    keep_last = max(1, int(retention.get("keep_last", DEFAULT_SNAPSHOT_RETENTION["keep_last"])))
+    keep_labels = set(retention.get("keep_labels", DEFAULT_SNAPSHOT_RETENTION["keep_labels"]))
+    keep = set(files[-keep_last:])
+    keep.add(files[0])
+    for path in files:
+        if snapshot_name_label(path.name) in keep_labels:
+            keep.add(path)
+    index_files = index.setdefault("files", {})
+    for path in files:
+        if path in keep:
+            continue
+        try:
+            path.unlink()
+        except OSError:
+            continue
+        index_files.pop(path.name, None)
+    save_snapshot_index(index)
+
+
 def snapshot_state(state: dict[str, Any], label: str = "") -> Path | None:
     try:
         SNAP_DIR.mkdir(parents=True, exist_ok=True)
-        files = sorted(SNAP_DIR.glob("*.json"))
+        blob = json.dumps(state, indent=2, sort_keys=False) + "\n"
+        sha = hashlib.sha256(blob.encode("utf-8")).hexdigest()
+        index = load_snapshot_index()
+
+        files = snapshot_files()
         if files:
             try:
                 if json.loads(files[-1].read_text()) == state:
                     return files[-1]
             except Exception:
                 pass
+        for name, info in index.get("files", {}).items():
+            if info.get("sha256") == sha and (SNAP_DIR / name).exists():
+                return SNAP_DIR / name
+
         stamp = datetime.now().astimezone().strftime("%Y%m%d_%H%M%S")
         seq = len(files)
         safe = label.replace("/", "_") or "snapshot"
         while (SNAP_DIR / f"{stamp}_{seq:03d}_{safe}.json").exists():
             seq += 1
         path = SNAP_DIR / f"{stamp}_{seq:03d}_{safe}.json"
-        path.write_text(json.dumps(state, indent=2, sort_keys=False) + "\n")
+        path.write_text(blob)
+        index.setdefault("files", {})[path.name] = {
+            "sha256": sha,
+            "label": safe,
+            "at": now_iso(),
+        }
+        save_snapshot_index(index)
+        prune_snapshots(state, index)
         return path
     except Exception:
         return None
@@ -370,6 +451,19 @@ def validate(state: dict[str, Any]) -> tuple[list[str], list[str]]:
         blocks.append("revalidation_threshold must be in [0, 1]")
     if not isinstance(state.get("self_test_command", ""), str) or not state["self_test_command"].strip():
         warnings.append("self_test_command is empty; self-test will be skipped")
+
+    retention = state.get("snapshot_retention", {})
+    if not isinstance(retention, dict):
+        blocks.append("snapshot_retention must be an object")
+    else:
+        keep_last = retention.get("keep_last")
+        if not isinstance(keep_last, int) or isinstance(keep_last, bool) or keep_last < 1:
+            blocks.append("snapshot_retention.keep_last must be a positive integer")
+        keep_labels = retention.get("keep_labels")
+        if not isinstance(keep_labels, list) or not all(
+            isinstance(item, str) and item for item in keep_labels
+        ):
+            blocks.append("snapshot_retention.keep_labels must be a list of non-empty strings")
 
     for pid, prop in state.get("proposals", {}).items():
         if prop.get("status") not in PROPOSAL_STATUSES:
@@ -1464,7 +1558,7 @@ def cmd_self_test(args: argparse.Namespace) -> int:
 
 
 def list_snapshots() -> list[Path]:
-    return sorted(SNAP_DIR.glob("*.json")) if SNAP_DIR.exists() else []
+    return snapshot_files()
 
 
 def cmd_snapshot(_: argparse.Namespace) -> int:
@@ -1473,6 +1567,33 @@ def cmd_snapshot(_: argparse.Namespace) -> int:
     if not path:
         raise SystemExit("BLOCKED: could not write snapshot")
     print(f"Snapshot: {path}")
+    return 0
+
+
+def cmd_snapshot_stats(_: argparse.Namespace) -> int:
+    state = load_state()
+    files = list_snapshots()
+    total = sum(path.stat().st_size for path in files)
+    index = load_snapshot_index()
+    print("SNAPSHOT JOURNAL")
+    print(f"  files        : {len(files)}")
+    print(f"  bytes        : {total}")
+    print(f"  indexed      : {len(index.get('files', {}))}")
+    print(f"  retention    : {json.dumps(state.get('snapshot_retention'), sort_keys=True)}")
+    archive = SNAP_DIR / "archive"
+    if archive.exists():
+        archive_bytes = sum(p.stat().st_size for p in archive.rglob("*") if p.is_file())
+        print(f"  archive bytes: {archive_bytes}")
+    return 0
+
+
+def cmd_snapshot_prune(_: argparse.Namespace) -> int:
+    state = load_state()
+    index = load_snapshot_index()
+    before = len(list_snapshots())
+    prune_snapshots(state, index)
+    after = len(list_snapshots())
+    print(f"Snapshot prune: {before} -> {after}")
     return 0
 
 
@@ -2066,6 +2187,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("snapshot", help="write a manual snapshot")
     sp.set_defaults(func=cmd_snapshot)
+
+    sp = sub.add_parser("snapshot-stats", help="show snapshot journal size and retention")
+    sp.set_defaults(func=cmd_snapshot_stats)
+
+    sp = sub.add_parser("snapshot-prune", help="apply snapshot retention policy now")
+    sp.set_defaults(func=cmd_snapshot_prune)
 
     sp = sub.add_parser("rollback", help="roll back to a snapshot (1 = oldest)")
     sp.add_argument("--to", type=int, required=True)

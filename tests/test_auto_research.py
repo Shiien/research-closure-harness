@@ -467,5 +467,50 @@ class TestRetrospectiveBacklog(RepoCase):
         self.assertBlocked(proc)
 
 
+class TestSnapshotRetention(RepoCase):
+    def test_index_dedups_non_adjacent_states_and_auto_prunes(self):
+        script = r"""
+import copy, json, shutil, sys
+sys.path.insert(0, "tools")
+import auto_research as ar
+for path in ar.SNAP_DIR.glob("*.json"):
+    path.unlink()
+index = ar.SNAP_DIR / ar.SNAP_INDEX_NAME
+if index.exists():
+    index.unlink()
+state = ar.skeleton()
+state["snapshot_retention"] = {"keep_last": 1, "keep_labels": ["init"]}
+ar.save_state(state, "init")
+assert len(ar.list_snapshots()) == 1, ar.list_snapshots()
+changed = copy.deepcopy(state)
+changed["last_self_test"] = {"passed": True, "exit_code": 0, "at": "x"}
+ar.save_state(changed, "node_revalidated")
+# Non-adjacent duplicate state must dedup through the hash index.
+ar.save_state(copy.deepcopy(state), "repeated")
+assert len(ar.list_snapshots()) == 2, ar.list_snapshots()
+for i in range(6):
+    changed["last_self_test"] = {"passed": True, "exit_code": 0, "at": str(i)}
+    ar.save_state(copy.deepcopy(changed), "node_revalidated")
+assert len(ar.list_snapshots()) == 2, ar.list_snapshots()
+print("snapshot-dedup-and-prune-ok")
+"""
+        proc = subprocess.run(
+            [sys.executable, "-c", script],
+            cwd=ROOT,
+            env={**os.environ, "RESEARCH_CLOSURE_ROOT": str(self.repo)},
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("snapshot-dedup-and-prune-ok", proc.stdout)
+
+    def test_snapshot_stats_and_prune_commands_exist(self):
+        stats = self.assertOk(self.run_auto("snapshot-stats")).stdout
+        self.assertIn("SNAPSHOT JOURNAL", stats)
+        self.assertIn("retention", stats)
+        pruned = self.assertOk(self.run_auto("snapshot-prune")).stdout
+        self.assertIn("Snapshot prune:", pruned)
+
+
 if __name__ == "__main__":
     unittest.main()
