@@ -29,6 +29,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -2696,6 +2697,228 @@ def cmd_proposal_show(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_agent_command(template: str, prompt: str, timeout: int) -> dict[str, Any]:
+    if not template.strip():
+        raise SystemExit("BLOCKED: run requires a non-empty proposer/critic command")
+    command = template.rstrip() + " " + shlex.quote(prompt)
+    proc = subprocess.run(
+        command,
+        shell=True,
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+    if proc.returncode != 0:
+        raise SystemExit(
+            "BLOCKED: agent command failed:\n"
+            f"stdout: {proc.stdout[-800:]}\nstderr: {proc.stderr[-800:]}"
+        )
+    out = proc.stdout.strip()
+    if out.startswith("```"):
+        lines = out.splitlines()
+        out = "\n".join(lines[1:-1] if len(lines) > 2 else lines[1:])
+    start = out.find("{")
+    end = out.rfind("}")
+    if start < 0 or end <= start:
+        raise SystemExit("BLOCKED: agent output is not JSON")
+    try:
+        data = json.loads(out[start:end + 1])
+    except json.JSONDecodeError as exc:
+        raise SystemExit("BLOCKED: invalid agent JSON")
+    if not isinstance(data, dict):
+        raise SystemExit("BLOCKED: agent JSON must be an object")
+    return data
+
+
+def run_cli(*args: str, timeout: int | None = None) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    env["RESEARCH_CLOSURE_ROOT"] = str(ROOT)
+    return subprocess.run(
+        [sys.executable, str(Path(__file__).resolve()), *args],
+        cwd=str(ROOT),
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+
+
+def run_choose_role(state: dict[str, Any], alternate: bool) -> str:
+    if not alternate:
+        return "A"
+    applied = [
+        prop for prop in state.get("proposals", {}).values()
+        if prop.get("status") == "applied"
+    ]
+    if not applied:
+        return "A"
+    return "B" if applied[-1].get("track") == "A" else "A"
+
+
+def run_proposer_prompt(state: dict[str, Any], role: str) -> str:
+    open_retros = sorted(
+        rid for rid, retro in state.get("retrospectives", {}).items()
+        if retro.get("status") == "open"
+    )
+    recent = sorted(
+        state.get("proposals", {}).items(),
+        key=lambda item: int(item[0][2:]) if item[0].startswith("P-") and item[0][2:].isdigit() else 0,
+    )[-6:]
+    return (
+        f"You are auto-research role {role}. Propose exactly one small, local, semantically novel self-modification.\n"
+        "Launch prompts:\n" + "\n".join(f"- {p}" for p in state.get("launch_prompts", {}).get(role, [])) + "\n"
+        f"Open retrospectives: {open_retros or 'none'}.\n"
+        f"Recent proposals: {json.dumps(recent, default=str)}.\n"
+        f"Patch vocabulary: {sorted(PATCH_OPS)}.\n"
+        "Rules: at most two patch operations; patch_file may modify engine files except protected paths; "
+        "every proposal needs one or two graph targets and an explicit exit-0 verification command. "
+        "Return exactly one JSON object:\n"
+        '{"action":"propose","title":"...","statement":"...","targets":["N-..."],'
+        '"patch":[{"op":"..."}],"verification":"...","retro":"R-xxx or null"}'
+    )
+
+
+def run_critic_prompt(state: dict[str, Any], proposal_id: str) -> str:
+    prop = state.get("proposals", {}).get(proposal_id, {})
+    role = "B"
+    return (
+        "You are auto-research role B. Criticise this proposal specifically and return exactly one JSON object "
+        '{"action":"critique","verdict":"pass|challenge|reject","reason":"specific reason naming patch ops, verification command, or closure risk"}.\n'
+        "Launch prompts:\n" + "\n".join(f"- {p}" for p in state.get("launch_prompts", {}).get(role, [])) + "\n"
+        f"Proposal: {json.dumps(prop, default=str)}"
+    )
+
+
+def run_revalidate_all() -> tuple[int, str]:
+    state = load_state()
+    ids = [
+        nid for nid, node in state.get("nodes", {}).items()
+        if nid != META_GOAL_ID and node.get("status") != "validated"
+    ]
+    for nid in sorted(ids):
+        proc = run_cli("revalidate", "--track", "B", "--node", nid, "--level", "syntax")
+        if proc.returncode != 0:
+            return proc.returncode, nid
+    return 0, ""
+
+
+def run_log_entry(epoch: int, role: str, event: str, detail: dict[str, Any]) -> None:
+    path = ROOT / ".research" / "auto_run.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a") as fh:
+        fh.write(json.dumps({
+            "at": now_iso(),
+            "epoch": epoch,
+            "role": role,
+            "event": event,
+            "detail": detail,
+        }, default=str) + "\n")
+
+
+def cmd_run(args: argparse.Namespace) -> int:
+    state = load_state()
+    report = build_health_report(state)
+    if report["critical"]:
+        print("BLOCKED: health critical before run: " + ", ".join(report["critical"]))
+        return 2
+    for epoch in range(1, args.epochs + 1):
+        state = load_state()
+        role = run_choose_role(state, args.alternate)
+        print(f"EPOCH {epoch}/{args.epochs} role={role}")
+        proposer_prompt = run_proposer_prompt(state, role)
+        if args.dry_run:
+            print(proposer_prompt[:800])
+            continue
+        proposal = run_agent_command(args.proposer_cmd, proposer_prompt, args.timeout)
+        if proposal.get("action") != "propose":
+            run_log_entry(epoch, role, "bad_proposer_action", proposal)
+            raise SystemExit("BLOCKED: proposer action is not propose")
+        patch = proposal.get("patch")
+        if not isinstance(patch, list) or not patch:
+            raise SystemExit("BLOCKED: proposer returned no patch list")
+        targets = proposal.get("targets") or []
+        if not isinstance(targets, list):
+            targets = [str(targets)]
+        propose_args = [
+            "propose", "--track", role,
+            "--title", str(proposal.get("title", "runner proposal")),
+            "--statement", str(proposal.get("statement", "runner proposal")),
+            "--targets", ",".join(str(item) for item in targets),
+            "--patch", json.dumps(patch),
+        ]
+        verification = proposal.get("verification")
+        if verification:
+            propose_args.extend(["--verification", str(verification)])
+        retro = proposal.get("retro")
+        if retro:
+            propose_args.extend(["--retro", str(retro)])
+        proc = run_cli(*propose_args)
+        if proc.returncode != 0:
+            run_log_entry(epoch, role, "propose_failed", {"stdout": proc.stdout[-500:], "stderr": proc.stderr[-500:]})
+            print(proc.stdout, proc.stderr)
+            return proc.returncode
+        match = re.search(r"Proposed (P-\d+):", proc.stdout)
+        if not match:
+            raise SystemExit("BLOCKED: could not parse proposal id from propose output")
+        pid = match.group(1)
+
+        state = load_state()
+        critic = run_agent_command(args.critic_cmd, run_critic_prompt(state, pid), args.timeout)
+        verdict = critic.get("verdict")
+        if verdict not in CRITIC_VERDICTS:
+            run_log_entry(epoch, role, "bad_critic", critic)
+            raise SystemExit("BLOCKED: critic returned a bad verdict")
+        reason = str(critic.get("reason", "runner critic"))
+        proc = run_cli("critique", "--track", "B", "--proposal", pid, "--verdict", verdict, "--critic", "auto-runner-critic", "--reason", reason)
+        if proc.returncode != 0 or verdict != "pass":
+            run_log_entry(epoch, role, "critic_" + verdict, {"proposal": pid, "reason": reason})
+            print(proc.stdout)
+            if args.stop_on_reject and verdict == "reject":
+                return 1
+            continue
+        proc = run_cli("verify", "--track", "B", "--proposal", pid, "--timeout", str(args.timeout), timeout=args.timeout + 60)
+        if proc.returncode != 0:
+            run_log_entry(epoch, role, "verify_failed", {"proposal": pid, "stdout": proc.stdout[-500:], "stderr": proc.stderr[-500:]})
+            print(proc.stdout, proc.stderr)
+            return proc.returncode
+        proc = run_cli("apply", "--track", "B", "--proposal", pid)
+        if proc.returncode != 0:
+            run_log_entry(epoch, role, "apply_failed", {"proposal": pid, "stdout": proc.stdout[-500:], "stderr": proc.stderr[-500:]})
+            print(proc.stdout, proc.stderr)
+            return proc.returncode
+        code, failed_node = run_revalidate_all()
+        if code != 0:
+            run_log_entry(epoch, role, "revalidate_failed", {"node": failed_node})
+            return code
+        proc = run_cli("self-test", "--timeout", str(args.timeout), timeout=args.timeout + 60)
+        if proc.returncode != 0:
+            run_log_entry(epoch, role, "self_test_failed", {"stdout": proc.stdout[-500:], "stderr": proc.stderr[-500:]})
+            print(proc.stdout, proc.stderr)
+            return proc.returncode
+        state = load_state()
+        report = build_health_report(state)
+        if report["critical"]:
+            run_log_entry(epoch, role, "health_critical", {"critical": report["critical"]})
+            print("STOP: health critical: " + ", ".join(report["critical"]))
+            return 2
+        if args.stop_on_warning and report.get("warnings"):
+            run_log_entry(epoch, role, "health_warning", {"warnings": report["warnings"]})
+            print("STOP: health warnings: " + ", ".join(report["warnings"]))
+            return 1
+        run_log_entry(epoch, role, "epoch_applied", {"proposal": pid, "health": report["ok"]})
+        if args.commit:
+            proc = subprocess.run(["git", "add", "-A"], cwd=str(ROOT), capture_output=True, text=True)
+            if proc.returncode != 0:
+                return proc.returncode
+            msg = f"auto-run epoch {epoch}: {role} proposal {pid}"
+            proc = subprocess.run(["git", "commit", "-m", msg], cwd=str(ROOT), capture_output=True, text=True)
+            if proc.returncode != 0:
+                return proc.returncode
+            print("committed:", msg)
+    return 0
+
+
 def cmd_ab_status(args: argparse.Namespace) -> int:
     state = load_state()
     proposals = state.get("proposals", {})
@@ -2970,6 +3193,19 @@ def build_parser() -> argparse.ArgumentParser:
     rsp.add_argument("--proposal")
     rsp.add_argument("--note")
     rsp.set_defaults(func=cmd_retro_close)
+
+    sp = sub.add_parser("run", help="run supervised A/B epochs through headless agent commands")
+    sp.add_argument("--epochs", type=int, required=True)
+    sp.add_argument("--proposer-cmd", required=True, help="shell command; the prompt is appended quoted")
+    sp.add_argument("--critic-cmd", required=True, help="shell command; the prompt is appended quoted")
+    sp.add_argument("--timeout", type=int, default=300, help="agent and verification timeout seconds")
+    sp.add_argument("--alternate", action="store_true", help="alternate A/B proposer role by last applied proposal")
+    sp.add_argument("--no-alternate", dest="alternate", action="store_false", help="always use A proposer")
+    sp.add_argument("--stop-on-reject", action="store_true", help="stop the run when a proposal is rejected")
+    sp.add_argument("--stop-on-warning", action="store_true", help="stop after an epoch that leaves health warnings")
+    sp.add_argument("--commit", action="store_true", help="git commit after each applied epoch")
+    sp.add_argument("--dry-run", action="store_true", help="print prompts without invoking agents")
+    sp.set_defaults(func=cmd_run)
 
     sp = sub.add_parser("launch", help="preflight and print an A/B launch command")
     sp.add_argument("--harness", choices=("dsh", "claude", "codex", "manual"),

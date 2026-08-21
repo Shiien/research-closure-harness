@@ -819,5 +819,39 @@ class TestLaunchPrompts(RepoCase):
         self.assertIn("Think carefully", out)
 
 
+class TestRunner(RepoCase):
+    def test_run_one_epoch_with_fake_agents(self):
+        self.add_node("N1", "runner target", "L4", ntype="assumption", status="validated")
+        st = self.state()
+        st["self_test_command"] = "python3 -c \"print('ok')\""
+        (self.repo / ".research" / "auto_research.json").write_text(json.dumps(st, indent=2) + "\n")
+        self.assertOk(self.run_auto("self-test"))
+        tmp = self.repo / ".research" / "tmp"
+        tmp.mkdir(parents=True, exist_ok=True)
+        proposer = tmp / "proposer.py"
+        proposer.write_text(
+            "import json\n"
+            "print(json.dumps({'action':'propose','title':'runner test proposal',"
+            "'statement':'small runner change','targets':['N1'],"
+            "'patch':[{'op':'set_node_statement','node':'N1','statement':'v2'}],"
+            "'verification':'python3 -c \"print(1)\"','retro':None}))\n"
+        )
+        critic = tmp / "critic.py"
+        critic.write_text(
+            "import json\n"
+            "print(json.dumps({'action':'critique','verdict':'pass',"
+            "'reason':'local one-node statement change with exit-0 verification'}))\n"
+        )
+        out = self.assertOk(self.run_auto(
+            "run", "--epochs", "1", "--proposer-cmd", f"python3 {proposer}",
+            "--critic-cmd", f"python3 {critic}", "--timeout", "60",
+            "--no-alternate",
+        )).stdout
+        self.assertIn("EPOCH 1/1", out)
+        st = self.state()
+        self.assertEqual(st["proposals"]["P-001"]["status"], "applied")
+        self.assertTrue((self.repo / ".research" / "auto_run.jsonl").exists())
+
+
 if __name__ == "__main__":
     unittest.main()
