@@ -723,5 +723,16 @@ class TestProposalShow(RepoCase):
         self.assertIn("set_node_statement", out)
 
 
+class TestVerificationStats(RepoCase):
+    def test_verification_stats_json(self):
+        self.assertOk(self.run_auto("self-test", "--command", PASS_CMD))
+        out = self.assertOk(self.run_auto("verification-stats", "--json")).stdout
+        data = json.loads(out)
+        self.assertEqual(data["mode"], "verification-stats")
+        self.assertGreaterEqual(data["total"], 1)
+        self.assertIn("self_test", data["by_level"])
+        self.assertGreaterEqual(data["self_test_streak"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()

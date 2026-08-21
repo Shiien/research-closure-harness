@@ -2488,6 +2488,45 @@ def cmd_a_check(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_verification_stats(args: argparse.Namespace) -> int:
+    state = load_state()
+    records = state.get("verifications", [])
+    total = len(records)
+    passed = sum(1 for r in records if not r.get("timeout") and r.get("exit_code") == 0)
+    failed = total - passed
+    timeouts = sum(1 for r in records if r.get("timeout"))
+    by_level: dict[str, int] = {}
+    for r in records:
+        level = r.get("level", "unknown")
+        by_level[level] = by_level.get(level, 0) + 1
+    self_test_streak = 0
+    for r in reversed(records):
+        if r.get("level") != "self_test":
+            continue
+        if not r.get("timeout") and r.get("exit_code") == 0:
+            self_test_streak += 1
+        else:
+            break
+    data = {
+        "mode": "verification-stats",
+        "total": total,
+        "passed": passed,
+        "failed": failed,
+        "timeouts": timeouts,
+        "by_level": by_level,
+        "self_test_streak": self_test_streak,
+        "last_self_test": state.get("last_self_test"),
+    }
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+        return 0
+    print("VERIFICATION LEDGER")
+    print(f"  total={total} passed={passed} failed={failed} timeouts={timeouts}")
+    print(f"  by_level={by_level}")
+    print(f"  self_test_streak={self_test_streak}")
+    return 0
+
+
 def cmd_proposal_show(args: argparse.Namespace) -> int:
     state = load_state()
     prop = state.get("proposals", {}).get(args.proposal)
@@ -2804,6 +2843,10 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--verification")
     sp.add_argument("--retro")
     sp.set_defaults(func=cmd_a_check)
+
+    sp = sub.add_parser("verification-stats", help="summarize the hard-verification ledger")
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_verification_stats)
 
     sp = sub.add_parser("proposal-show", help="inspect one proposal in detail")
     sp.add_argument("--proposal", required=True)
