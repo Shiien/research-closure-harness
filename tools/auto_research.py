@@ -2462,28 +2462,43 @@ def cmd_a_check(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_ab_status(_: argparse.Namespace) -> int:
+def cmd_ab_status(args: argparse.Namespace) -> int:
     state = load_state()
     proposals = state.get("proposals", {})
     nodes = state.get("nodes", {})
+    drafts = sorted(nid for nid, n in nodes.items() if n.get("status") == "draft")
+    deprecated = sorted(nid for nid, n in nodes.items() if n.get("status") == "deprecated")
+    a_props = [pid for pid, prop in proposals.items() if prop.get("track", "A") == "A"]
+    b_queue = sorted(
+        pid for pid, prop in proposals.items()
+        if prop.get("status") in ("proposed", "passed_critic", "verified")
+    )
+    open_retros = sorted(
+        rid for rid, retro in state.get("retrospectives", {}).items()
+        if retro.get("status") == "open"
+    )
+    if args.json:
+        print(json.dumps({
+            "mode": "ab-status",
+            "draft_nodes": drafts,
+            "deprecated_nodes": deprecated,
+            "a_proposals": a_props,
+            "b_queue": b_queue,
+            "open_retrospectives": open_retros,
+            "file_backups": len(state.get("file_backups", [])),
+        }, indent=2, sort_keys=True))
+        return 0
 
     print("A/B AUTO-RESEARCH STATUS")
     print("A (fast): propose, explore, draft candidates, cheap pre-checks")
-    drafts = sorted(nid for nid, n in nodes.items() if n.get("status") == "draft")
-    deprecated = sorted(nid for nid, n in nodes.items() if n.get("status") == "deprecated")
     print(f"  draft nodes      : {drafts or 'none'}")
     print(f"  deprecated nodes : {deprecated or 'none'}")
-    a_props = [pid for pid, prop in proposals.items() if prop.get("track", "A") == "A"]
     print(f"  A proposals      : {a_props or 'none'}")
     for pid in a_props:
         prop = proposals[pid]
         print(f"    {pid:8s} {prop.get('status', '?'):18s} {prop.get('title', '')[:60]}")
 
     print("B (slow): critic review, hard verification, consolidation, apply")
-    b_queue = sorted(
-        pid for pid, prop in proposals.items()
-        if prop.get("status") in ("proposed", "passed_critic", "verified")
-    )
     print(f"  B queue          : {b_queue or 'none'}")
     for pid in b_queue:
         prop = proposals[pid]
@@ -2494,10 +2509,6 @@ def cmd_ab_status(_: argparse.Namespace) -> int:
         }[prop["status"]]
         print(f"    {pid:8s} {prop.get('status', '?'):18s} -> {action}")
 
-    open_retros = sorted(
-        rid for rid, retro in state.get("retrospectives", {}).items()
-        if retro.get("status") == "open"
-    )
     print(f"  open retrospectives: {open_retros or 'none'}")
     print(f"  file backups      : {len(state.get('file_backups', []))}")
     print("Loop contract")
@@ -2506,7 +2517,7 @@ def cmd_ab_status(_: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_ab_next(_: argparse.Namespace) -> int:
+def cmd_ab_next(args: argparse.Namespace) -> int:
     state = load_state()
     proposals = state.get("proposals", {})
     nodes = state.get("nodes", {})
@@ -2576,6 +2587,14 @@ def cmd_ab_next(_: argparse.Namespace) -> int:
                 "--verification '<exit-0 command>'"
             )
             b_actions.append("self-test")
+
+    if args.json:
+        print(json.dumps({
+            "mode": "ab-next",
+            "a_actions": ["a-brief"] + a_actions[:5],
+            "b_actions": b_actions[:5],
+        }, indent=2, sort_keys=True))
+        return 0
 
     print("A NEXT (fast layer)")
     print("  - a-brief")
@@ -2735,9 +2754,11 @@ def build_parser() -> argparse.ArgumentParser:
     sp.set_defaults(func=cmd_a_check)
 
     sp = sub.add_parser("ab-status", help="show the A/B fast/slow queue")
+    sp.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     sp.set_defaults(func=cmd_ab_status)
 
     sp = sub.add_parser("ab-next", help="show the next A and B actions")
+    sp.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     sp.set_defaults(func=cmd_ab_next)
 
     sp = sub.add_parser("self-test", help="run the configured capability self-test")

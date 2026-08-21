@@ -678,5 +678,21 @@ class TestEventsTail(RepoCase):
         self.assertBlocked(proc, "invalid --since")
 
 
+class TestABJson(RepoCase):
+    def test_ab_status_json(self):
+        self.add_node("N1", status="draft")
+        out = self.assertOk(self.run_auto("ab-status", "--json")).stdout
+        data = json.loads(out)
+        self.assertEqual(data["mode"], "ab-status")
+        self.assertIn("N1", data["draft_nodes"])
+
+    def test_ab_next_json(self):
+        out = self.assertOk(self.run_auto("ab-next", "--json")).stdout
+        data = json.loads(out)
+        self.assertEqual(data["mode"], "ab-next")
+        self.assertIn("a-brief", data["a_actions"])
+        self.assertIsInstance(data["b_actions"], list)
+
+
 if __name__ == "__main__":
     unittest.main()
