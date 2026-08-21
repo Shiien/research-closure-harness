@@ -605,5 +605,26 @@ class TestSemanticNoveltyGuard(RepoCase):
         ))
 
 
+class TestABrief(RepoCase):
+    def test_a_brief_prints_compact_context(self):
+        self.add_node("N1", "candidate", "L1", ntype="assumption", status="draft")
+        out = self.assertOk(self.run_auto("a-brief")).stdout
+        self.assertIn("A BRIEF", out)
+        self.assertIn("patch vocabulary", out)
+        self.assertIn("N1", out)
+        self.assertIn("protected paths", out)
+
+    def test_a_brief_rebuilds_legacy_snapshot_index(self):
+        self.add_node("N1")
+        index = self.repo / ".research" / "auto_snapshots" / "index.json"
+        self.assertTrue(index.exists())
+        index.unlink()
+        self.assertOk(self.run_auto("a-brief"))
+        rebuilt = json.loads(index.read_text())
+        self.assertTrue(rebuilt["files"])
+        journal = sorted((self.repo / ".research" / "auto_snapshots").glob("*.json"))
+        self.assertEqual(len(rebuilt["files"]), len(journal) - 1)
+
+
 if __name__ == "__main__":
     unittest.main()

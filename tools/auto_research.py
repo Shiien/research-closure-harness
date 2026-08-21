@@ -225,6 +225,22 @@ def snapshot_files() -> list[Path]:
     )
 
 
+def rebuild_snapshot_index() -> dict[str, Any]:
+    index: dict[str, Any] = {"version": 1, "files": {}}
+    for path in snapshot_files():
+        try:
+            blob = path.read_text()
+            index["files"][path.name] = {
+                "sha256": hashlib.sha256(blob.encode("utf-8")).hexdigest(),
+                "label": snapshot_name_label(path.name),
+                "at": datetime.fromtimestamp(path.stat().st_mtime).astimezone().isoformat(timespec="seconds"),
+            }
+        except Exception:
+            continue
+    save_snapshot_index(index)
+    return index
+
+
 def load_snapshot_index() -> dict[str, Any]:
     path = SNAP_DIR / SNAP_INDEX_NAME
     if not path.exists():
@@ -242,6 +258,7 @@ def load_snapshot_index() -> dict[str, Any]:
 
 def save_snapshot_index(index: dict[str, Any]) -> None:
     path = SNAP_DIR / SNAP_INDEX_NAME
+    path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(index, indent=2, sort_keys=True) + "\n")
     tmp.replace(path)
@@ -1201,6 +1218,20 @@ def load_patch(args: argparse.Namespace) -> list[dict[str, Any]]:
     return raw
 
 
+def _patch_target_values(patch: list[dict[str, Any]]) -> list[str]:
+    values: list[str] = []
+    for op in patch:
+        if not isinstance(op, dict):
+            continue
+        for key in ("node", "from", "to", "path"):
+            value = op.get(key, "")
+            if isinstance(value, str):
+                values.append(value)
+            elif isinstance(value, dict):
+                values.append(str(value.get("id", "")))
+    return values
+
+
 def novelty_norm(text: str) -> str:
     text = text.lower()
     text = re.sub(
@@ -1231,11 +1262,7 @@ def novelty_blocks(
     candidate_norm_title = novelty_norm(title)
     candidate_norm_statement = novelty_norm(statement)
     candidate_norm_targets = ",".join(
-        sorted(novelty_norm(target) for target in
-               [op.get("node", "") for op in patch] +
-               [op.get("from", "") for op in patch] +
-               [op.get("to", "") for op in patch] +
-               [op.get("path", "") for op in patch])
+        sorted(novelty_norm(target) for target in _patch_target_values(patch))
     )
     closest: tuple[float, str, str] | None = None
 
@@ -1244,11 +1271,7 @@ def novelty_blocks(
         prior_norm_title = novelty_norm(prop.get("title", ""))
         prior_norm_statement = novelty_norm(prop.get("statement", ""))
         prior_norm_targets = ",".join(
-            sorted(novelty_norm(target) for target in
-                   [op.get("node", "") for op in prop.get("patch", [])] +
-                   [op.get("from", "") for op in prop.get("patch", [])] +
-                   [op.get("to", "") for op in prop.get("patch", [])] +
-                   [op.get("path", "") for op in prop.get("patch", [])])
+            sorted(novelty_norm(target) for target in _patch_target_values(prop.get("patch", [])))
         )
         title_ratio = difflib.SequenceMatcher(None, candidate_norm_title, prior_norm_title).ratio()
         statement_ratio = difflib.SequenceMatcher(None, candidate_norm_statement, prior_norm_statement).ratio()
@@ -2325,6 +2348,41 @@ def cmd_launch(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_a_brief(_: argparse.Namespace) -> int:
+    state = load_state()
+    index = rebuild_snapshot_index()
+    proposals = state.get("proposals", {})
+    nodes = state.get("nodes", {})
+    retros = state.get("retrospectives", {})
+
+    open_props = sorted(
+        pid for pid, prop in proposals.items()
+        if prop.get("status") in ("proposed", "challenged", "passed_critic", "verified")
+    )
+    open_retros = sorted(
+        rid for rid, retro in retros.items() if retro.get("status") == "open"
+    )
+    drafts = sorted(nid for nid, n in nodes.items() if n.get("status") == "draft")
+    deprecated = sorted(nid for nid, n in nodes.items() if n.get("status") == "deprecated")
+
+    print("A BRIEF")
+    print(f"  open proposals    : {open_props or 'none'}")
+    print(f"  open retrospectives: {open_retros or 'none'}")
+    print(f"  draft nodes       : {drafts or 'none'}")
+    print(f"  deprecated nodes  : {deprecated or 'none'}")
+    snapshots = list_snapshots()
+    print(f"  snapshots         : {len(snapshots)} files, {len(index.get('files', {}))} indexed")
+    print("  patch vocabulary  : " + ", ".join(sorted(PATCH_OPS)))
+    print("  protected paths   : " + ", ".join(sorted(PROTECTED_PATCH_FILES | set(PROTECTED_PATCH_PREFIXES))))
+    print("  last proposals    :")
+    for pid in sorted(proposals, key=lambda x: int(x[2:]) if x.startswith("P-") and x[2:].isdigit() else 0)[-5:]:
+        prop = proposals[pid]
+        ops = ",".join(op.get("op", "?") for op in prop.get("patch", []))
+        print(f"    {pid} [{prop.get('track','?')}] {prop.get('status','?'):12s} ops={ops or '-'} {prop.get('title','')[:70]}")
+    print("  next A action     : run retro next; convert the first open item or use a-check before propose")
+    return 0
+
+
 def cmd_ab_status(_: argparse.Namespace) -> int:
     state = load_state()
     proposals = state.get("proposals", {})
@@ -2441,6 +2499,7 @@ def cmd_ab_next(_: argparse.Namespace) -> int:
             b_actions.append("self-test")
 
     print("A NEXT (fast layer)")
+    print("  - a-brief")
     for action in a_actions[:5]:
         print(f"  - {action}")
     if not a_actions:
@@ -2582,6 +2641,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--role", choices=("A", "B", "auto"), default="auto")
     sp.add_argument("--dry-run", action="store_true", help="do not record or block on missing tools")
     sp.set_defaults(func=cmd_launch)
+
+    sp = sub.add_parser("a-brief", help="compact A-layer session brief")
+    sp.set_defaults(func=cmd_a_brief)
 
     sp = sub.add_parser("ab-status", help="show the A/B fast/slow queue")
     sp.set_defaults(func=cmd_ab_status)
