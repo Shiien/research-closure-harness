@@ -13246,6 +13246,40 @@
         "B-REVALIDATE-GATE",
         "B-SELF-TEST-CLOSURE"
       ]
+    },
+    "P-198": {
+      "id": "P-198",
+      "track": "B",
+      "title": "Require critiques to name the exact failing assertion before verification",
+      "statement": "Amend B-CRITIC-SPECIFICITY: a critique must name the exact verification command plus the concrete assertion expected to fail, or the exact satisfiability gap between the verification assertions and the patch-written text; a critique naming only a vague risk must be revised before any hard verification runs. One state-only op on one node; no edges or statuses change, so the dependency closure is untouched and no revalidation is triggered. Verification asserts strings the patch writes verbatim, so the satisfiability check passes.",
+      "targets": [
+        "B-CRITIC-SPECIFICITY"
+      ],
+      "patch": [
+        {
+          "op": "set_node_statement",
+          "node": "B-CRITIC-SPECIFICITY",
+          "statement": "B's critique of a proposal must name the exact verification command and the exact concrete assertion expected to fail, or the exact satisfiability gap between the verification assertions and the patch-written text; a critique naming only a vague risk is not specific and must be revised before hard verification runs."
+        }
+      ],
+      "verification_command": "python3 -c \"import json; d=json.load(open('.research/auto_research.json')); t=json.dumps(d); assert 'B-CRITIC-SPECIFICITY' in t; assert 'concrete assertion' in t; assert 'satisfiability gap' in t\"",
+      "retrospective_id": null,
+      "status": "rejected",
+      "critic": {
+        "track": "B",
+        "verdict": "reject",
+        "critic": "auto-runner-critic",
+        "reason": "terminal rejection after challenge: a corrected replacement proposal is required",
+        "at": "2026-08-21T22:49:58+08:00"
+      },
+      "verification": null,
+      "revisions": [
+        {
+          "note": "One state-only set_node_statement op on B-CRITIC-SPECIFICITY with no edge/status change is closure-safe, and the patch text does write 'concrete assertion' and 'satisfiability gap' verbatim, so the satisfiability check itself passes. But the verification command is not discriminative: asserting 'B-CRITIC-SPECIFICITY' in the JSON passes before the patch, because that node id already exists (this is an amendment, not a new node), so the command likely exits 0 pre-patch and cannot prove the patch applied. This violates the fail-before/pass-after requirement. Revise the command to assert a phrase unique to the new statement, e.g. 'must name the exact verification command' or 'is not specific and must be revised', which fails pre-patch and passes only after set_node_statement lands; optionally add a diff-based check on the node's statement field.",
+          "at": "2026-08-21T22:49:57+08:00"
+        }
+      ],
+      "proposed_at": "2026-08-21T22:49:47+08:00"
     }
   },
   "verifications": [
@@ -98130,11 +98164,49 @@
         "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
         "at": "2026-08-21T22:49:09+08:00"
       }
+    },
+    {
+      "at": "2026-08-21T22:49:47+08:00",
+      "event": "proposal_proposed",
+      "payload": {
+        "track": "B",
+        "proposal": "P-198",
+        "title": "Require critiques to name the exact failing assertion before verification",
+        "retrospective": null
+      }
+    },
+    {
+      "at": "2026-08-21T22:49:57+08:00",
+      "event": "proposal_critiqued",
+      "payload": {
+        "track": "B",
+        "proposal": "P-198",
+        "verdict": "challenge",
+        "critic": "auto-runner-critic"
+      }
+    },
+    {
+      "at": "2026-08-21T22:49:57+08:00",
+      "event": "proposal_revised",
+      "payload": {
+        "proposal": "P-198",
+        "note": "One state-only set_node_statement op on B-CRITIC-SPECIFICITY with no edge/status change is closure-safe, and the patch text does write 'concrete assertion' and 'satisfiability gap' verbatim, so the satisfiability check itself passes. But the verification command is not discriminative: asserting 'B-CRITIC-SPECIFICITY' in the JSON passes before the patch, because that node id already exists (this is an amendment, not a new node), so the command likely exits 0 pre-patch and cannot prove the patch applied. This violates the fail-before/pass-after requirement. Revise the command to assert a phrase unique to the new statement, e.g. 'must name the exact verification command' or 'is not specific and must be revised', which fails pre-patch and passes only after set_node_statement lands; optionally add a diff-based check on the node's statement field."
+      }
+    },
+    {
+      "at": "2026-08-21T22:49:58+08:00",
+      "event": "proposal_critiqued",
+      "payload": {
+        "track": "B",
+        "proposal": "P-198",
+        "verdict": "reject",
+        "critic": "auto-runner-critic"
+      }
     }
   ],
   "counters": {
     "node": 172,
-    "proposal": 197,
+    "proposal": 198,
     "verification": 3857,
     "retrospective": 27
   },
