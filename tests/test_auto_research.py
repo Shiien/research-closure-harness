@@ -792,5 +792,32 @@ class TestWatchJson(RepoCase):
         self.assertTrue(data["ok"])
 
 
+class TestLaunchPrompts(RepoCase):
+    def test_set_launch_prompt_patch_applies(self):
+        self.add_node("N1")
+        patch = self.patch_file([{
+            "op": "set_launch_prompt",
+            "role": "A",
+            "prompts": ["Think carefully before proposing."],
+        }])
+        self.assertOk(self.run_auto(
+            "propose", "--title", "change A launch prompt",
+            "--statement", "launch protocol is research content",
+            "--targets", "N1", "--patch-file", patch, "--verification", PASS_CMD,
+        ))
+        self.drive_pipeline()
+        self.assertEqual(
+            self.state()["launch_prompts"]["A"],
+            ["Think carefully before proposing."],
+        )
+
+    def test_launch_dry_run_prints_prompts(self):
+        out = self.assertOk(self.run_auto(
+            "launch", "--harness", "manual", "--role", "A", "--dry-run",
+        )).stdout
+        self.assertIn("launch prompts", out)
+        self.assertIn("Think carefully", out)
+
+
 if __name__ == "__main__":
     unittest.main()

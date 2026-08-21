@@ -111,6 +111,20 @@ DEFAULT_SNAPSHOT_RETENTION = {
     "keep_last": 25,
     "keep_labels": ["init", "modification_applied"],
 }
+DEFAULT_LAUNCH_PROMPTS = {
+    "A": [
+        "Think carefully before proposing. Prefer one small, local, falsifiable improvement over a broad rewrite.",
+        "Use first principles: name the invariant you are changing, why it is safe, and what evidence would falsify the change.",
+        "Keep trying after feedback, but never repeat an equivalent candidate; use retro next and a-check before propose.",
+        "The launch protocol itself is research content: if launch, prompts, or the A/B contract need repair, propose that repair through the normal pipeline.",
+    ],
+    "B": [
+        "Think carefully before judging. Critique the patch operation, verification command, and dependency-closure risk specifically.",
+        "Use first principles: soft judgment never replaces an exit-0 hard verification; only verified proposals may be applied.",
+        "Keep trying through revision loops, but reject field-changing revisions that revise cannot express, and ask A for a corrected proposal.",
+        "The launch protocol itself is research content: if the critic or launch gate needs repair, propose that repair through the normal pipeline.",
+    ],
+}
 DEFAULT_HEALTH_LIMITS = {
     "max_open_proposal_age_hours": 24,
     "max_self_test_age_hours": 24,
@@ -158,6 +172,7 @@ def skeleton(goal: str = META_GOAL_STATEMENT) -> dict[str, Any]:
         "self_test_command": "python3 -m unittest discover -s tests",
         "snapshot_retention": copy.deepcopy(DEFAULT_SNAPSHOT_RETENTION),
         "health_limits": copy.deepcopy(DEFAULT_HEALTH_LIMITS),
+        "launch_prompts": copy.deepcopy(DEFAULT_LAUNCH_PROMPTS),
         "tracks": TRACK_ROLES,
         "nodes": {
             META_GOAL_ID: {
@@ -207,6 +222,7 @@ def load_state(path: Path | None = None) -> dict[str, Any]:
         ("file_backups", []),
         ("snapshot_retention", copy.deepcopy(DEFAULT_SNAPSHOT_RETENTION)),
         ("health_limits", copy.deepcopy(DEFAULT_HEALTH_LIMITS)),
+        ("launch_prompts", copy.deepcopy(DEFAULT_LAUNCH_PROMPTS)),
     ):
         state.setdefault(key, default)
     return state
@@ -481,6 +497,17 @@ def validate(state: dict[str, Any]) -> tuple[list[str], list[str]]:
     if not isinstance(state.get("self_test_command", ""), str) or not state["self_test_command"].strip():
         warnings.append("self_test_command is empty; self-test will be skipped")
 
+    prompts = state.get("launch_prompts", {})
+    if not isinstance(prompts, dict):
+        blocks.append("launch_prompts must be an object")
+    else:
+        for role in TRACKS:
+            role_prompts = prompts.get(role)
+            if not isinstance(role_prompts, list) or not role_prompts or not all(
+                isinstance(item, str) and item.strip() for item in role_prompts
+            ):
+                blocks.append(f"launch_prompts.{role} must be a non-empty list of strings")
+
     retention = state.get("snapshot_retention", {})
     if not isinstance(retention, dict):
         blocks.append("snapshot_retention must be an object")
@@ -570,6 +597,7 @@ PATCH_OPS = {
     "set_revalidation_threshold",
     "set_self_test_command",
     "patch_file",
+    "set_launch_prompt",
 }
 NON_L0_LAYERS = tuple(layer for layer in LAYERS if layer != "L0")
 
@@ -911,6 +939,8 @@ def apply_raw_patch(
             state["revalidation_threshold"] = op["value"]
         elif kind == "set_self_test_command":
             state["self_test_command"] = op["command"]
+        elif kind == "set_launch_prompt":
+            state.setdefault("launch_prompts", copy.deepcopy(DEFAULT_LAUNCH_PROMPTS))[op["role"]] = op["prompts"]
     if write_files and file_patch_ops(patch):
         apply_file_patch(patch, ROOT, backup_label or "patch", state)
     return changed
@@ -1000,6 +1030,15 @@ def validate_patch(state: dict[str, Any], patch: list[dict[str, Any]]) -> list[s
         elif kind == "patch_file":
             if not isinstance(op.get("patch"), str) or not op["patch"].strip():
                 blocks.append(f"{pos}: patch_file requires a non-empty unified diff")
+        elif kind == "set_launch_prompt":
+            role = op.get("role")
+            prompts = op.get("prompts")
+            if role not in TRACKS:
+                blocks.append(f"{pos}: role must be one of {list(TRACKS)}")
+            elif not isinstance(prompts, list) or not prompts or not all(
+                isinstance(item, str) and item.strip() for item in prompts
+            ):
+                blocks.append(f"{pos}: prompts must be a non-empty list of non-empty strings")
     if blocks:
         return blocks
     file_blocks = check_file_patch(patch)
@@ -2475,6 +2514,10 @@ def cmd_launch(args: argparse.Namespace) -> int:
         command = f"cd {ROOT} && start your agent"
 
     print("  launch command   : " + command)
+    role_prompts = state.get("launch_prompts", {}).get(role, [])
+    print(f"  launch prompts   : {len(role_prompts)} configured for role {role}")
+    for index, prompt in enumerate(role_prompts, 1):
+        print(f"    {index}. {prompt}")
     print("  session prompt   : run ab-status, ab-next, retro next;")
     print("                     A converts the first open retrospective or proposes one local novel patch;")
     print("                     B criticises, verifies in the patched sandbox, applies, revalidates, self-tests.")
