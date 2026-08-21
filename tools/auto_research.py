@@ -2488,6 +2488,32 @@ def cmd_a_check(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_proposal_show(args: argparse.Namespace) -> int:
+    state = load_state()
+    prop = state.get("proposals", {}).get(args.proposal)
+    if not prop:
+        raise SystemExit(f"Unknown proposal {args.proposal}")
+    if args.json:
+        print(json.dumps(prop, indent=2, sort_keys=True))
+        return 0
+    print(f"PROPOSAL {args.proposal}")
+    print(f"  track      : {prop.get('track')}")
+    print(f"  status     : {prop.get('status')}")
+    print(f"  title      : {prop.get('title')}")
+    print(f"  statement  : {prop.get('statement')}")
+    print(f"  targets    : {prop.get('targets')}")
+    print(f"  retro      : {prop.get('retrospective_id')}")
+    print(f"  patch ops  : {[op.get('op') for op in prop.get('patch', [])]}")
+    print("  patch      :")
+    print(json.dumps(prop.get("patch", []), indent=4))
+    print(f"  verification command: {prop.get('verification_command')}")
+    print(f"  critic     : {json.dumps(prop.get('critic') or {}, sort_keys=True)}")
+    print(f"  verification record : {json.dumps(prop.get('verification') or {}, sort_keys=True)}")
+    print(f"  modification node   : {prop.get('modification_node')}")
+    print(f"  affected nodes      : {prop.get('affected_nodes')}")
+    return 0
+
+
 def cmd_ab_status(args: argparse.Namespace) -> int:
     state = load_state()
     proposals = state.get("proposals", {})
@@ -2778,6 +2804,11 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--verification")
     sp.add_argument("--retro")
     sp.set_defaults(func=cmd_a_check)
+
+    sp = sub.add_parser("proposal-show", help="inspect one proposal in detail")
+    sp.add_argument("--proposal", required=True)
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_proposal_show)
 
     sp = sub.add_parser("ab-status", help="show the A/B fast/slow queue")
     sp.add_argument("--json", action="store_true", help="emit machine-readable JSON")

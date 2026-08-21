@@ -705,5 +705,23 @@ class TestStatusJson(RepoCase):
         self.assertIsInstance(data["proposal_rows"], list)
 
 
+class TestProposalShow(RepoCase):
+    def test_proposal_show_json(self):
+        self.add_node("N1")
+        self.propose_ready_modification()
+        out = self.assertOk(self.run_auto("proposal-show", "--proposal", "P-001", "--json")).stdout
+        data = json.loads(out)
+        self.assertEqual(data["id"], "P-001")
+        self.assertEqual(data["status"], "proposed")
+        self.assertEqual(data["patch"][0]["op"], "set_node_statement")
+
+    def test_proposal_show_text(self):
+        self.add_node("N1")
+        self.propose_ready_modification()
+        out = self.assertOk(self.run_auto("proposal-show", "--proposal", "P-001")).stdout
+        self.assertIn("PROPOSAL P-001", out)
+        self.assertIn("set_node_statement", out)
+
+
 if __name__ == "__main__":
     unittest.main()
