@@ -2133,6 +2133,79 @@ def cmd_patch_make(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_launch(args: argparse.Namespace) -> int:
+    state = load_state()
+    report = build_health_report(state)
+    blocks, warnings = validate(state)
+    print("AUTO-RESEARCH LAUNCH PREFLIGHT")
+    print(f"  structural valid : {'PASS' if not blocks else 'BLOCKED'}")
+    for block in blocks[:5]:
+        print(f"    - {block}")
+    print(f"  health           : {'OK' if report['ok'] else 'CRITICAL: ' + ', '.join(report['critical'])}")
+    for warning in report.get("warnings", []):
+        print(f"    warning: {warning}")
+
+    role = args.role
+    if role == "auto":
+        b_queue = [
+            pid for pid, prop in state.get("proposals", {}).items()
+            if prop.get("status") in ("proposed", "passed_critic", "verified")
+        ]
+        role = "B" if b_queue else "A"
+    print(f"  selected role    : {role}")
+
+    harness = args.harness
+    executable: str | None = None
+    preset_ready = True
+    if harness == "dsh":
+        executable = shutil.which("dsh") or shutil.which("npx")
+        preset = Path(os.environ.get("DSH_HOME", str(Path.home() / ".dsh"))) / ".agent-presets" / "auto-research-minimal"
+        preset_ready = preset.exists()
+    elif harness == "claude":
+        executable = shutil.which("claude")
+    elif harness == "codex":
+        executable = shutil.which("codex")
+    elif harness == "manual":
+        executable = "manual"
+    print(f"  harness          : {harness}")
+    print(f"  executable       : {executable or 'not found'}")
+    if harness == "dsh":
+        print(f"  dsh preset ready : {preset_ready}")
+        if not preset_ready:
+            print("    install: cp -R dsh/agent-presets/auto-research-minimal "
+                  "${DSH_HOME:-$HOME/.dsh}/.agent-presets/")
+
+    if harness == "dsh":
+        command = f"cd {ROOT} && dsh web"
+    elif harness == "claude":
+        command = f"cd {ROOT} && claude"
+    elif harness == "codex":
+        command = f"cd {ROOT} && codex"
+    else:
+        command = f"cd {ROOT} && start your agent"
+
+    print("  launch command   : " + command)
+    print("  session prompt   : run ab-status, ab-next, retro next;")
+    print("                     A converts the first open retrospective or proposes one local novel patch;")
+    print("                     B criticises, verifies in the patched sandbox, applies, revalidates, self-tests.")
+
+    if not args.dry_run:
+        if blocks:
+            raise SystemExit("BLOCKED: cannot launch with invalid auto-research state")
+        if report["critical"]:
+            raise SystemExit("BLOCKED: cannot launch while health is critical")
+        if harness != "manual" and not executable:
+            raise SystemExit(f"BLOCKED: {harness} executable not found on PATH")
+        append_event(
+            state,
+            "auto_research_launch",
+            {"harness": harness, "role": role, "command": command},
+        )
+        save_state(state, "auto_research_launch")
+        print("Launch recorded in the auto-research event log.")
+    return 0
+
+
 def cmd_ab_status(_: argparse.Namespace) -> int:
     state = load_state()
     proposals = state.get("proposals", {})
@@ -2383,6 +2456,13 @@ def build_parser() -> argparse.ArgumentParser:
     rsp.add_argument("--proposal")
     rsp.add_argument("--note")
     rsp.set_defaults(func=cmd_retro_close)
+
+    sp = sub.add_parser("launch", help="preflight and print an A/B launch command")
+    sp.add_argument("--harness", choices=("dsh", "claude", "codex", "manual"),
+                    default="dsh")
+    sp.add_argument("--role", choices=("A", "B", "auto"), default="auto")
+    sp.add_argument("--dry-run", action="store_true", help="do not record or block on missing tools")
+    sp.set_defaults(func=cmd_launch)
 
     sp = sub.add_parser("ab-status", help="show the A/B fast/slow queue")
     sp.set_defaults(func=cmd_ab_status)

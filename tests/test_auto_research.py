@@ -549,5 +549,22 @@ class TestHealthWatch(RepoCase):
         self.assertIn("HEALTH OK", out)
 
 
+class TestLaunchPreflight(RepoCase):
+    def test_launch_dry_run_prints_preflight(self):
+        out = self.assertOk(self.run_auto(
+            "launch", "--harness", "dsh", "--role", "A", "--dry-run",
+        )).stdout
+        self.assertIn("AUTO-RESEARCH LAUNCH PREFLIGHT", out)
+        self.assertIn("selected role    : A", out)
+        self.assertIn("launch command", out)
+
+    def test_launch_manual_records_event(self):
+        self.assertOk(self.run_auto("self-test", "--command", PASS_CMD))
+        self.assertOk(self.run_auto("launch", "--harness", "manual", "--role", "A"))
+        st = self.state()
+        self.assertEqual(st["events"][-1]["event"], "auto_research_launch")
+        self.assertEqual(st["events"][-1]["payload"]["role"], "A")
+
+
 if __name__ == "__main__":
     unittest.main()
