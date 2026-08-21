@@ -782,5 +782,15 @@ class TestRollbackPreview(RepoCase):
         self.assertEqual(self.state(), before)
 
 
+class TestWatchJson(RepoCase):
+    def test_watch_once_json(self):
+        self.assertOk(self.run_auto("self-test", "--command", PASS_CMD))
+        out = self.assertOk(self.run_auto("watch", "--once", "--interval", "1", "--json")).stdout
+        data = json.loads(out)
+        self.assertIn("checks", data)
+        self.assertIn("critical", data)
+        self.assertTrue(data["ok"])
+
+
 if __name__ == "__main__":
     unittest.main()

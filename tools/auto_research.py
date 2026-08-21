@@ -1975,7 +1975,10 @@ def cmd_watch(args: argparse.Namespace) -> int:
     while True:
         state = load_state()
         report = build_health_report(state)
-        print_health_report(report)
+        if args.json:
+            print(json.dumps(report, indent=2, sort_keys=True, default=str))
+        else:
+            print_health_report(report)
         if args.once:
             if report["critical"]:
                 return 2
@@ -2993,6 +2996,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--interval", type=int, default=30, help="seconds between checks")
     sp.add_argument("--once", action="store_true", help="run one check and exit")
     sp.add_argument("--strict", action="store_true", help="exit non-zero on warnings too")
+    sp.add_argument("--json", action="store_true", help="emit one JSON report per check")
     sp.set_defaults(func=cmd_watch)
 
     sp = sub.add_parser("rollback", help="roll back to a snapshot (1 = oldest)")
