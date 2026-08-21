@@ -12641,6 +12641,40 @@
       "affected_nodes": [
         "LAUNCH-PROMPTS"
       ]
+    },
+    "P-186": {
+      "id": "P-186",
+      "track": "B",
+      "title": "Restating an existing rule is non-novel on NOVELTY-GUARD",
+      "statement": "A proposal is non-novel if its intended effect is already fully entailed by an existing node statement or launch-prompt rule; paraphrasing or restating an enforced rule does not count as novelty.",
+      "targets": [
+        "NOVELTY-GUARD"
+      ],
+      "patch": [
+        {
+          "op": "set_node_statement",
+          "node": "NOVELTY-GUARD",
+          "statement": "A proposal is non-novel if its intended effect is already fully entailed by an existing node statement or launch-prompt rule; paraphrasing or restating an enforced rule does not count as novelty."
+        }
+      ],
+      "verification_command": "python3 -c \"t=open('.research/auto_research.json').read(); assert 'already fully entailed by an existing node statement or launch-prompt rule' in t; print('ok')\"",
+      "retrospective_id": null,
+      "status": "rejected",
+      "critic": {
+        "track": "B",
+        "verdict": "reject",
+        "critic": "auto-runner-critic",
+        "reason": "terminal rejection after challenge: a corrected replacement proposal is required",
+        "at": "2026-08-21T21:33:28+08:00"
+      },
+      "verification": null,
+      "revisions": [
+        {
+          "note": "Patch op is a single state-only set_node_statement, so the one-op rule is satisfied. Satisfiability check passes: the verification command asserts the substring 'already fully entailed by an existing node statement or launch-prompt rule', which the patch writes verbatim, so exit-0 is genuinely achievable. Closure risk: strengthening NOVELTY-GUARD's semantics may retroactively invalidate previously accepted proposals whose novelty was only paraphrase-level, and any nodes depending on NOVELTY-GUARD get deprecated by the change; the proposal names no revalidation step, so dependency closure is left broken after apply. Self-reference hazard: if NOVELTY-GUARD's current statement already entails this rule, P-186 is non-novel by its own criterion \u2014 ask A for the current node statement and a before/after diff showing the change is not merely cosmetic. Request a corrected proposal that includes the old-vs-new statement diff and an explicit revalidation plan for dependent nodes before I can pass.",
+          "at": "2026-08-21T21:33:28+08:00"
+        }
+      ],
+      "proposed_at": "2026-08-21T21:33:17+08:00"
     }
   },
   "verifications": [
@@ -93357,11 +93391,49 @@
         "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
         "at": "2026-08-21T21:32:59+08:00"
       }
+    },
+    {
+      "at": "2026-08-21T21:33:17+08:00",
+      "event": "proposal_proposed",
+      "payload": {
+        "track": "B",
+        "proposal": "P-186",
+        "title": "Restating an existing rule is non-novel on NOVELTY-GUARD",
+        "retrospective": null
+      }
+    },
+    {
+      "at": "2026-08-21T21:33:28+08:00",
+      "event": "proposal_critiqued",
+      "payload": {
+        "track": "B",
+        "proposal": "P-186",
+        "verdict": "challenge",
+        "critic": "auto-runner-critic"
+      }
+    },
+    {
+      "at": "2026-08-21T21:33:28+08:00",
+      "event": "proposal_revised",
+      "payload": {
+        "proposal": "P-186",
+        "note": "Patch op is a single state-only set_node_statement, so the one-op rule is satisfied. Satisfiability check passes: the verification command asserts the substring 'already fully entailed by an existing node statement or launch-prompt rule', which the patch writes verbatim, so exit-0 is genuinely achievable. Closure risk: strengthening NOVELTY-GUARD's semantics may retroactively invalidate previously accepted proposals whose novelty was only paraphrase-level, and any nodes depending on NOVELTY-GUARD get deprecated by the change; the proposal names no revalidation step, so dependency closure is left broken after apply. Self-reference hazard: if NOVELTY-GUARD's current statement already entails this rule, P-186 is non-novel by its own criterion \u2014 ask A for the current node statement and a before/after diff showing the change is not merely cosmetic. Request a corrected proposal that includes the old-vs-new statement diff and an explicit revalidation plan for dependent nodes before I can pass."
+      }
+    },
+    {
+      "at": "2026-08-21T21:33:28+08:00",
+      "event": "proposal_critiqued",
+      "payload": {
+        "track": "B",
+        "proposal": "P-186",
+        "verdict": "reject",
+        "critic": "auto-runner-critic"
+      }
     }
   ],
   "counters": {
     "node": 167,
-    "proposal": 185,
+    "proposal": 186,
     "verification": 3655,
     "retrospective": 25
   },
