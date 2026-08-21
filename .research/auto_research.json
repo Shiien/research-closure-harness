@@ -53714,13 +53714,24 @@
       "level": "self_test",
       "command": "python3 tools/auto_research.py validate && python3 -m unittest discover -s tests",
       "node": null
+    },
+    {
+      "exit_code": 0,
+      "timeout": false,
+      "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
+      "stdout_bytes": 49,
+      "stderr_tail": ".....................................................................................................................................................................\n----------------------------------------------------------------------\nRan 165 tests in 25.278s\n\nOK\n",
+      "at": "2026-08-21T22:58:19+08:00",
+      "level": "self_test",
+      "command": "python3 tools/auto_research.py validate && python3 -m unittest discover -s tests",
+      "node": null
     }
   ],
   "last_self_test": {
     "passed": true,
     "exit_code": 0,
     "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
-    "at": "2026-08-21T22:49:09+08:00"
+    "at": "2026-08-21T22:58:19+08:00"
   },
   "events": [
     {
@@ -98423,12 +98434,22 @@
         "verdict": "reject",
         "critic": "auto-runner-critic"
       }
+    },
+    {
+      "at": "2026-08-21T22:58:19+08:00",
+      "event": "self_test_passed",
+      "payload": {
+        "passed": true,
+        "exit_code": 0,
+        "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
+        "at": "2026-08-21T22:58:19+08:00"
+      }
     }
   ],
   "counters": {
     "node": 172,
     "proposal": 201,
-    "verification": 3857,
+    "verification": 3858,
     "retrospective": 27
   },
   "tracks": {
