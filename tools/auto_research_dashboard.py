@@ -99,25 +99,48 @@ def build_data() -> dict[str, Any]:
         })
 
     snapshots = sorted(SNAP_DIR.glob("*.json"))
-    if not snapshots:
-        raise SystemExit("No auto-research snapshots; run at least one pipeline command first")
-    labels = [snapshot_label(p) for p in snapshots]
-    node_added = [i for i, label in enumerate(labels) if label == "node_added"]
-    # First four node_added snapshots are the bootstrap graph (A1, A2, I1, V1);
-    # each following node_added starts one auto-research epoch.
-    if len(node_added) < 5:
-        raise SystemExit("Snapshot journal has no epoch node-additions")
+    # Locate the first snapshot in which each applied proposal is present.
+    # Snapshots are gitignored and may be missing or stale (for example after
+    # `git pull`), so every epoch also has a current-state fallback.
+    applied_snapshot_by_epoch: dict[int, Path] = {}
+    for snap in snapshots:
+        if snapshot_label(snap) != "modification_applied":
+            continue
+        try:
+            snap_state = json.loads(snap.read_text())
+        except Exception:
+            continue
+        for pid, prop in snap_state.get("proposals", {}).items():
+            if prop.get("status") != "applied" or not pid.startswith("P-"):
+                continue
+            digits = pid[2:]
+            if not digits.isdigit():
+                continue
+            epoch = int(digits)
+            applied_snapshot_by_epoch.setdefault(epoch, snap)
 
+    final_compact = compact_state(final, final_order)
+    final_applied = sum(
+        1 for prop in final.get("proposals", {}).values()
+        if prop.get("status") == "applied"
+    )
     epoch_count = len(proposals)
     frames = []
     for epoch in range(1, epoch_count + 1):
-        if epoch < epoch_count:
-            next_epoch_add = node_added[4 + epoch]  # epoch+1 starts here
-            frame_file = snapshots[next_epoch_add - 1]  # last completed epoch state
+        frame_file = applied_snapshot_by_epoch.get(epoch)
+        if frame_file is None:
+            st = final
+            compact = final_compact
+            snapshot_name = "current-state fallback"
+            applied_count = final_applied
         else:
-            frame_file = snapshots[-1]
-        st = json.loads(frame_file.read_text())
-        compact = compact_state(st, final_order)
+            st = json.loads(frame_file.read_text())
+            compact = compact_state(st, final_order)
+            snapshot_name = frame_file.name
+            applied_count = sum(
+                1 for prop in st.get("proposals", {}).values()
+                if prop.get("status") == "applied"
+            )
         prop = prop_by_id.get(f"P-{epoch:03d}", {})
         title = prop.get("title") or f"epoch {epoch}"
         frames.append({
@@ -125,8 +148,8 @@ def build_data() -> dict[str, Any]:
             "label": f"Epoch {epoch:03d} · {title}",
             "title": title,
             "track": prop.get("track", "?"),
-            "applied": sum(1 for v in st.get("proposals", {}).values() if v.get("status") == "applied"),
-            "snapshot": frame_file.name,
+            "applied": applied_count,
+            "snapshot": snapshot_name,
             **compact,
         })
 
@@ -279,7 +302,7 @@ footer{padding:10px 22px 18px;color:var(--muted);font-size:11.5px;line-height:1.
 </main>
 <footer>
   Generated <span id="gen-at"></span> · regenerate with <code>python3 tools/auto_research_dashboard.py</code>
-  · frames are reconstructed from <code>.research/auto_snapshots/</code>, not inferred.
+  · frames use <code>.research/auto_snapshots/</code> when available and fall back to the current state for missing epochs.
 </footer>
 <script>
 const DATA = __AUTO_DATA__;
