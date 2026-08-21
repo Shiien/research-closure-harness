@@ -1549,9 +1549,15 @@ def cmd_next(_: argparse.Namespace) -> int:
         elif status == "verified":
             out.append(f"apply --proposal {pid}")
     if not out:
+        active_retro_ids = {
+            prop.get("retrospective_id")
+            for prop in state.get("proposals", {}).values()
+            if prop.get("retrospective_id")
+            and prop.get("status") in ("proposed", "challenged", "passed_critic", "verified")
+        }
         open_retros = sorted(
             rid for rid, retro in state.get("retrospectives", {}).items()
-            if retro.get("status") == "open"
+            if retro.get("status") == "open" and rid not in active_retro_ids
         )
         if open_retros:
             out.append(f"retro next  # convert {open_retros[0]} into a local proposal")
@@ -1670,6 +1676,14 @@ def cmd_retro_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def active_proposals_for_retro(state: dict[str, Any], rid: str) -> list[str]:
+    return sorted(
+        pid for pid, prop in state.get("proposals", {}).items()
+        if prop.get("retrospective_id") == rid
+        and prop.get("status") in ("proposed", "challenged", "passed_critic", "verified")
+    )
+
+
 def cmd_retro_next(args: argparse.Namespace) -> int:
     state = load_state()
     open_retros = sorted(
@@ -1694,7 +1708,11 @@ def cmd_retro_next(args: argparse.Namespace) -> int:
     print(f"  suggested targets     : {suggested.get('targets') or '-'}")
     print(f"  suggested patch_intent: {suggested.get('patch_intent') or '-'}")
     print(f"  suggested verification: {suggested.get('verification') or '-'}")
-    print("A must convert this item into a proposal or record why it is blocked.")
+    active = active_proposals_for_retro(state, rid)
+    if active:
+        print(f"  active proposal       : {active[0]} (wait for B)")
+    else:
+        print("A must convert this item into a proposal or record why it is blocked.")
     return 0
 
 
@@ -1834,9 +1852,15 @@ def cmd_ab_next(_: argparse.Namespace) -> int:
     nodes = state.get("nodes", {})
     a_actions: list[str] = []
     b_actions: list[str] = []
+    active_retro_ids = {
+        prop.get("retrospective_id")
+        for prop in proposals.values()
+        if prop.get("retrospective_id")
+        and prop.get("status") in ("proposed", "challenged", "passed_critic", "verified")
+    }
     open_retros = sorted(
         rid for rid, retro in state.get("retrospectives", {}).items()
-        if retro.get("status") == "open"
+        if retro.get("status") == "open" and rid not in active_retro_ids
     )
     if open_retros:
         a_actions.append(
