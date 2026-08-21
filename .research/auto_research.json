@@ -10181,6 +10181,41 @@
         "B-CLOSURE-AUDIT",
         "B-SELF-TEST-CLOSURE"
       ]
+    },
+    "P-147": {
+      "id": "P-147",
+      "track": "A",
+      "title": "Repair auto-research dashboard replay fallback",
+      "statement": "R-002: derive epoch frames from applied-proposal snapshots when available and fall back to the current state for missing epochs, so a stale or absent snapshot journal cannot crash dashboard generation.",
+      "targets": [
+        "MONITOR-DASHBOARD"
+      ],
+      "patch": [
+        {
+          "op": "add_node",
+          "node": {
+            "id": "MONITOR-DASHBOARD",
+            "type": "verify",
+            "statement": "The auto-research epoch dashboard renders from the current state even when snapshot history is missing, stale, or incomplete, and degrades epoch frames to a current-state fallback instead of crashing.",
+            "layer": "L1",
+            "status": "validated"
+          }
+        },
+        {
+          "op": "patch_file",
+          "path": "tools/auto_research_dashboard.py",
+          "patch": "--- a/tools/auto_research_dashboard.py\n+++ b/tools/auto_research_dashboard.py\n@@ -99,25 +99,48 @@\n         })\n \n     snapshots = sorted(SNAP_DIR.glob(\"*.json\"))\n-    if not snapshots:\n-        raise SystemExit(\"No auto-research snapshots; run at least one pipeline command first\")\n-    labels = [snapshot_label(p) for p in snapshots]\n-    node_added = [i for i, label in enumerate(labels) if label == \"node_added\"]\n-    # First four node_added snapshots are the bootstrap graph (A1, A2, I1, V1);\n-    # each following node_added starts one auto-research epoch.\n-    if len(node_added) < 5:\n-        raise SystemExit(\"Snapshot journal has no epoch node-additions\")\n-\n+    # Locate the first snapshot in which each applied proposal is present.\n+    # Snapshots are gitignored and may be missing or stale (for example after\n+    # `git pull`), so every epoch also has a current-state fallback.\n+    applied_snapshot_by_epoch: dict[int, Path] = {}\n+    for snap in snapshots:\n+        if snapshot_label(snap) != \"modification_applied\":\n+            continue\n+        try:\n+            snap_state = json.loads(snap.read_text())\n+        except Exception:\n+            continue\n+        for pid, prop in snap_state.get(\"proposals\", {}).items():\n+            if prop.get(\"status\") != \"applied\" or not pid.startswith(\"P-\"):\n+                continue\n+            digits = pid[2:]\n+            if not digits.isdigit():\n+                continue\n+            epoch = int(digits)\n+            applied_snapshot_by_epoch.setdefault(epoch, snap)\n+\n+    final_compact = compact_state(final, final_order)\n+    final_applied = sum(\n+        1 for prop in final.get(\"proposals\", {}).values()\n+        if prop.get(\"status\") == \"applied\"\n+    )\n     epoch_count = len(proposals)\n     frames = []\n     for epoch in range(1, epoch_count + 1):\n-        if epoch < epoch_count:\n-            next_epoch_add = node_added[4 + epoch]  # epoch+1 starts here\n-            frame_file = snapshots[next_epoch_add - 1]  # last completed epoch state\n+        frame_file = applied_snapshot_by_epoch.get(epoch)\n+        if frame_file is None:\n+            st = final\n+            compact = final_compact\n+            snapshot_name = \"current-state fallback\"\n+            applied_count = final_applied\n         else:\n-            frame_file = snapshots[-1]\n-        st = json.loads(frame_file.read_text())\n-        compact = compact_state(st, final_order)\n+            st = json.loads(frame_file.read_text())\n+            compact = compact_state(st, final_order)\n+            snapshot_name = frame_file.name\n+            applied_count = sum(\n+                1 for prop in st.get(\"proposals\", {}).values()\n+                if prop.get(\"status\") == \"applied\"\n+            )\n         prop = prop_by_id.get(f\"P-{epoch:03d}\", {})\n         title = prop.get(\"title\") or f\"epoch {epoch}\"\n         frames.append({\n@@ -125,8 +148,8 @@\n             \"label\": f\"Epoch {epoch:03d} \u00b7 {title}\",\n             \"title\": title,\n             \"track\": prop.get(\"track\", \"?\"),\n-            \"applied\": sum(1 for v in st.get(\"proposals\", {}).values() if v.get(\"status\") == \"applied\"),\n-            \"snapshot\": frame_file.name,\n+            \"applied\": applied_count,\n+            \"snapshot\": snapshot_name,\n             **compact,\n         })\n \n@@ -279,7 +302,7 @@\n </main>\n <footer>\n   Generated <span id=\"gen-at\"></span> \u00b7 regenerate with <code>python3 tools/auto_research_dashboard.py</code>\n-  \u00b7 frames are reconstructed from <code>.research/auto_snapshots/</code>, not inferred.\n+  \u00b7 frames use <code>.research/auto_snapshots/</code> when available and fall back to the current state for missing epochs.\n </footer>\n <script>\n const DATA = __AUTO_DATA__;\n",
+          "sha256_after": "96a1a0a20f139270d886faba2d7dee0efdf5c2b04a469bca1a8fd3c7b16af609",
+          "sha256_before": "f0932aebdd83442a0ac8073a8253e27ee02655090d6ebb379af50b20c5b3d006"
+        }
+      ],
+      "verification_command": "python3 tools/auto_research.py validate && python3 tools/auto_research_dashboard.py --no-open && python3 -m unittest discover -s tests",
+      "retrospective_id": "R-002",
+      "status": "proposed",
+      "critic": null,
+      "verification": null,
+      "revisions": [],
+      "proposed_at": "2026-08-21T17:08:54+08:00"
     }
   },
   "verifications": [
@@ -71248,11 +71283,21 @@
         "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
         "at": "2026-08-21T17:00:24+08:00"
       }
+    },
+    {
+      "at": "2026-08-21T17:08:54+08:00",
+      "event": "proposal_proposed",
+      "payload": {
+        "track": "A",
+        "proposal": "P-147",
+        "title": "Repair auto-research dashboard replay fallback",
+        "retrospective": "R-002"
+      }
     }
   ],
   "counters": {
     "node": 141,
-    "proposal": 146,
+    "proposal": 147,
     "verification": 2684,
     "retrospective": 7
   },
