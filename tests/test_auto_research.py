@@ -853,5 +853,29 @@ class TestRunner(RepoCase):
         self.assertTrue((self.repo / ".research" / "auto_run.jsonl").exists())
 
 
+class TestVerifyDryRunSemantics(RepoCase):
+    def test_state_only_verify_sees_patched_state(self):
+        self.add_node("N1", "before", "L4", ntype="assumption", status="validated")
+        patch = self.patch_file(
+            [{"op": "set_node_statement", "node": "N1", "statement": "after"}]
+        )
+        verification = (
+            "python3 -c \"import json; d=json.load(open('.research/auto_research.json')); "
+            "assert d['nodes']['N1']['statement']=='after', d['nodes']['N1']['statement']; print('patched-state-ok')\""
+        )
+        self.assertOk(self.run_auto(
+            "propose", "--title", "state verify dry run", "--statement",
+            "candidate", "--targets", "N1", "--patch-file", patch,
+            "--verification", verification,
+        ))
+        self.assertOk(self.run_auto(
+            "critique", "--proposal", "P-001", "--verdict", "pass",
+            "--critic", "test-critic", "--reason", "local state change",
+        ))
+        self.assertOk(self.run_auto("verify", "--proposal", "P-001"))
+        self.assertEqual(self.state()["proposals"]["P-001"]["status"], "verified")
+        self.assertOk(self.run_auto("apply", "--proposal", "P-001"))
+
+
 if __name__ == "__main__":
     unittest.main()

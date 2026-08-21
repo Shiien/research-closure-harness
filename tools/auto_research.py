@@ -1534,13 +1534,23 @@ def _sandbox_ignore(directory: str, names: list[str]) -> set[str]:
 
 
 def verification_sandbox_for(prop: dict[str, Any]) -> tempfile.TemporaryDirectory | None:
-    if not file_patch_ops(prop.get("patch", [])):
+    patch = prop.get("patch", [])
+    if not patch:
         return None
     td = tempfile.TemporaryDirectory(prefix="auto-research-verify-")
     try:
         sandbox = Path(td.name) / "work"
         shutil.copytree(ROOT, sandbox, ignore=_sandbox_ignore)
-        apply_file_patch_text(combined_file_patch(prop.get("patch", [])), sandbox)
+        state_path = sandbox / ".research" / "auto_research.json"
+        if state_path.exists():
+            trial = json.loads(state_path.read_text())
+            apply_raw_patch(trial, patch, write_files=False)
+            blocks, _ = validate(trial)
+            if blocks:
+                raise RuntimeError("patched state is invalid: " + "; ".join(blocks))
+            state_path.write_text(json.dumps(trial, indent=2, sort_keys=False) + "\n")
+        if file_patch_ops(patch):
+            apply_file_patch_text(combined_file_patch(patch), sandbox)
         return td
     except Exception:
         td.cleanup()
@@ -1576,7 +1586,7 @@ def cmd_verify(args: argparse.Namespace) -> int:
     sandbox: tempfile.TemporaryDirectory | None = None
     sandbox_label = None
     try:
-        if file_patch_ops(prop.get("patch", [])):
+        if prop.get("patch"):
             blocks = validate_patch(state, prop.get("patch", []))
             if blocks:
                 record = _verification_failure_record(
@@ -2940,6 +2950,9 @@ def cmd_run(args: argparse.Namespace) -> int:
         if proc.returncode != 0 or verdict != "pass":
             run_log_entry(epoch, role, "critic_" + verdict, {"proposal": pid, "reason": reason})
             print(proc.stdout)
+            if verdict == "challenge":
+                run_cli("revise", "--proposal", pid, "--note", reason)
+                run_cli("critique", "--track", "B", "--proposal", pid, "--verdict", "reject", "--critic", "auto-runner-critic", "--reason", "terminal rejection after challenge: a corrected replacement proposal is required")
             if args.stop_on_reject and verdict == "reject":
                 return 1
             continue
@@ -2947,7 +2960,10 @@ def cmd_run(args: argparse.Namespace) -> int:
         if proc.returncode != 0:
             run_log_entry(epoch, role, "verify_failed", {"proposal": pid, "stdout": proc.stdout[-500:], "stderr": proc.stderr[-500:]})
             print(proc.stdout, proc.stderr)
-            return proc.returncode
+            reason = (proc.stdout + proc.stderr)[-1500:]
+            run_cli("revise", "--proposal", pid, "--note", "verification failed: " + reason)
+            run_cli("critique", "--track", "B", "--proposal", pid, "--verdict", "reject", "--critic", "auto-runner-critic", "--reason", "terminal rejection after failed hard verification: a corrected replacement proposal is required")
+            continue
         proc = run_cli("apply", "--track", "B", "--proposal", pid)
         if proc.returncode != 0:
             run_log_entry(epoch, role, "apply_failed", {"proposal": pid, "stdout": proc.stdout[-500:], "stderr": proc.stderr[-500:]})
