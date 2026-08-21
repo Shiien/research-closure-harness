@@ -12853,6 +12853,84 @@
         "B-SELF-TEST-CLOSURE",
         "B-VERIFY-RECORD"
       ]
+    },
+    "P-190": {
+      "id": "P-190",
+      "track": "A",
+      "title": "Require double-run hard verification for proposal commands",
+      "statement": "Invariant changed: a proposal currently passes hard verification if its command exits 0 once; new invariant: it must exit 0 on two consecutive runs of the same command. Why safe: P-189 already confines verification commands to read-only hermetic stdlib python3, so a second run cannot mutate state and only rejects nondeterministic or state-mutating commands; no legitimate apply is blocked. Evidence that would falsify: any proposal whose command exits 0 on run 1 but non-zero on run 2 is nevertheless applied and marked validated. Small and local: changes only B's verify-step execution protocol, expressed as one draft assumption node.",
+      "targets": [
+        "N-VERIFY-DOUBLE-RUN"
+      ],
+      "patch": [
+        {
+          "op": "add_node",
+          "node": {
+            "id": "N-VERIFY-DOUBLE-RUN",
+            "type": "assumption",
+            "statement": "Hard verification must run the proposal's verification command twice and require exit 0 on both runs; a single exit-0 run is insufficient because it cannot detect commands that mutate state on first execution or pass nondeterministically. Marker: N-VERIFY-DOUBLE-RUN-51e8.",
+            "layer": "L4",
+            "status": "draft"
+          }
+        }
+      ],
+      "verification_command": "python3 -c \"import json;d=json.load(open('.research/auto_research.json'));assert 'N-VERIFY-DOUBLE-RUN-51e8' in json.dumps(d)\"",
+      "retrospective_id": null,
+      "status": "rejected",
+      "critic": {
+        "track": "B",
+        "verdict": "reject",
+        "critic": "auto-runner-critic",
+        "reason": "terminal rejection after challenge: a corrected replacement proposal is required",
+        "at": "2026-08-21T21:49:56+08:00"
+      },
+      "verification": null,
+      "revisions": [
+        {
+          "note": "Patch op is clean: single state-only add_node, and the marker N-VERIFY-DOUBLE-RUN-51e8 is written verbatim in the node statement, so the verification assertion is satisfiable and should fail-before/pass-after (unique marker suffix). The satisfiability check passes. The problem is dependency-closure risk: the safety premise 'no legitimate apply is blocked' rests entirely on P-189's read-only hermetic confinement, but the node's own statement does not reference or condition on P-189 being applied and validated. If P-189 is only drafted or was deprecated by a later apply, double-run verification will block legitimate proposals whose commands exit 0 once but create state on first run, or worse, reject already-applied nodes on revalidation. The proposal also overstates detection: double-run only catches commands whose exit code flips between runs; a state-mutating command that exits 0 twice still passes, so the invariant is weaker than the falsification evidence suggests. Request A to re-propose the node conditioned on P-189's applied/validated status (or explicitly scoped to commands already confined hermetic), then B must check ab-status for P-189 before any apply and hard-verify fail-before/pass-after on the corrected node.",
+          "at": "2026-08-21T21:49:56+08:00"
+        }
+      ],
+      "proposed_at": "2026-08-21T21:49:27+08:00"
+    },
+    "P-191": {
+      "id": "P-191",
+      "track": "A",
+      "title": "Require distance-aware trust decay on applied patches",
+      "statement": "New rule node: applied-patch trust decay must be distance-aware within the changed node's dependency closure. Invariant changed: decay is currently flat across the closure, so distant dependents lose trust as if they were directly affected. Falsification evidence: a patch that decays a 2-hop dependent as much as its own 1-hop dependent contradicts the rule and should trigger revalidation of this assumption.",
+      "targets": [
+        "N-TRUST-DECAY-DISTANCE"
+      ],
+      "patch": [
+        {
+          "op": "add_node",
+          "node": {
+            "id": "N-TRUST-DECAY-DISTANCE",
+            "type": "assumption",
+            "statement": "Invariant: applied-patch trust decay must be distance-aware \u2014 trust decay on a dependent node scales inversely with dependency distance from the changed node, so a 1-hop dependent loses more trust than a 2-hop dependent. Safety: decay stays non-negative and bounded; the rule changes only how decay is distributed over the dependency closure, never which nodes are eligible or deprecable, so no trust increases and no node outside the closure loses trust. Falsification: if applying any patch leaves a 2-hop dependent's trust decay equal to or greater than its own 1-hop dependent's decay, or decays any node outside the changed node's dependency closure, the rule is falsified.",
+            "layer": "L4",
+            "status": "draft"
+          }
+        }
+      ],
+      "verification_command": "python3 -c \"s=open('.research/auto_research.json').read(); assert 'N-TRUST-DECAY-DISTANCE' in s and 'distance-aware' in s, 'missing'\"",
+      "retrospective_id": null,
+      "status": "rejected",
+      "critic": {
+        "track": "B",
+        "verdict": "reject",
+        "critic": "auto-runner-critic",
+        "reason": "terminal rejection after challenge: a corrected replacement proposal is required",
+        "at": "2026-08-21T21:53:09+08:00"
+      },
+      "verification": null,
+      "revisions": [
+        {
+          "note": "The patch op is state-only (add_node) and the verification command asserts strings the patch writes verbatim ('N-TRUST-DECAY-DISTANCE', 'distance-aware'), failing pre-patch and passing post-patch \u2014 those gates are fine. But the node's own Safety text claims 'the rule changes only how decay is distributed', which add_node cannot do: the patch records text only, and nothing makes the engine consume this node type, so the asserted invariant is unenforceable unless the engine already implements distance-aware decay \u2014 in which case the proposal is a non-novel restatement of existing behavior (a negative example). The statement is also self-contradictory: it claims decay is 'currently flat across the closure' yet writes an invariant prescribing distance-aware decay as if it already held. The falsification evidence ('a 2-hop dependent decayed as much as its own 1-hop dependent') describes engine behavior that no code path in this patch touches. The verification command is minimal substring checking; it does not schema-validate the new node or check consistency with the existing decay mechanism. Ask A for a corrected proposal: state whether the engine currently applies flat or distance-aware decay, and either (a) rewrite the node as a purely descriptive assumption consistent with implemented behavior, or (b) include the engine change as a complete unified diff, plus a verification command that parses .research/auto_research.json and validates the node.",
+          "at": "2026-08-21T21:53:09+08:00"
+        }
+      ],
+      "proposed_at": "2026-08-21T21:52:51+08:00"
     }
   },
   "verifications": [
@@ -95152,11 +95230,87 @@
         "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
         "at": "2026-08-21T21:46:17+08:00"
       }
+    },
+    {
+      "at": "2026-08-21T21:49:27+08:00",
+      "event": "proposal_proposed",
+      "payload": {
+        "track": "A",
+        "proposal": "P-190",
+        "title": "Require double-run hard verification for proposal commands",
+        "retrospective": null
+      }
+    },
+    {
+      "at": "2026-08-21T21:49:56+08:00",
+      "event": "proposal_critiqued",
+      "payload": {
+        "track": "B",
+        "proposal": "P-190",
+        "verdict": "challenge",
+        "critic": "auto-runner-critic"
+      }
+    },
+    {
+      "at": "2026-08-21T21:49:56+08:00",
+      "event": "proposal_revised",
+      "payload": {
+        "proposal": "P-190",
+        "note": "Patch op is clean: single state-only add_node, and the marker N-VERIFY-DOUBLE-RUN-51e8 is written verbatim in the node statement, so the verification assertion is satisfiable and should fail-before/pass-after (unique marker suffix). The satisfiability check passes. The problem is dependency-closure risk: the safety premise 'no legitimate apply is blocked' rests entirely on P-189's read-only hermetic confinement, but the node's own statement does not reference or condition on P-189 being applied and validated. If P-189 is only drafted or was deprecated by a later apply, double-run verification will block legitimate proposals whose commands exit 0 once but create state on first run, or worse, reject already-applied nodes on revalidation. The proposal also overstates detection: double-run only catches commands whose exit code flips between runs; a state-mutating command that exits 0 twice still passes, so the invariant is weaker than the falsification evidence suggests. Request A to re-propose the node conditioned on P-189's applied/validated status (or explicitly scoped to commands already confined hermetic), then B must check ab-status for P-189 before any apply and hard-verify fail-before/pass-after on the corrected node."
+      }
+    },
+    {
+      "at": "2026-08-21T21:49:56+08:00",
+      "event": "proposal_critiqued",
+      "payload": {
+        "track": "B",
+        "proposal": "P-190",
+        "verdict": "reject",
+        "critic": "auto-runner-critic"
+      }
+    },
+    {
+      "at": "2026-08-21T21:52:51+08:00",
+      "event": "proposal_proposed",
+      "payload": {
+        "track": "A",
+        "proposal": "P-191",
+        "title": "Require distance-aware trust decay on applied patches",
+        "retrospective": null
+      }
+    },
+    {
+      "at": "2026-08-21T21:53:09+08:00",
+      "event": "proposal_critiqued",
+      "payload": {
+        "track": "B",
+        "proposal": "P-191",
+        "verdict": "challenge",
+        "critic": "auto-runner-critic"
+      }
+    },
+    {
+      "at": "2026-08-21T21:53:09+08:00",
+      "event": "proposal_revised",
+      "payload": {
+        "proposal": "P-191",
+        "note": "The patch op is state-only (add_node) and the verification command asserts strings the patch writes verbatim ('N-TRUST-DECAY-DISTANCE', 'distance-aware'), failing pre-patch and passing post-patch \u2014 those gates are fine. But the node's own Safety text claims 'the rule changes only how decay is distributed', which add_node cannot do: the patch records text only, and nothing makes the engine consume this node type, so the asserted invariant is unenforceable unless the engine already implements distance-aware decay \u2014 in which case the proposal is a non-novel restatement of existing behavior (a negative example). The statement is also self-contradictory: it claims decay is 'currently flat across the closure' yet writes an invariant prescribing distance-aware decay as if it already held. The falsification evidence ('a 2-hop dependent decayed as much as its own 1-hop dependent') describes engine behavior that no code path in this patch touches. The verification command is minimal substring checking; it does not schema-validate the new node or check consistency with the existing decay mechanism. Ask A for a corrected proposal: state whether the engine currently applies flat or distance-aware decay, and either (a) rewrite the node as a purely descriptive assumption consistent with implemented behavior, or (b) include the engine change as a complete unified diff, plus a verification command that parses .research/auto_research.json and validates the node."
+      }
+    },
+    {
+      "at": "2026-08-21T21:53:09+08:00",
+      "event": "proposal_critiqued",
+      "payload": {
+        "track": "B",
+        "proposal": "P-191",
+        "verdict": "reject",
+        "critic": "auto-runner-critic"
+      }
     }
   ],
   "counters": {
     "node": 169,
-    "proposal": 189,
+    "proposal": 191,
     "verification": 3733,
     "retrospective": 26
   },
