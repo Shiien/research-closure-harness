@@ -126,6 +126,16 @@ DEFAULT_LAUNCH_PROMPTS = {
         "The launch protocol itself is research content: if the critic or launch gate needs repair, propose that repair through the normal pipeline.",
     ],
 }
+RUNNER_TARGET_WHITELIST = [
+    "A-BRIEF", "A-CHECK", "A-PRECHECK", "A-SCOPE-GUARD", "A-REVISION-LOOP",
+    "A-EVIDENCE-FRESHNESS", "B-CRITIC-SPECIFICITY", "B-VERIFY-RECORD",
+    "B-REVALIDATE-GATE", "B-CLOSURE-AUDIT", "B-SELF-TEST-CLOSURE",
+    "NOVELTY-GUARD", "LAUNCH-PROMPTS", "RUN-SCHEDULER", "VERIFY-DRY-RUN",
+    "SNAPSHOT-RETENTION", "SNAPSHOT-INDEX-CLI", "HEALTH-WATCH",
+    "LAUNCH-PREFLIGHT", "AB-MONITOR-JSON", "STATUS-JSON", "PROPOSAL-INSPECT",
+    "VERIFY-METRICS", "RETRO-IMPORT", "ROLLBACK-PREVIEW", "SELF-TEST-JSON",
+    "WATCH-JSON", "EVENTS-MONITOR", "MONITOR-DASHBOARD",
+]
 DEFAULT_HEALTH_LIMITS = {
     "max_open_proposal_age_hours": 24,
     "max_self_test_age_hours": 24,
@@ -2707,14 +2717,19 @@ def cmd_proposal_show(args: argparse.Namespace) -> int:
     return 0
 
 
-def run_agent_command(template: str, prompt: str, timeout: int) -> dict[str, Any]:
+def run_agent_command(
+    template: str,
+    prompt: str,
+    timeout: int,
+    cwd: Path = ROOT,
+) -> dict[str, Any]:
     if not template.strip():
         raise SystemExit("BLOCKED: run requires a non-empty proposer/critic command")
     command = template.rstrip() + " " + shlex.quote(prompt)
     proc = subprocess.run(
         command,
         shell=True,
-        cwd=str(ROOT),
+        cwd=str(cwd),
         capture_output=True,
         text=True,
         timeout=timeout,
@@ -2791,7 +2806,7 @@ def run_proposer_prompt(state: dict[str, Any], role: str) -> str:
         f"Open retrospectives: {open_retros or 'none'}.\n"
         f"Recent proposals: {json.dumps(recent, default=str)}.\n"
         f"Patch vocabulary: {sorted(PATCH_OPS)}.\n"
-        f"Existing graph nodes you may target: {sorted(state.get('nodes', {}).keys())}.\n"
+        f"Existing graph nodes you may target: {[nid for nid in RUNNER_TARGET_WHITELIST if nid in state.get('nodes', {})]}.\n"
         "Valid patch examples:\n"
         '{"op":"set_node_statement","node":"<existing-id>","statement":"..."}\n'
         '{"op":"set_layer_policy","layer":"L1","policy":"..."}\n'
@@ -2802,7 +2817,7 @@ def run_proposer_prompt(state: dict[str, Any], role: str) -> str:
         "Use patch_file only if you can emit a complete unified diff in its patch field. "
         "If you cannot emit a complete unified diff, choose a state-only op with all required fields exactly. "
         "Verification must use python3 and must assert at least one proposal-specific intended effect. "
-        "Do not call tools. Do not use markdown fences. Reply in one short message under 400 words. "
+        "Do not call tools. Do not use markdown fences. Reply in one short message under 200 words. "
         "Return only one JSON object with action exactly equal to propose, for example:\n"
         '{"action":"propose","title":"...","statement":"...","targets":["N-..."],'
         '"patch":[{"op":"set_node_statement","node":"N-...","statement":"..."}],'
@@ -2828,7 +2843,7 @@ def run_critic_prompt(state: dict[str, Any], proposal_id: str) -> str:
     }
     return (
         "You are auto-research role B. Criticise this proposal specifically. "
-        "Do not call tools. Do not use markdown fences. Reply in one short message under 300 words. "
+        "Do not call tools. Do not use markdown fences. Reply in one short message under 200 words. "
         "Return only one JSON object with action exactly equal to critique and verdict one of pass, challenge, or reject, for example:\n"
         '{"action":"critique","verdict":"pass","reason":"specific reason naming patch ops, verification command, or closure risk"}.\n'
         "Launch prompts:\n" + "\n".join(f"- {p}" for p in state.get("launch_prompts", {}).get(role, [])) + "\n"
@@ -2862,12 +2877,34 @@ def run_log_entry(epoch: int, role: str, event: str, detail: dict[str, Any]) -> 
         }, default=str) + "\n")
 
 
+def run_agent_with_retries(
+    template: str,
+    prompt: str,
+    timeout: int,
+    attempts: int,
+    cwd: Path,
+) -> dict[str, Any]:
+    last_error = "unknown agent failure"
+    for attempt in range(1, attempts + 1):
+        try:
+            return run_agent_command(template, prompt, timeout, cwd=cwd)
+        except subprocess.TimeoutExpired:
+            last_error = f"agent timed out after {timeout}s (attempt {attempt}/{attempts})"
+        except SystemExit as exc:
+            raise
+    raise SystemExit("BLOCKED: " + last_error)
+
+
 def cmd_run(args: argparse.Namespace) -> int:
     state = load_state()
     report = build_health_report(state)
     if report["critical"]:
         print("BLOCKED: health critical before run: " + ", ".join(report["critical"]))
         return 2
+    agent_cwd = Path(args.agent_cwd).expanduser()
+    if not agent_cwd.is_absolute():
+        agent_cwd = ROOT / agent_cwd
+    agent_cwd.mkdir(parents=True, exist_ok=True)
     for epoch in range(1, args.epochs + 1):
         state = load_state()
         role = run_choose_role(state, args.alternate)
@@ -2876,7 +2913,13 @@ def cmd_run(args: argparse.Namespace) -> int:
         if args.dry_run:
             print(proposer_prompt[:800])
             continue
-        proposal = run_agent_command(args.proposer_cmd, proposer_prompt, args.timeout)
+        proposal = run_agent_with_retries(
+            args.proposer_cmd,
+            proposer_prompt,
+            args.agent_timeout,
+            args.max_propose_attempts,
+            agent_cwd,
+        )
         if proposal.get("action") != "propose":
             run_log_entry(epoch, role, "bad_proposer_action", proposal)
             raise SystemExit("BLOCKED: proposer action is not propose")
@@ -2908,7 +2951,13 @@ def cmd_run(args: argparse.Namespace) -> int:
                 + (proc.stdout + proc.stderr)[-2000:]
                 + "\nCorrect the schema and return only the corrected JSON object."
             )
-            proposal = run_agent_command(args.proposer_cmd, proposer_prompt + "\n" + feedback, args.timeout)
+            proposal = run_agent_with_retries(
+                args.proposer_cmd,
+                proposer_prompt + "\n" + feedback,
+                args.agent_timeout,
+                args.max_propose_attempts,
+                agent_cwd,
+            )
             patch = proposal.get("patch")
             if not isinstance(patch, list) or not patch:
                 proc = subprocess.CompletedProcess([], 2, "", "proposer returned no patch list")
@@ -2940,7 +2989,13 @@ def cmd_run(args: argparse.Namespace) -> int:
         pid = match.group(1)
 
         state = load_state()
-        critic = run_agent_command(args.critic_cmd, run_critic_prompt(state, pid), args.timeout)
+        critic = run_agent_with_retries(
+            args.critic_cmd,
+            run_critic_prompt(state, pid),
+            args.agent_timeout,
+            2,
+            agent_cwd,
+        )
         verdict = critic.get("verdict")
         if verdict not in CRITIC_VERDICTS:
             run_log_entry(epoch, role, "bad_critic", critic)
@@ -3280,7 +3335,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--epochs", type=int, required=True)
     sp.add_argument("--proposer-cmd", required=True, help="shell command; the prompt is appended quoted")
     sp.add_argument("--critic-cmd", required=True, help="shell command; the prompt is appended quoted")
-    sp.add_argument("--timeout", type=int, default=300, help="agent and verification timeout seconds")
+    sp.add_argument("--timeout", type=int, default=300, help="verification timeout seconds")
+    sp.add_argument("--agent-timeout", type=int, default=120, help="proposer/critic timeout seconds")
+    sp.add_argument("--agent-cwd", default=".research/tmp/agent-run", help="clean working directory for headless agents")
     sp.add_argument("--alternate", action="store_true", help="alternate A/B proposer role by last applied proposal")
     sp.add_argument("--no-alternate", dest="alternate", action="store_false", help="always use A proposer")
     sp.add_argument("--stop-on-reject", action="store_true", help="stop the run when a proposal is rejected")

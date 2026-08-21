@@ -820,6 +820,30 @@ class TestLaunchPrompts(RepoCase):
 
 
 class TestRunner(RepoCase):
+    def test_runner_prompt_uses_target_whitelist(self):
+        self.add_node("RUN-SCHEDULER", "runner", "L1", ntype="verify",
+                      status="validated")
+        script = r"""
+import json, sys
+sys.path.insert(0, "tools")
+import auto_research as a
+state = a.load_state()
+prompt = a.run_proposer_prompt(state, "A")
+assert "RUN-SCHEDULER" in prompt
+assert "MOD-142" not in prompt
+assert len(prompt) < 4000, len(prompt)
+print("runner-prompt-whitelist-ok")
+"""
+        proc = subprocess.run(
+            [sys.executable, "-c", script],
+            cwd=ROOT,
+            env={**os.environ, "RESEARCH_CLOSURE_ROOT": str(self.repo)},
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("runner-prompt-whitelist-ok", proc.stdout)
+
     def test_run_one_epoch_with_fake_agents(self):
         self.add_node("N1", "runner target", "L4", ntype="assumption", status="validated")
         st = self.state()
