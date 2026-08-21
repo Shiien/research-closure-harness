@@ -2761,32 +2761,68 @@ def run_proposer_prompt(state: dict[str, Any], role: str) -> str:
         rid for rid, retro in state.get("retrospectives", {}).items()
         if retro.get("status") == "open"
     )
-    recent = sorted(
+    recent_full = sorted(
         state.get("proposals", {}).items(),
         key=lambda item: int(item[0][2:]) if item[0].startswith("P-") and item[0][2:].isdigit() else 0,
     )[-6:]
+    recent = []
+    for pid, prop in recent_full:
+        recent.append({
+            "id": pid,
+            "track": prop.get("track"),
+            "status": prop.get("status"),
+            "title": prop.get("title"),
+            "ops": [op.get("op") for op in prop.get("patch", [])],
+            "paths": [op.get("path") for op in prop.get("patch", []) if op.get("op") == "patch_file"],
+        })
     return (
         f"You are auto-research role {role}. Propose exactly one small, local, semantically novel self-modification.\n"
         "Launch prompts:\n" + "\n".join(f"- {p}" for p in state.get("launch_prompts", {}).get(role, [])) + "\n"
         f"Open retrospectives: {open_retros or 'none'}.\n"
         f"Recent proposals: {json.dumps(recent, default=str)}.\n"
         f"Patch vocabulary: {sorted(PATCH_OPS)}.\n"
-        "Rules: at most two patch operations; patch_file may modify engine files except protected paths; "
-        "every proposal needs one or two graph targets and an explicit exit-0 verification command. "
-        "Return exactly one JSON object:\n"
+        f"Existing graph nodes you may target: {sorted(state.get('nodes', {}).keys())}.\n"
+        "Valid patch examples:\n"
+        '{"op":"set_node_statement","node":"<existing-id>","statement":"..."}\n'
+        '{"op":"set_layer_policy","layer":"L1","policy":"..."}\n'
+        '{"op":"set_launch_prompt","role":"A","prompts":["..."]}\n'
+        '{"op":"add_node","node":{"id":"N-<topic>","type":"assumption","statement":"...","layer":"L4","status":"draft"}}\n'
+        '{"op":"add_edge","from":"<existing-id>","to":"<existing-id>","kind":"dependency"}\n'
+        "Rules: at most two patch operations; every proposal needs one or two graph targets and an explicit exit-0 verification command. "
+        "Use patch_file only if you can emit a complete unified diff in its patch field. "
+        "If you cannot emit a complete unified diff, choose a state-only op with all required fields exactly. "
+        "Verification must use python3 and must assert at least one proposal-specific intended effect. "
+        "Do not call tools. Do not use markdown fences. Reply in one short message under 400 words. "
+        "Return only one JSON object with action exactly equal to propose, for example:\n"
         '{"action":"propose","title":"...","statement":"...","targets":["N-..."],'
-        '"patch":[{"op":"..."}],"verification":"...","retro":"R-xxx or null"}'
+        '"patch":[{"op":"set_node_statement","node":"N-...","statement":"..."}],'
+        '"verification":"python3 -m unittest discover -s tests","retro":null}'
     )
 
 
 def run_critic_prompt(state: dict[str, Any], proposal_id: str) -> str:
     prop = state.get("proposals", {}).get(proposal_id, {})
     role = "B"
+    patch_text = json.dumps(prop.get("patch", []), default=str)
+    compact = {
+        "id": prop.get("id"),
+        "track": prop.get("track"),
+        "title": prop.get("title"),
+        "statement": prop.get("statement"),
+        "targets": prop.get("targets"),
+        "retrospective_id": prop.get("retrospective_id"),
+        "patch_ops": [op.get("op") for op in prop.get("patch", [])],
+        "patch_preview": patch_text[:6000],
+        "patch_chars": len(patch_text),
+        "verification_command": prop.get("verification_command"),
+    }
     return (
-        "You are auto-research role B. Criticise this proposal specifically and return exactly one JSON object "
-        '{"action":"critique","verdict":"pass|challenge|reject","reason":"specific reason naming patch ops, verification command, or closure risk"}.\n'
+        "You are auto-research role B. Criticise this proposal specifically. "
+        "Do not call tools. Do not use markdown fences. Reply in one short message under 300 words. "
+        "Return only one JSON object with action exactly equal to critique and verdict one of pass, challenge, or reject, for example:\n"
+        '{"action":"critique","verdict":"pass","reason":"specific reason naming patch ops, verification command, or closure risk"}.\n'
         "Launch prompts:\n" + "\n".join(f"- {p}" for p in state.get("launch_prompts", {}).get(role, [])) + "\n"
-        f"Proposal: {json.dumps(prop, default=str)}"
+        f"Proposal: {json.dumps(compact, default=str)}"
     )
 
 
@@ -2854,6 +2890,36 @@ def cmd_run(args: argparse.Namespace) -> int:
         if retro:
             propose_args.extend(["--retro", str(retro)])
         proc = run_cli(*propose_args)
+        attempt = 1
+        while proc.returncode != 0 and attempt < args.max_propose_attempts:
+            attempt += 1
+            feedback = (
+                "Your previous proposal JSON was rejected by the engine:\n"
+                + (proc.stdout + proc.stderr)[-2000:]
+                + "\nCorrect the schema and return only the corrected JSON object."
+            )
+            proposal = run_agent_command(args.proposer_cmd, proposer_prompt + "\n" + feedback, args.timeout)
+            patch = proposal.get("patch")
+            if not isinstance(patch, list) or not patch:
+                proc = subprocess.CompletedProcess([], 2, "", "proposer returned no patch list")
+                break
+            targets = proposal.get("targets") or []
+            if not isinstance(targets, list):
+                targets = [str(targets)]
+            propose_args = [
+                "propose", "--track", role,
+                "--title", str(proposal.get("title", "runner proposal")),
+                "--statement", str(proposal.get("statement", "runner proposal")),
+                "--targets", ",".join(str(item) for item in targets),
+                "--patch", json.dumps(patch),
+            ]
+            verification = proposal.get("verification")
+            if verification:
+                propose_args.extend(["--verification", str(verification)])
+            retro = proposal.get("retro")
+            if retro:
+                propose_args.extend(["--retro", str(retro)])
+            proc = run_cli(*propose_args)
         if proc.returncode != 0:
             run_log_entry(epoch, role, "propose_failed", {"stdout": proc.stdout[-500:], "stderr": proc.stderr[-500:]})
             print(proc.stdout, proc.stderr)
@@ -3202,6 +3268,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--alternate", action="store_true", help="alternate A/B proposer role by last applied proposal")
     sp.add_argument("--no-alternate", dest="alternate", action="store_false", help="always use A proposer")
     sp.add_argument("--stop-on-reject", action="store_true", help="stop the run when a proposal is rejected")
+    sp.add_argument("--max-propose-attempts", type=int, default=2, help="proposer repair attempts per epoch")
     sp.add_argument("--stop-on-warning", action="store_true", help="stop after an epoch that leaves health warnings")
     sp.add_argument("--commit", action="store_true", help="git commit after each applied epoch")
     sp.add_argument("--dry-run", action="store_true", help="print prompts without invoking agents")
