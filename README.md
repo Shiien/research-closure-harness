@@ -231,6 +231,53 @@ pre-existing non-L0 node, and marks the dependency closure of the changed nodes
 `--level hard --command '<reproducible command>'`. Snapshots are written to
 `.research/auto_snapshots/`; roll back with `rollback --to <n>`.
 
+### Engine source patches (`patch_file`)
+
+Since the R-000 bootstrap, the loop can modify every engine file in the
+repository, including `tools/auto_research.py` itself. Protected paths are
+`.git/`, `.gitignore`, `.gitmodules`, `.ssh_github/`,
+`.research/auto_research.json`, and `.research/auto_snapshots/`. Build a patch
+without editing the live file:
+
+```bash
+mkdir -p .research/tmp
+cp tools/auto_research_dashboard.py .research/tmp/dashboard.candidate
+# edit the candidate
+python tools/auto_research.py patch-make \
+  --target tools/auto_research_dashboard.py \
+  --candidate .research/tmp/dashboard.candidate \
+  --out patch.json
+python tools/auto_research.py propose --track A \
+  --title "repair dashboard fallback" --statement "..." \
+  --targets MONITOR-DASHBOARD --patch-file patch.json \
+  --verification "python3 -m unittest discover -s tests" --retro R-002
+```
+
+A `patch_file` proposal must declare graph targets. B's `verify` runs the
+verification command in an isolated temporary copy with the patch already
+applied; the real working tree is not mutated until `apply`. Apply stores file
+backups under `.research/auto_snapshots/file_backups/`, and `rollback --to <n>`
+restores source files together with the state snapshot.
+
+### Retrospective backlog
+
+Durable post-hoc reviews are first-class A input. Add, inspect, and close them
+with:
+
+```bash
+python tools/auto_research.py retro add --observation "..." --class defect \
+  --source human-meta-review --suggested-title "..." --suggested-targets N1
+python tools/auto_research.py retro next
+python tools/auto_research.py retro list
+python tools/auto_research.py retro close --id R-001 \
+  --disposition converted --proposal P-147
+```
+
+A starts every session with `retro next`; an open retrospective must be
+converted into a proposal (`propose --retro R-xxx`) or explicitly declared
+blocked before A opens a new epoch. Applying a linked proposal closes the
+retrospective automatically.
+
 ### Harness auto-load and A/B roles
 
 Entering the repository automatically loads the A/B auto-research mode in all
@@ -247,6 +294,7 @@ At session start every harness is instructed to run:
 ```bash
 python tools/auto_research.py ab-status
 python tools/auto_research.py ab-next
+python tools/auto_research.py retro next
 ```
 
 The two roles are the fast and slow versions of the same auto-research process:

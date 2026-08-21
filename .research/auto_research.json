@@ -39708,13 +39708,35 @@
       "level": "self_test",
       "command": "python3 tools/auto_research.py validate && python3 -m unittest discover -s tests",
       "node": null
+    },
+    {
+      "exit_code": 0,
+      "timeout": false,
+      "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
+      "stdout_bytes": 49,
+      "stderr_tail": "...................................................................................................................................\n----------------------------------------------------------------------\nRan 131 tests in 17.438s\n\nOK\n",
+      "at": "2026-08-21T16:58:01+08:00",
+      "level": "self_test",
+      "command": "python3 tools/auto_research.py validate && python3 -m unittest discover -s tests",
+      "node": null
+    },
+    {
+      "exit_code": 0,
+      "timeout": false,
+      "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
+      "stdout_bytes": 49,
+      "stderr_tail": "...................................................................................................................................\n----------------------------------------------------------------------\nRan 131 tests in 17.213s\n\nOK\n",
+      "at": "2026-08-21T17:00:24+08:00",
+      "level": "self_test",
+      "command": "python3 tools/auto_research.py validate && python3 -m unittest discover -s tests",
+      "node": null
     }
   ],
   "last_self_test": {
     "passed": true,
     "exit_code": 0,
     "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
-    "at": "2026-08-21T16:20:11+08:00"
+    "at": "2026-08-21T17:00:24+08:00"
   },
   "events": [
     {
@@ -71132,15 +71154,274 @@
         "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
         "at": "2026-08-21T16:20:11+08:00"
       }
+    },
+    {
+      "at": "2026-08-21T16:55:05+08:00",
+      "event": "retrospective_added",
+      "payload": {
+        "retrospective": "R-001",
+        "class": "capability_gap"
+      }
+    },
+    {
+      "at": "2026-08-21T16:55:05+08:00",
+      "event": "retrospective_added",
+      "payload": {
+        "retrospective": "R-002",
+        "class": "defect"
+      }
+    },
+    {
+      "at": "2026-08-21T16:55:05+08:00",
+      "event": "retrospective_added",
+      "payload": {
+        "retrospective": "R-003",
+        "class": "loop_health"
+      }
+    },
+    {
+      "at": "2026-08-21T16:55:05+08:00",
+      "event": "retrospective_added",
+      "payload": {
+        "retrospective": "R-004",
+        "class": "defect"
+      }
+    },
+    {
+      "at": "2026-08-21T16:55:05+08:00",
+      "event": "retrospective_added",
+      "payload": {
+        "retrospective": "R-005",
+        "class": "capability_gap"
+      }
+    },
+    {
+      "at": "2026-08-21T16:55:05+08:00",
+      "event": "retrospective_added",
+      "payload": {
+        "retrospective": "R-006",
+        "class": "capability_gap"
+      }
+    },
+    {
+      "at": "2026-08-21T16:55:05+08:00",
+      "event": "retrospective_added",
+      "payload": {
+        "retrospective": "R-007",
+        "class": "loop_health"
+      }
+    },
+    {
+      "at": "2026-08-21T16:55:15+08:00",
+      "event": "retrospective_closed",
+      "payload": {
+        "retrospective": "R-001",
+        "disposition": "superseded",
+        "proposal": null
+      }
+    },
+    {
+      "at": "2026-08-21T16:55:15+08:00",
+      "event": "retrospective_closed",
+      "payload": {
+        "retrospective": "R-004",
+        "disposition": "superseded",
+        "proposal": null
+      }
+    },
+    {
+      "at": "2026-08-21T16:58:01+08:00",
+      "event": "self_test_passed",
+      "payload": {
+        "passed": true,
+        "exit_code": 0,
+        "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
+        "at": "2026-08-21T16:58:01+08:00"
+      }
+    },
+    {
+      "at": "2026-08-21T17:00:24+08:00",
+      "event": "self_test_passed",
+      "payload": {
+        "passed": true,
+        "exit_code": 0,
+        "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
+        "at": "2026-08-21T17:00:24+08:00"
+      }
     }
   ],
   "counters": {
     "node": 141,
     "proposal": 146,
-    "verification": 2682
+    "verification": 2684,
+    "retrospective": 7
   },
   "tracks": {
     "A": "fast auto-research: explore, draft, propose candidates, cheap pre-checks",
     "B": "slow auto-research: critic review, hard verification, consolidation, apply"
-  }
+  },
+  "retrospectives": {
+    "R-001": {
+      "id": "R-001",
+      "created_at": "2026-08-21T16:55:05+08:00",
+      "class": "capability_gap",
+      "source": "human-meta-review",
+      "observation": "A/B loop could not modify engine source files and had no durable retrospective backlog; P-001..P-110 were therefore metadata churn.",
+      "evidence": [
+        "PATCH_OPS lacked patch_file",
+        "no retro command",
+        "git log shows only .research/auto_research.json state changes"
+      ],
+      "suggested": {
+        "title": "Bootstrap retro backlog and patch_file capability",
+        "targets": [
+          "A-EVIDENCE-FRESHNESS"
+        ],
+        "patch_intent": "Add retro add/list/next/close, patch_file op with file backups, patch-make, sandbox verify",
+        "verification": "python3 -m unittest discover -s tests"
+      },
+      "status": "superseded",
+      "proposal_id": null,
+      "resolved_at": "2026-08-21T16:55:15+08:00",
+      "resolution_note": "Implemented as the R-000 bootstrap commit: retro backlog + patch_file + patch-make + sandbox verify. Recorded after the fact because the capability did not exist before bootstrap."
+    },
+    "R-002": {
+      "id": "R-002",
+      "created_at": "2026-08-21T16:55:05+08:00",
+      "class": "defect",
+      "source": "human-meta-review",
+      "observation": "auto_research_dashboard.py crashes with IndexError because build_data assumes one node_added snapshot per proposal; P-111+ epochs add no new nodes and ignored local snapshots can lag committed state.",
+      "evidence": [
+        "python3 tools/auto_research_dashboard.py --no-open -> IndexError node_added[4+epoch]",
+        ".research/auto_snapshots gitignored and stale at P-110 while state is P-146"
+      ],
+      "suggested": {
+        "title": "Repair dashboard epoch replay with missing-journal fallback",
+        "targets": [
+          "MONITOR-DASHBOARD"
+        ],
+        "patch_intent": "patch tools/auto_research_dashboard.py to derive frames from events/proposals and degrade to current-state-only view when snapshots are missing or inconsistent",
+        "verification": "python3 tools/auto_research_dashboard.py --no-open && python3 -m unittest discover -s tests"
+      },
+      "status": "open",
+      "proposal_id": null,
+      "resolved_at": null,
+      "resolution_note": null
+    },
+    "R-003": {
+      "id": "R-003",
+      "created_at": "2026-08-21T16:55:05+08:00",
+      "class": "loop_health",
+      "source": "human-meta-review",
+      "observation": "Snapshot journal holds 2260 full-state JSON files (~1.7 GB locally); snapshot_state only dedups consecutive files and has no retention or compaction policy.",
+      "evidence": [
+        "du -sh .research/auto_snapshots",
+        "1566 node_revalidated snapshots"
+      ],
+      "suggested": {
+        "title": "Add snapshot retention, hash-dedup, and compact journal",
+        "targets": [
+          "SNAPSHOT-RETENTION"
+        ],
+        "patch_intent": "patch tools/auto_research.py to add snapshot prune/compact commands and keep milestone checkpoints plus a bounded tail",
+        "verification": "python3 -m unittest discover -s tests && python3 tools/auto_research.py validate"
+      },
+      "status": "open",
+      "proposal_id": null,
+      "resolved_at": null,
+      "resolution_note": null
+    },
+    "R-004": {
+      "id": "R-004",
+      "created_at": "2026-08-21T16:55:05+08:00",
+      "class": "defect",
+      "source": "human-meta-review",
+      "observation": "ab-next printed a literal {pid} for rejected proposals because only the first adjacent string literal was an f-string.",
+      "evidence": [
+        "ab-next output: --statement <why this differs from rejected {pid}>"
+      ],
+      "suggested": {
+        "title": "Fix ab-next rejected proposal template interpolation",
+        "targets": [
+          "A-REVISION-LOOP"
+        ],
+        "patch_intent": "patch tools/auto_research.py cmd_ab_next f-string interpolation",
+        "verification": "python3 -m unittest discover -s tests"
+      },
+      "status": "superseded",
+      "proposal_id": null,
+      "resolved_at": "2026-08-21T16:55:15+08:00",
+      "resolution_note": "Fixed during R-000 bootstrap by making the second adjacent string literal an f-string; covered by tests."
+    },
+    "R-005": {
+      "id": "R-005",
+      "created_at": "2026-08-21T16:55:05+08:00",
+      "class": "capability_gap",
+      "source": "human-meta-review",
+      "observation": "There is no health/watch command; structural validity and self-test pass can hide queue stalls, reject streaks, patch-op concentration, A/B imbalance, and journal growth.",
+      "evidence": [
+        "loop P-001..P-110: 110 applied proposals, almost all set_node_status",
+        "P-111..P-146: all A-track bookkeeping/audit, B queue empty"
+      ],
+      "suggested": {
+        "title": "Add auto-research health and watch commands",
+        "targets": [
+          "A-EVIDENCE-FRESHNESS"
+        ],
+        "patch_intent": "patch tools/auto_research.py to add health --json and watch --interval with loop-health metrics and non-zero exit on failure",
+        "verification": "python3 -m unittest discover -s tests && python3 tools/auto_research.py health --json"
+      },
+      "status": "open",
+      "proposal_id": null,
+      "resolved_at": null,
+      "resolution_note": null
+    },
+    "R-006": {
+      "id": "R-006",
+      "created_at": "2026-08-21T16:55:05+08:00",
+      "class": "capability_gap",
+      "source": "human-meta-review",
+      "observation": "Launch is manual only: skills and dsh preset exist, but there is no preflight/launch command that checks preset installation, state health, git status, and emits a role prompt.",
+      "evidence": [
+        "dsh preset not installed under ~/.dsh/.agent-presets/auto-research-minimal",
+        "no launch subcommand in auto_research.py"
+      ],
+      "suggested": {
+        "title": "Add launch preflight and session prompt command",
+        "targets": [
+          "A-SCOPE-GUARD"
+        ],
+        "patch_intent": "patch tools/auto_research.py to add launch --harness dsh|claude|codex with preflight and role prompt",
+        "verification": "python3 -m unittest discover -s tests && python3 tools/auto_research.py launch --dry-run"
+      },
+      "status": "open",
+      "proposal_id": null,
+      "resolved_at": null,
+      "resolution_note": null
+    },
+    "R-007": {
+      "id": "R-007",
+      "created_at": "2026-08-21T16:55:05+08:00",
+      "class": "loop_health",
+      "source": "human-meta-review",
+      "observation": "Semantic novelty is currently a natural-language L2 policy; nothing mechanically rejects epoch-only recycling or patch-op concentration before proposal.",
+      "evidence": [
+        "P-111 policy text added only after 110 recycled set_node_status epochs",
+        "validate still accepts a new set_node_status proposal"
+      ],
+      "suggested": {
+        "title": "Make semantic-novelty and patch-op concentration executable guards",
+        "targets": [
+          "A-SCOPE-GUARD"
+        ],
+        "patch_intent": "patch tools/auto_research.py propose validation to compare titles/statements/patch ops against prior proposals and reject near-duplicates or excessive op concentration",
+        "verification": "python3 -m unittest discover -s tests && python3 tools/auto_research.py validate"
+      },
+      "status": "open",
+      "proposal_id": null,
+      "resolved_at": null,
+      "resolution_note": null
+    }
+  },
+  "file_backups": []
 }

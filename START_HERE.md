@@ -37,7 +37,13 @@ At the start of any session in this repository:
 ```bash
 python tools/auto_research.py ab-status
 python tools/auto_research.py ab-next
+python tools/auto_research.py retro next
 ```
+
+If `retro next` has an open item, A must convert it into a proposal before
+opening a new epoch. The R-000 bootstrap added `patch_file`: A can now propose
+edits to every engine file, including `tools/auto_research.py` itself, and B
+verifies those proposals in an isolated temporary copy before apply.
 
 - Codex auto-loads `AGENTS.md`.
 - Claude Code auto-loads `CLAUDE.md`.

@@ -24,11 +24,15 @@ from __future__ import annotations
 
 import argparse
 import copy
+import difflib
 import hashlib
 import json
 import os
+import re
+import shutil
 import subprocess
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
@@ -57,6 +61,32 @@ TRACK_ROLES = {
 
 META_GOAL_ID = "M0"
 META_GOAL_STATEMENT = "Improve this system's own auto-research capability."
+
+RETROSPECTIVE_CLASSES = (
+    "defect",
+    "risk",
+    "capability_gap",
+    "loop_health",
+    "other",
+)
+RETROSPECTIVE_STATUSES = ("open", "converted", "superseded", "obsolete")
+RETROSPECTIVE_DISPOSITIONS = ("converted", "superseded", "obsolete")
+
+# patch_file may touch every engine file except the immutable state journal and
+# VCS/local-secret plumbing. The engine is deliberately allowed to patch itself.
+PROTECTED_PATCH_FILES = {
+    ".gitignore",
+    ".gitmodules",
+    ".research/auto_research.json",
+}
+PROTECTED_PATCH_PREFIXES = (
+    ".git/",
+    ".ssh_github/",
+    ".research/auto_snapshots/",
+)
+CORE_FILES_PROTECTED_FROM_DELETE = {
+    "tools/auto_research.py",
+}
 
 
 def discover_root() -> Path:
@@ -128,8 +158,15 @@ def skeleton(goal: str = META_GOAL_STATEMENT) -> dict[str, Any]:
         "proposals": {},
         "verifications": [],
         "last_self_test": None,
+        "retrospectives": {},
+        "file_backups": [],
         "events": [],
-        "counters": {"node": 1, "proposal": 0, "verification": 0},
+        "counters": {
+            "node": 1,
+            "proposal": 0,
+            "verification": 0,
+            "retrospective": 0,
+        },
     }
 
 
@@ -149,6 +186,8 @@ def load_state(path: Path | None = None) -> dict[str, Any]:
         ("edges", []),
         ("last_self_test", None),
         ("tracks", dict(TRACK_ROLES)),
+        ("retrospectives", {}),
+        ("file_backups", []),
     ):
         state.setdefault(key, default)
     return state
@@ -347,6 +386,38 @@ def validate(state: dict[str, Any]) -> tuple[list[str], list[str]]:
             blocks.append(f"proposal {pid} is {prop['status']} without a verification record")
         if prop.get("status") == "applied" and not prop.get("applied_at"):
             blocks.append(f"proposal {pid} is applied without applied_at")
+        retro_id = prop.get("retrospective_id")
+        if retro_id and retro_id not in state.get("retrospectives", {}):
+            blocks.append(f"proposal {pid} references unknown retrospective {retro_id!r}")
+
+    for rid, retro in state.get("retrospectives", {}).items():
+        if not isinstance(retro, dict):
+            blocks.append(f"retrospective {rid} must be an object")
+            continue
+        if retro.get("class", "other") not in RETROSPECTIVE_CLASSES:
+            blocks.append(f"retrospective {rid} has invalid class {retro.get('class')!r}")
+        if retro.get("status", "open") not in RETROSPECTIVE_STATUSES:
+            blocks.append(f"retrospective {rid} has invalid status {retro.get('status')!r}")
+        if not isinstance(retro.get("observation", ""), str) or not retro["observation"].strip():
+            blocks.append(f"retrospective {rid} needs a non-empty observation")
+        if retro.get("status") == "converted":
+            prop = state.get("proposals", {}).get(retro.get("proposal_id"))
+            if not prop:
+                blocks.append(f"retrospective {rid} is converted without a valid proposal_id")
+            elif prop.get("status") != "applied":
+                blocks.append(f"retrospective {rid} is converted but {retro.get('proposal_id')} is not applied")
+
+    for i, entry in enumerate(state.get("file_backups", [])):
+        pos = f"file_backups[{i}]"
+        if not isinstance(entry, dict):
+            blocks.append(f"{pos} must be an object")
+            continue
+        if not isinstance(entry.get("modification_node", ""), str):
+            blocks.append(f"{pos} needs modification_node")
+        if entry.get("modification_node") not in nodes:
+            blocks.append(f"{pos} references unknown node {entry.get('modification_node')!r}")
+        if not isinstance(entry.get("files", {}), dict):
+            blocks.append(f"{pos} needs a files object")
     return blocks, warnings
 
 
@@ -366,6 +437,7 @@ PATCH_OPS = {
     "set_affected_trust_decay",
     "set_revalidation_threshold",
     "set_self_test_command",
+    "patch_file",
 }
 NON_L0_LAYERS = tuple(layer for layer in LAYERS if layer != "L0")
 
@@ -397,11 +469,265 @@ def patch_origins(state: dict[str, Any], patch: list[dict[str, Any]]) -> set[str
     return {n for n in origins if n in nodes}
 
 
-def apply_raw_patch(state: dict[str, Any], patch: list[dict[str, Any]]) -> set[str]:
+def file_patch_ops(patch: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [op for op in patch if op.get("op") == "patch_file"]
+
+
+def combined_file_patch(patch: list[dict[str, Any]]) -> str:
+    parts: list[str] = []
+    for op in file_patch_ops(patch):
+        text = op.get("patch", "")
+        if not isinstance(text, str) or not text.strip():
+            continue
+        parts.append(text if text.endswith("\n") else text + "\n")
+    return "".join(parts)
+
+
+def file_patch_paths(patch_text: str, root: Path = ROOT) -> list[str]:
+    """Return repo-relative paths touched by a unified diff, read-only."""
+    if not patch_text.strip():
+        raise ValueError("patch_file patch must be a non-empty unified diff")
+    proc = subprocess.run(
+        ["git", "apply", "--check", "--verbose"],
+        cwd=str(root),
+        input=patch_text,
+        text=True,
+        capture_output=True,
+    )
+    if proc.returncode != 0:
+        detail = (proc.stdout + proc.stderr).strip()
+        raise ValueError(f"git apply --check failed: {detail or 'unknown error'}")
+    paths: list[str] = []
+    for line in (proc.stdout + "\n" + proc.stderr).splitlines():
+        line = line.strip()
+        if line.startswith("Checking patch "):
+            raw = line[len("Checking patch "):]
+            if raw.endswith("..."):
+                raw = raw[:-3]
+            raw = raw.strip().strip('"')
+            if "=>" in raw:
+                raise ValueError("patch_file rename/copy patches are not supported yet")
+            if raw:
+                paths.append(raw)
+    if not paths:
+        numstat = subprocess.run(
+            ["git", "apply", "--numstat"],
+            cwd=str(root),
+            input=patch_text,
+            text=True,
+            capture_output=True,
+        )
+        for line in numstat.stdout.splitlines():
+            parts = line.rstrip().split("\t")
+            if len(parts) >= 3 and parts[2] and "=>" not in parts[2]:
+                paths.append(parts[2])
+    if any("=>" in p for p in paths):
+        raise ValueError("patch_file rename/copy patches are not supported yet")
+    return sorted(set(paths))
+
+
+def _patch_path_norm(raw: str) -> str:
+    return raw.strip().strip('"').replace("\\", "/")
+
+
+def validate_patch_path(raw: str) -> str | None:
+    norm = _patch_path_norm(raw)
+    if not norm or norm.startswith("/"):
+        return f"patch_file path {raw!r} must be a repo-relative path"
+    parts = Path(norm).parts
+    if ".." in parts:
+        return f"patch_file path {raw!r} may not escape the repository"
+    if norm in PROTECTED_PATCH_FILES:
+        return f"patch_file may not touch protected file {norm!r}"
+    for prefix in PROTECTED_PATCH_PREFIXES:
+        if norm == prefix.rstrip("/") or norm.startswith(prefix):
+            return f"patch_file may not touch protected path {norm!r}"
+    return None
+
+
+def patch_deletes_path(patch_text: str, rel: str) -> bool:
+    lines = patch_text.splitlines()
+    for i, line in enumerate(lines):
+        match = re.match(r"^--- (?:a/)?(.+?)\s*$", line)
+        if not match or _patch_path_norm(match.group(1)) != rel:
+            continue
+        for following in lines[i + 1:i + 4]:
+            if re.match(r"^\+\+\+ /dev/null\s*$", following):
+                return True
+    return False
+
+
+def check_file_patch(patch: list[dict[str, Any]], root: Path = ROOT) -> list[str]:
+    blocks: list[str] = []
+    ops = file_patch_ops(patch)
+    if not ops:
+        return blocks
+    for i, op in enumerate(ops):
+        text = op.get("patch")
+        if not isinstance(text, str) or not text.strip():
+            blocks.append(f"patch_file op {i}: patch must be a non-empty unified diff")
+    if blocks:
+        return blocks
+    combined = combined_file_patch(patch)
+    try:
+        paths = file_patch_paths(combined, root)
+    except ValueError as exc:
+        return [str(exc)]
+    for path in paths:
+        block = validate_patch_path(path)
+        if block:
+            blocks.append(block)
+            continue
+        if (root / path).is_symlink():
+            blocks.append(f"patch_file may not target symlink {path!r}")
+        if (
+            path in CORE_FILES_PROTECTED_FROM_DELETE
+            and patch_deletes_path(combined, path)
+        ):
+            blocks.append(f"patch_file may not delete core engine file {path!r}")
+    if len(ops) == 1 and len(paths) == 1:
+        op = ops[0]
+        expected_before = op.get("sha256_before")
+        target = root / paths[0]
+        if isinstance(expected_before, str) and expected_before and target.exists():
+            actual = hashlib.sha256(target.read_bytes()).hexdigest()
+            if actual != expected_before:
+                blocks.append(
+                    f"patch_file sha256_before mismatch for {paths[0]}: "
+                    f"expected {expected_before}, got {actual}"
+                )
+    return blocks
+
+
+def apply_file_patch_text(patch_text: str, root: Path) -> None:
+    proc = subprocess.run(
+        ["git", "apply"],
+        cwd=str(root),
+        input=patch_text,
+        text=True,
+        capture_output=True,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError((proc.stdout + proc.stderr).strip() or "git apply failed")
+
+
+def apply_file_patch(
+    patch: list[dict[str, Any]],
+    root: Path,
+    backup_label: str,
+    state: dict[str, Any],
+) -> None:
+    """Apply patch_file ops to the working tree with rollback backups."""
+    combined = combined_file_patch(patch)
+    if not combined.strip():
+        return
+    paths = file_patch_paths(combined, root)
+
+    stamp = datetime.now().astimezone().strftime("%Y%m%d_%H%M%S")
+    safe = (backup_label or "patch").replace("/", "_")
+    backup_root = SNAP_DIR / "file_backups" / f"{stamp}_{safe}"
+    seq = 0
+    while backup_root.exists():
+        seq += 1
+        backup_root = SNAP_DIR / "file_backups" / f"{stamp}_{safe}_{seq:03d}"
+    backup_root.mkdir(parents=True, exist_ok=False)
+
+    files: dict[str, str | None] = {}
+    for rel in paths:
+        src = root / rel
+        if src.exists():
+            backup_path = backup_root / rel
+            backup_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, backup_path)
+            files[rel] = backup_path.relative_to(ROOT).as_posix()
+        else:
+            files[rel] = None
+
+    def undo() -> None:
+        for rel, backup in files.items():
+            target = root / rel
+            if backup is None:
+                target.unlink(missing_ok=True)
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(ROOT / backup, target)
+
+    try:
+        apply_file_patch_text(combined, root)
+        ops = file_patch_ops(patch)
+        if len(ops) == 1 and len(paths) == 1:
+            expected_after = ops[0].get("sha256_after")
+            if isinstance(expected_after, str) and expected_after:
+                target = root / paths[0]
+                content = target.read_bytes() if target.exists() else b""
+                actual = hashlib.sha256(content).hexdigest()
+                if actual != expected_after:
+                    raise RuntimeError(
+                        f"patch_file sha256_after mismatch for {paths[0]}: "
+                        f"expected {expected_after}, got {actual}"
+                    )
+    except Exception as exc:
+        try:
+            undo()
+        finally:
+            shutil.rmtree(backup_root, ignore_errors=True)
+        raise SystemExit(f"BLOCKED: file patch failed and was rolled back: {exc}") from exc
+
+    state.setdefault("file_backups", []).append({
+        "at": now_iso(),
+        "modification_node": backup_label,
+        "backup_dir": backup_root.relative_to(ROOT).as_posix(),
+        "files": files,
+    })
+
+
+def restore_file_backup_entry(entry: dict[str, Any]) -> None:
+    root_resolved = ROOT.resolve()
+    snap_resolved = SNAP_DIR.resolve()
+    for rel, backup in entry.get("files", {}).items():
+        target = (ROOT / rel).resolve()
+        if not target.is_relative_to(root_resolved):
+            raise SystemExit(f"BLOCKED: rollback refuses path outside repository: {rel}")
+        if backup is None:
+            target.unlink(missing_ok=True)
+            continue
+        backup_path = (ROOT / backup).resolve()
+        if not backup_path.is_relative_to(snap_resolved):
+            raise SystemExit(f"BLOCKED: rollback refuses backup outside snapshots: {backup}")
+        if not backup_path.exists():
+            raise SystemExit(f"BLOCKED: rollback backup is missing: {backup}")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(backup_path, target)
+
+
+def restore_files_to_target(current: dict[str, Any], target: dict[str, Any]) -> None:
+    target_mods = {
+        entry.get("modification_node")
+        for entry in target.get("file_backups", [])
+        if isinstance(entry, dict)
+    }
+    for entry in reversed(current.get("file_backups", [])):
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("modification_node") in target_mods:
+            continue
+        restore_file_backup_entry(entry)
+
+
+def apply_raw_patch(
+    state: dict[str, Any],
+    patch: list[dict[str, Any]],
+    write_files: bool = False,
+    backup_label: str = "",
+) -> set[str]:
     changed: set[str] = set()
     nodes = state.setdefault("nodes", {})
     for op in patch:
         kind = op["op"]
+        if kind == "patch_file":
+            # File patches are validated separately and applied below so that
+            # state-trial validation never writes to the working tree.
+            continue
         if kind == "add_node":
             node = normalize_node(op["node"])
             if node["id"] in nodes:
@@ -453,6 +779,8 @@ def apply_raw_patch(state: dict[str, Any], patch: list[dict[str, Any]]) -> set[s
             state["revalidation_threshold"] = op["value"]
         elif kind == "set_self_test_command":
             state["self_test_command"] = op["command"]
+    if write_files and file_patch_ops(patch):
+        apply_file_patch(patch, ROOT, backup_label or "patch", state)
     return changed
 
 
@@ -537,11 +865,17 @@ def validate_patch(state: dict[str, Any], patch: list[dict[str, Any]]) -> list[s
         elif kind == "set_self_test_command":
             if not isinstance(op.get("command"), str) or not op["command"].strip():
                 blocks.append(f"{pos}: command must be a non-empty string")
+        elif kind == "patch_file":
+            if not isinstance(op.get("patch"), str) or not op["patch"].strip():
+                blocks.append(f"{pos}: patch_file requires a non-empty unified diff")
     if blocks:
         return blocks
+    file_blocks = check_file_patch(patch)
+    if file_blocks:
+        return [f"patch_file: {b}" for b in file_blocks]
     trial = copy.deepcopy(state)
     try:
-        apply_raw_patch(trial, patch)
+        apply_raw_patch(trial, patch, write_files=False)
     except SystemExit as exc:
         return [str(exc)]
     trial_blocks, _ = validate(trial)
@@ -627,7 +961,12 @@ def apply_modification(
         "updated_at": now,
     }
 
-    changed = apply_raw_patch(state, patch)
+    changed = apply_raw_patch(
+        state,
+        patch,
+        write_files=True,
+        backup_label=mod_id,
+    )
     for target in sorted(origins | changed):
         if target in state["nodes"] and target != META_GOAL_ID and target != mod_id:
             state.setdefault("edges", []).append(
@@ -750,7 +1089,23 @@ def load_patch(args: argparse.Namespace) -> list[dict[str, Any]]:
 def cmd_propose(args: argparse.Namespace) -> int:
     state = load_state()
     patch = load_patch(args)
-    blocks = validate_patch(state, patch) if patch else []
+    if not patch:
+        raise SystemExit("BLOCKED: a proposal requires --patch-file or --patch")
+    targets = [t.strip() for t in (args.targets or "").split(",") if t.strip()]
+    if file_patch_ops(patch) and not targets:
+        raise SystemExit(
+            "BLOCKED: patch_file proposals must declare one or two graph target "
+            "nodes via --targets so file changes have an invalidation-impact claim"
+        )
+    if args.retro:
+        retro = state.get("retrospectives", {}).get(args.retro)
+        if not retro:
+            raise SystemExit(f"Unknown retrospective {args.retro}")
+        if retro.get("status") != "open":
+            raise SystemExit(
+                f"BLOCKED: retrospective {args.retro} is {retro.get('status')}, not open"
+            )
+    blocks = validate_patch(state, patch)
     if blocks:
         raise SystemExit("BLOCKED: invalid patch:\n  " + "\n  ".join(blocks))
     pid = next_id(state, "P", "proposal")
@@ -759,9 +1114,10 @@ def cmd_propose(args: argparse.Namespace) -> int:
         "track": args.track,
         "title": args.title,
         "statement": args.statement,
-        "targets": [t.strip() for t in (args.targets or "").split(",") if t.strip()],
+        "targets": targets,
         "patch": patch,
         "verification_command": args.verification,
+        "retrospective_id": args.retro or None,
         "status": "proposed",
         "critic": None,
         "verification": None,
@@ -769,7 +1125,16 @@ def cmd_propose(args: argparse.Namespace) -> int:
         "proposed_at": now_iso(),
     }
     state["proposals"][pid] = proposal
-    append_event(state, "proposal_proposed", {"track": args.track, "proposal": pid, "title": args.title})
+    append_event(
+        state,
+        "proposal_proposed",
+        {
+            "track": args.track,
+            "proposal": pid,
+            "title": args.title,
+            "retrospective": args.retro or None,
+        },
+    )
     save_state(state, "proposal_proposed")
     print(f"Proposed {pid}: {args.title}")
     print(f"Next: critique --proposal {pid} --verdict pass|challenge|reject "
@@ -824,12 +1189,22 @@ def cmd_revise(args: argparse.Namespace) -> int:
     return 0
 
 
-def run_verification_command(command: str, timeout: int) -> dict[str, Any]:
+def run_verification_command(
+    command: str,
+    timeout: int,
+    root: Path = ROOT,
+    extra_env: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    env = os.environ.copy()
+    env["RESEARCH_CLOSURE_ROOT"] = str(root)
+    if extra_env:
+        env.update(extra_env)
     try:
         proc = subprocess.run(
             command,
             shell=True,
-            cwd=str(ROOT),
+            cwd=str(root),
+            env=env,
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -854,6 +1229,39 @@ def run_verification_command(command: str, timeout: int) -> dict[str, Any]:
     }
 
 
+def _sandbox_ignore(directory: str, names: list[str]) -> set[str]:
+    ignored = {".git", ".ssh_github", "__pycache__"}
+    if Path(directory).name == ".research":
+        ignored.add("auto_snapshots")
+    return {name for name in names if name in ignored or name.endswith(".pyc")}
+
+
+def verification_sandbox_for(prop: dict[str, Any]) -> tempfile.TemporaryDirectory | None:
+    if not file_patch_ops(prop.get("patch", [])):
+        return None
+    td = tempfile.TemporaryDirectory(prefix="auto-research-verify-")
+    try:
+        sandbox = Path(td.name) / "work"
+        shutil.copytree(ROOT, sandbox, ignore=_sandbox_ignore)
+        apply_file_patch_text(combined_file_patch(prop.get("patch", [])), sandbox)
+        return td
+    except Exception:
+        td.cleanup()
+        raise
+
+
+def _verification_failure_record(message: str, command: str) -> dict[str, Any]:
+    return {
+        "exit_code": 1,
+        "timeout": False,
+        "stdout_sha256": "",
+        "stdout_bytes": 0,
+        "stderr_tail": message[-2000:],
+        "at": now_iso(),
+        "sandbox": "blocked-before-run",
+    }
+
+
 def cmd_verify(args: argparse.Namespace) -> int:
     state = load_state()
     prop = state["proposals"].get(args.proposal)
@@ -867,8 +1275,45 @@ def cmd_verify(args: argparse.Namespace) -> int:
     command = args.command or prop.get("verification_command")
     if not command or not command.strip():
         raise SystemExit("BLOCKED: no verification command; pass --command")
-    record = run_verification_command(command, args.timeout)
-    record.update({"track": args.track, "proposal": args.proposal, "level": "hard", "command": command})
+
+    sandbox: tempfile.TemporaryDirectory | None = None
+    sandbox_label = None
+    try:
+        if file_patch_ops(prop.get("patch", [])):
+            blocks = validate_patch(state, prop.get("patch", []))
+            if blocks:
+                record = _verification_failure_record(
+                    "patch validation failed before sandbox run:\n" + "\n".join(blocks),
+                    command,
+                )
+            else:
+                try:
+                    sandbox = verification_sandbox_for(prop)
+                    sandbox_root = Path(sandbox.name) / "work"
+                    record = run_verification_command(
+                        command,
+                        args.timeout,
+                        root=sandbox_root,
+                    )
+                    record["sandbox"] = "temporary-copy"
+                    sandbox_label = "temporary-copy"
+                except Exception as exc:
+                    record = _verification_failure_record(
+                        f"could not build patch verification sandbox: {exc}",
+                        command,
+                    )
+        else:
+            record = run_verification_command(command, args.timeout)
+    finally:
+        if sandbox is not None:
+            sandbox.cleanup()
+
+    record.update({
+        "track": args.track,
+        "proposal": args.proposal,
+        "level": "hard",
+        "command": command,
+    })
     state.setdefault("verifications", []).append(record)
     state["counters"]["verification"] = len(state["verifications"])
     prop["verification"] = {
@@ -879,10 +1324,21 @@ def cmd_verify(args: argparse.Namespace) -> int:
         "stdout_sha256": record["stdout_sha256"],
         "at": record["at"],
     }
+    if sandbox_label:
+        prop["verification"]["sandbox"] = sandbox_label
     passed = not record.get("timeout") and record.get("exit_code") == 0
     prop["status"] = "verified" if passed else "failed_verification"
     outcome = "verified" if passed else "failed_verification"
-    append_event(state, "proposal_verified", {"track": args.track, "proposal": args.proposal, "outcome": outcome})
+    append_event(
+        state,
+        "proposal_verified",
+        {
+            "track": args.track,
+            "proposal": args.proposal,
+            "outcome": outcome,
+            "sandbox": sandbox_label,
+        },
+    )
     save_state(state, "proposal_verified")
     print(f"{args.proposal}: {outcome} (exit {record['exit_code']})")
     if record["stderr_tail"]:
@@ -908,6 +1364,20 @@ def cmd_apply(args: argparse.Namespace) -> int:
     role = "B (slow)" if args.track == "B" else "A (fast)"
     print(f"{role} applied {args.proposal} as modification node {result['modification_node']}")
     print(f"Affected/deprecated nodes: {result['affected_nodes'] or 'none'}")
+
+    retro_id = prop.get("retrospective_id")
+    retro = state.get("retrospectives", {}).get(retro_id or "")
+    if retro_id and retro and retro.get("status") == "open":
+        retro["status"] = "converted"
+        retro["proposal_id"] = args.proposal
+        retro["resolved_at"] = now_iso()
+        append_event(
+            state,
+            "retrospective_converted",
+            {"retrospective": retro_id, "proposal": args.proposal},
+        )
+        save_state(state, "retrospective_converted")
+        print(f"Retrospective {retro_id} converted by {args.proposal}")
     return 0
 
 
@@ -1014,6 +1484,8 @@ def cmd_rollback(args: argparse.Namespace) -> int:
     if idx < 0 or idx >= len(files):
         raise SystemExit(f"Snapshot index must be 1..{len(files)}")
     restored = json.loads(files[idx].read_text())
+    current = load_state()
+    restore_files_to_target(current, restored)
     append_event(restored, "rolled_back", {"from_snapshot": files[idx].name, "to_snapshot_index": args.to})
     save_state(restored, "rolled_back")
     print(f"Rolled back to snapshot {args.to}: {files[idx].name}")
@@ -1051,6 +1523,12 @@ def cmd_status(_: argparse.Namespace) -> int:
     print(f"Proposals: {len(state.get('proposals', {}))}")
     for pid, prop in sorted(state.get("proposals", {}).items()):
         print(f"  {pid:8s} [{prop.get('track','?')}] {prop.get('status','?'):18s} {prop.get('title','')[:60]}")
+    open_retros = sorted(
+        rid for rid, retro in state.get("retrospectives", {}).items()
+        if retro.get("status") == "open"
+    )
+    print(f"Retrospectives: {len(state.get('retrospectives', {}))} "
+          f"(open: {open_retros or 'none'})  File backups: {len(state.get('file_backups', []))}")
     if state.get("last_self_test"):
         last = state["last_self_test"]
         print(f"Last self-test: {'PASS' if last.get('passed') else 'FAIL'} at {last.get('at')}")
@@ -1070,6 +1548,13 @@ def cmd_next(_: argparse.Namespace) -> int:
             out.append(f"verify --proposal {pid}")
         elif status == "verified":
             out.append(f"apply --proposal {pid}")
+    if not out:
+        open_retros = sorted(
+            rid for rid, retro in state.get("retrospectives", {}).items()
+            if retro.get("status") == "open"
+        )
+        if open_retros:
+            out.append(f"retro next  # convert {open_retros[0]} into a local proposal")
     if not out:
         deprecated = sorted(
             nid for nid, node in state.get("nodes", {}).items()
@@ -1107,6 +1592,197 @@ def cmd_events(args: argparse.Namespace) -> int:
     return 0
 
 
+def _retro_from_args(args: argparse.Namespace) -> dict[str, Any]:
+    if args.file:
+        raw = json.loads(Path(args.file).read_text())
+        if not isinstance(raw, dict):
+            raise SystemExit("BLOCKED: retrospective file must contain a JSON object")
+        return raw
+    if not args.observation or not args.observation.strip():
+        raise SystemExit("BLOCKED: --observation is required unless --file is used")
+    return {
+        "observation": args.observation,
+        "class": args.retro_class,
+        "source": args.source,
+        "evidence": list(args.evidence or []),
+        "suggested": {
+            "title": args.suggested_title,
+            "targets": [
+                t.strip() for t in (args.suggested_targets or "").split(",") if t.strip()
+            ],
+            "patch_intent": args.suggested_patch,
+            "verification": args.suggested_verification,
+        },
+    }
+
+
+def cmd_retro_add(args: argparse.Namespace) -> int:
+    state = load_state()
+    raw = _retro_from_args(args)
+    observation = raw.get("observation")
+    if not isinstance(observation, str) or not observation.strip():
+        raise SystemExit("BLOCKED: retrospective observation must be a non-empty string")
+    rid = f"R-{int(state.get('counters', {}).get('retrospective', 0)) + 1:03d}"
+
+    def mutate(st: dict[str, Any]) -> None:
+        next_id(st, "R", "retrospective")
+        retro = {
+            "id": rid,
+            "created_at": now_iso(),
+            "class": raw.get("class", "other"),
+            "source": raw.get("source", "unknown"),
+            "observation": observation,
+            "evidence": list(raw.get("evidence") or []),
+            "suggested": raw.get("suggested") or {},
+            "status": "open",
+            "proposal_id": None,
+            "resolved_at": None,
+            "resolution_note": None,
+        }
+        st.setdefault("retrospectives", {})[rid] = retro
+
+    mutate_validated(
+        state,
+        "retrospective_added",
+        {"retrospective": rid, "class": raw.get("class", "other")},
+        mutate,
+    )
+    print(f"Added {rid}: {observation[:80]}")
+    return 0
+
+
+def cmd_retro_list(args: argparse.Namespace) -> int:
+    state = load_state()
+    retros = state.get("retrospectives", {})
+    selected = retros if args.all else {
+        rid: retro for rid, retro in retros.items()
+        if retro.get("status") == "open"
+    }
+    print(f"RETROSPECTIVES ({len(selected)})")
+    for rid in sorted(selected):
+        retro = selected[rid]
+        print(f"  {rid:8s} [{retro.get('status','?'):10s}] "
+              f"{retro.get('class','?'):14s} {retro.get('observation','')[:70]}")
+        if retro.get("proposal_id"):
+            print(f"            proposal={retro['proposal_id']}")
+    if not selected:
+        print("  (none)")
+    return 0
+
+
+def cmd_retro_next(args: argparse.Namespace) -> int:
+    state = load_state()
+    open_retros = sorted(
+        (rid, retro) for rid, retro in state.get("retrospectives", {}).items()
+        if retro.get("status") == "open"
+    )
+    if not open_retros:
+        print("NEXT RETROSPECTIVE: none open")
+        return 0
+    rid, retro = open_retros[0]
+    suggested = retro.get("suggested") or {}
+    print(f"NEXT RETROSPECTIVE: {rid}")
+    print(f"  class      : {retro.get('class')}")
+    print(f"  source     : {retro.get('source')}")
+    print(f"  observation: {retro.get('observation')}")
+    evidence = retro.get("evidence") or []
+    if evidence:
+        print("  evidence   :")
+        for item in evidence[:6]:
+            print(f"    - {item}")
+    print(f"  suggested title       : {suggested.get('title') or '-'}")
+    print(f"  suggested targets     : {suggested.get('targets') or '-'}")
+    print(f"  suggested patch_intent: {suggested.get('patch_intent') or '-'}")
+    print(f"  suggested verification: {suggested.get('verification') or '-'}")
+    print("A must convert this item into a proposal or record why it is blocked.")
+    return 0
+
+
+def cmd_retro_close(args: argparse.Namespace) -> int:
+    state = load_state()
+    retro = state.get("retrospectives", {}).get(args.id)
+    if not retro:
+        raise SystemExit(f"Unknown retrospective {args.id}")
+    if retro.get("status") != "open":
+        raise SystemExit(f"BLOCKED: retrospective {args.id} is {retro.get('status')}, not open")
+    if args.disposition == "converted":
+        if not args.proposal or args.proposal not in state.get("proposals", {}):
+            raise SystemExit("BLOCKED: converted disposition requires --proposal with a valid proposal id")
+        if state["proposals"][args.proposal].get("status") != "applied":
+            raise SystemExit("BLOCKED: converted disposition requires an applied proposal")
+
+    def mutate(st: dict[str, Any]) -> None:
+        item = st["retrospectives"][args.id]
+        item["status"] = args.disposition
+        item["proposal_id"] = args.proposal or item.get("proposal_id")
+        item["resolved_at"] = now_iso()
+        item["resolution_note"] = args.note or ""
+
+    mutate_validated(
+        state,
+        "retrospective_closed",
+        {
+            "retrospective": args.id,
+            "disposition": args.disposition,
+            "proposal": args.proposal or None,
+        },
+        mutate,
+    )
+    print(f"{args.id}: {args.disposition}")
+    return 0
+
+
+def cmd_patch_make(args: argparse.Namespace) -> int:
+    target = (ROOT / args.target).expanduser().resolve()
+    candidate = Path(args.candidate).expanduser().resolve()
+    root_resolved = ROOT.resolve()
+    if not target.is_relative_to(root_resolved):
+        raise SystemExit("BLOCKED: --target must be inside the repository")
+    if not candidate.exists():
+        raise SystemExit(f"BLOCKED: candidate file not found: {candidate}")
+    rel = target.relative_to(root_resolved).as_posix()
+    block = validate_patch_path(rel)
+    if block:
+        raise SystemExit(f"BLOCKED: {block}")
+    if target == candidate:
+        raise SystemExit("BLOCKED: target and candidate must be different files")
+
+    old_text = target.read_text() if target.exists() else ""
+    new_text = candidate.read_text()
+    fromfile = f"a/{rel}" if target.exists() else "/dev/null"
+    tofile = f"b/{rel}" if target.exists() else f"b/{rel}"
+    diff_lines = difflib.unified_diff(
+        old_text.splitlines(keepends=True),
+        new_text.splitlines(keepends=True),
+        fromfile=fromfile,
+        tofile=tofile,
+    )
+    diff = "".join(diff_lines)
+    if not diff:
+        raise SystemExit("BLOCKED: candidate is identical to target; no patch generated")
+    op: dict[str, Any] = {
+        "op": "patch_file",
+        "path": rel,
+        "patch": diff,
+        "sha256_after": hashlib.sha256(new_text.encode("utf-8")).hexdigest(),
+    }
+    if target.exists():
+        op["sha256_before"] = hashlib.sha256(old_text.encode("utf-8")).hexdigest()
+
+    out = Path(args.out).expanduser()
+    if not out.is_absolute():
+        out = ROOT / out
+    if args.append and out.exists():
+        existing = json.loads(out.read_text())
+        if not isinstance(existing, list):
+            raise SystemExit("BLOCKED: --append requires an existing JSON array")
+        existing.append(op)
+        out.write_text(json.dumps(existing, indent=2) + "\n")
+    else:
+        out.write_text(json.dumps([op], indent=2) + "\n")
+    print(f"Patch written: {out} (target={rel})")
+    return 0
+
 
 def cmd_ab_status(_: argparse.Namespace) -> int:
     state = load_state()
@@ -1140,6 +1816,12 @@ def cmd_ab_status(_: argparse.Namespace) -> int:
         }[prop["status"]]
         print(f"    {pid:8s} {prop.get('status', '?'):18s} -> {action}")
 
+    open_retros = sorted(
+        rid for rid, retro in state.get("retrospectives", {}).items()
+        if retro.get("status") == "open"
+    )
+    print(f"  open retrospectives: {open_retros or 'none'}")
+    print(f"  file backups      : {len(state.get('file_backups', []))}")
     print("Loop contract")
     print("  A proposes -> B criticises -> B hard-verifies -> B applies")
     print("  -> trust decay + dependency closure -> A revises or opens a new candidate")
@@ -1152,6 +1834,15 @@ def cmd_ab_next(_: argparse.Namespace) -> int:
     nodes = state.get("nodes", {})
     a_actions: list[str] = []
     b_actions: list[str] = []
+    open_retros = sorted(
+        rid for rid, retro in state.get("retrospectives", {}).items()
+        if retro.get("status") == "open"
+    )
+    if open_retros:
+        a_actions.append(
+            f"retro next  # then convert {open_retros[0]} into a local proposal "
+            "or document why it is blocked"
+        )
 
     for pid, prop in sorted(proposals.items()):
         status = prop.get("status")
@@ -1173,7 +1864,7 @@ def cmd_ab_next(_: argparse.Namespace) -> int:
         elif status == "rejected":
             a_actions.append(
                 f"propose --track A --title '<new candidate>' "
-                "--statement '<why this differs from rejected {pid}>'"
+                f"--statement '<why this differs from rejected {pid}>'"
             )
 
     if not b_actions:
@@ -1255,6 +1946,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--patch-file", help="JSON file containing a patch array")
     sp.add_argument("--patch", help="inline JSON patch array")
     sp.add_argument("--verification", help="hard verification command")
+    sp.add_argument("--retro", help="open retrospective id this proposal converts")
     sp.set_defaults(func=cmd_propose)
 
     sp = sub.add_parser("critique", help="B-track: LLM critic gate (soft judgment only)")
@@ -1299,6 +1991,43 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--command", help="required for light/hard")
     sp.add_argument("--timeout", type=int, default=60)
     sp.set_defaults(func=cmd_revalidate)
+
+    sp = sub.add_parser("patch-make", help="build a patch_file op from a candidate file")
+    sp.add_argument("--target", required=True, help="repo-relative target path")
+    sp.add_argument("--candidate", required=True, help="candidate file path")
+    sp.add_argument("--out", required=True, help="patch JSON output path")
+    sp.add_argument("--append", action="store_true", help="append to an existing patch array")
+    sp.set_defaults(func=cmd_patch_make)
+
+    sp = sub.add_parser("retro", help="retrospective backlog commands")
+    retro_sub = sp.add_subparsers(dest="retro_command", required=True)
+
+    rsp = retro_sub.add_parser("add", help="add a retrospective item")
+    rsp.add_argument("--file", help="JSON file with retrospective fields")
+    rsp.add_argument("--observation")
+    rsp.add_argument("--class", dest="retro_class", choices=RETROSPECTIVE_CLASSES,
+                     default="other")
+    rsp.add_argument("--source", default="unknown")
+    rsp.add_argument("--evidence", action="append", default=[])
+    rsp.add_argument("--suggested-title")
+    rsp.add_argument("--suggested-targets")
+    rsp.add_argument("--suggested-patch")
+    rsp.add_argument("--suggested-verification")
+    rsp.set_defaults(func=cmd_retro_add)
+
+    rsp = retro_sub.add_parser("list", help="list retrospective items")
+    rsp.add_argument("--all", action="store_true", help="include closed items")
+    rsp.set_defaults(func=cmd_retro_list)
+
+    rsp = retro_sub.add_parser("next", help="show the next open retrospective item")
+    rsp.set_defaults(func=cmd_retro_next)
+
+    rsp = retro_sub.add_parser("close", help="close a retrospective item")
+    rsp.add_argument("--id", required=True)
+    rsp.add_argument("--disposition", required=True, choices=RETROSPECTIVE_DISPOSITIONS)
+    rsp.add_argument("--proposal")
+    rsp.add_argument("--note")
+    rsp.set_defaults(func=cmd_retro_close)
 
     sp = sub.add_parser("ab-status", help="show the A/B fast/slow queue")
     sp.set_defaults(func=cmd_ab_status)

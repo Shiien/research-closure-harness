@@ -11,8 +11,22 @@ class TestHarnessAutoLoad(unittest.TestCase):
             text = (ROOT / name).read_text()
             self.assertIn("ab-status", text)
             self.assertIn("ab-next", text)
+            self.assertIn("retro next", text)
             self.assertIn("auto-research-fast", text)
             self.assertIn("auto-research-slow", text)
+
+    def test_fast_skill_is_retrospective_first_and_can_patch_files(self):
+        for root in (".dsh", ".agents", ".claude"):
+            text = (ROOT / root / "skills" / "auto-research-fast" / "SKILL.md").read_text()
+            self.assertIn("retro next", text)
+            self.assertIn("patch-make", text)
+            self.assertIn("patch_file", text)
+
+    def test_slow_skill_documents_sandbox_verify_and_file_rollback(self):
+        for root in (".dsh", ".agents", ".claude"):
+            text = (ROOT / root / "skills" / "auto-research-slow" / "SKILL.md").read_text()
+            self.assertIn("isolated", text)
+            self.assertIn("file backups", text)
 
     def test_dsh_uses_agents_md_not_deepseek_md(self):
         text = (ROOT / "AGENTS.md").read_text()

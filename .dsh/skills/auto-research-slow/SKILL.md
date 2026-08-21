@@ -35,10 +35,14 @@ python tools/auto_research.py critique --track B \
   --proposal P-001 --verdict pass \
   --critic "<critic name>" --reason "<specific reason>"
 
-# 2. Hard verification: reproducible, exit-0 only
+# 2. Hard verification: reproducible, exit-0 only.
+#    For patch_file proposals the engine runs the command in an isolated
+#    temporary copy with the patch already applied.
 python tools/auto_research.py verify --track B --proposal P-001
 
-# 3. Apply verified patch and invalidate dependents
+# 3. Apply verified patch and invalidate dependents.
+#    patch_file apply stores file backups under
+#    .research/auto_snapshots/file_backups/ so rollback restores files too.
 python tools/auto_research.py apply --track B --proposal P-001
 
 # 4. Revalidate deprecated or draft nodes
@@ -48,6 +52,10 @@ python tools/auto_research.py revalidate --track B \
 # 5. Capability self-test after self-modification sessions
 python tools/auto_research.py self-test
 ```
+
+After apply, the engine closes the proposal's linked retrospective automatically
+(`--retro R-xxx`). If A linked a retrospective that remains open, verify the
+linkage before declaring session closure.
 
 ## Feedback contract to A
 
@@ -62,4 +70,5 @@ Feedback for A:
 Next smallest A action:
 ```
 
-If verification fails, do not apply and do not silently patch around the failure. Send the failure back to A through `revise`.
+If verification fails, do not apply and do not silently patch around the
+failure. Send the failure back to A through `revise`.

@@ -466,7 +466,8 @@ if [[ "$INSTALL_GLOBAL_RULES" -eq 1 ]]; then
 
 In repositories containing `.research/auto_research.json`:
 
-- At session start run `auto-research ab-status` and `auto-research ab-next`.
+- At session start run `auto-research ab-status`, `auto-research ab-next`, and `auto-research retro next`.
+- If `retro next` has an open item, A converts it into a proposal before opening a new epoch.
 - A (fast) invokes `$auto-research-fast` and only proposes candidates.
 - B (slow) invokes `$auto-research-slow` and criticises, verifies, applies, or revalidates.
 - The loop is: A proposes -> B criticises -> B hard-verifies -> B applies -> feedback to A.
@@ -486,7 +487,8 @@ EOF
 
 In repositories containing `.research/auto_research.json`:
 
-- At session start run `auto-research ab-status` and `auto-research ab-next`.
+- At session start run `auto-research ab-status`, `auto-research ab-next`, and `auto-research retro next`.
+- If `retro next` has an open item, A converts it into a proposal before opening a new epoch.
 - A (fast) uses `/auto-research-fast` and only proposes candidates.
 - B (slow) uses `/auto-research-slow` and criticises, verifies, applies, or revalidates.
 - The loop is: A proposes -> B criticises -> B hard-verifies -> B applies -> feedback to A.
@@ -506,7 +508,8 @@ EOF
 
 In repositories containing `.research/auto_research.json`:
 
-- At session start run `auto-research ab-status` and `auto-research ab-next`.
+- At session start run `auto-research ab-status`, `auto-research ab-next`, and `auto-research retro next`.
+- If `retro next` has an open item, A converts it into a proposal before opening a new epoch.
 - A (fast) uses the `auto-research-fast` skill and only proposes candidates.
 - B (slow) uses the `auto-research-slow` skill and criticises, verifies, applies, or revalidates.
 - The loop is: A proposes -> B criticises -> B hard-verifies -> B applies -> feedback to A.

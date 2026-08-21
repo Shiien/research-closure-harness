@@ -88,6 +88,18 @@ class RepoCase(unittest.TestCase):
                                     "--command", verification))
         return self.assertOk(self.run_auto("apply", "--proposal", proposal))
 
+    def make_file_patch(self, target, content, out="patch_file.json"):
+        candidate_dir = self.repo / ".research" / "tmp"
+        candidate_dir.mkdir(parents=True, exist_ok=True)
+        candidate = candidate_dir / f"{Path(out).stem}.candidate"
+        candidate.write_text(content)
+        patch_path = self.repo / out
+        self.assertOk(self.run_auto(
+            "patch-make", "--target", target,
+            "--candidate", str(candidate), "--out", out,
+        ))
+        return str(patch_path)
+
 
 class TestImmutableCore(RepoCase):
     def test_init_creates_l0_meta_goal(self):
@@ -291,6 +303,168 @@ class TestSnapshotsAndRollback(RepoCase):
             len(restored["events"]), len(baseline.get("events", [])) + 1
         )
         self.assertEqual(restored["events"][-1]["event"], "rolled_back")
+
+
+class TestPatchFileCapability(RepoCase):
+    def test_patch_make_proposes_verifies_in_sandbox_and_applies(self):
+        self.add_node("N1", "patch target", "L4", ntype="verify",
+                      status="validated")
+        patch = self.make_file_patch(
+            "tools/new_file.py", "print('patched')\n",
+        )
+        self.assertOk(self.run_auto(
+            "propose", "--title", "add engine file", "--statement",
+            "small file addition", "--targets", "N1", "--patch-file", patch,
+            "--verification",
+            "python3 -c \"assert open('tools/new_file.py').read().startswith('print')\"",
+        ))
+        self.assertOk(self.run_auto(
+            "critique", "--proposal", "P-001", "--verdict", "pass",
+            "--critic", "test-critic", "--reason", "one new allowlisted file",
+        ))
+        self.assertOk(self.run_auto("verify", "--proposal", "P-001"))
+        # Verification ran in a temporary copy; the real working tree is clean.
+        self.assertFalse((self.repo / "tools" / "new_file.py").exists())
+        self.assertOk(self.run_auto("apply", "--proposal", "P-001"))
+        self.assertEqual(
+            (self.repo / "tools" / "new_file.py").read_text(),
+            "print('patched')\n",
+        )
+        st = self.state()
+        self.assertEqual(len(st["file_backups"]), 1)
+        self.assertEqual(
+            st["file_backups"][0]["files"]["tools/new_file.py"], None
+        )
+
+    def test_patch_file_requires_declared_targets(self):
+        self.add_node("N1")
+        patch = self.make_file_patch("tools/new_file.py", "x\n")
+        proc = self.run_auto(
+            "propose", "--title", "missing targets", "--statement", "bad",
+            "--patch-file", patch, "--verification", PASS_CMD,
+        )
+        self.assertBlocked(proc, "must declare")
+
+    def test_patch_file_cannot_touch_protected_state(self):
+        self.add_node("N1")
+        target = self.repo / ".research" / "auto_research.json"
+        candidate = self.repo / ".research" / "tmp" / "state.candidate"
+        candidate.parent.mkdir(parents=True, exist_ok=True)
+        candidate.write_text(target.read_text().replace("M0", "M9", 1))
+        proc = self.run_auto(
+            "patch-make", "--target", ".research/auto_research.json",
+            "--candidate", str(candidate), "--out", "bad.json",
+        )
+        self.assertBlocked(proc, "protected")
+
+    def test_patch_file_cannot_delete_core_engine_file(self):
+        self.add_node("N1")
+        (self.repo / "tools").mkdir(exist_ok=True)
+        target = self.repo / "tools" / "auto_research.py"
+        target.write_text("core\n")
+        patch_path = self.repo / "delete_core.json"
+        patch_path.write_text(json.dumps([{
+            "op": "patch_file",
+            "patch": "--- a/tools/auto_research.py\n+++ /dev/null\n"
+                     "@@ -1 +0,0 @@\n-core\n",
+        }]))
+        proc = self.run_auto(
+            "propose", "--title", "delete core", "--statement", "bad",
+            "--targets", "N1", "--patch-file", str(patch_path),
+        )
+        self.assertBlocked(proc, "may not delete core engine file")
+
+    def test_rollback_restores_file_contents(self):
+        self.add_node("N1", "patch target", "L4", ntype="verify",
+                      status="validated")
+        (self.repo / "tools").mkdir(exist_ok=True)
+        target = self.repo / "tools" / "file.txt"
+        target.write_text("v1\n")
+
+        first_patch = self.make_file_patch("tools/file.txt", "v2\n", "p1.json")
+        self.assertOk(self.run_auto(
+            "propose", "--title", "file v1->v2", "--statement", "local edit",
+            "--targets", "N1", "--patch-file", first_patch,
+            "--verification",
+            "python3 -c \"assert open('tools/file.txt').read() == 'v2\\n'\"",
+        ))
+        self.drive_pipeline()
+        self.assertEqual(target.read_text(), "v2\n")
+
+        snapshots = sorted((self.repo / ".research" / "auto_snapshots").glob("*.json"))
+        first_applied = next(
+            p for p in snapshots
+            if p.name.endswith("_modification_applied.json")
+            and json.loads(p.read_text()).get("proposals", {}).get("P-001", {}).get("status") == "applied"
+        )
+        first_applied_index = snapshots.index(first_applied) + 1
+
+        self.add_node("N2", "second target", "L4", ntype="verify",
+                      status="validated")
+        second_patch = self.make_file_patch("tools/file.txt", "v3\n", "p2.json")
+        self.assertOk(self.run_auto(
+            "propose", "--title", "file v2->v3", "--statement", "local edit",
+            "--targets", "N2", "--patch-file", second_patch,
+            "--verification",
+            "python3 -c \"assert open('tools/file.txt').read() == 'v3\\n'\"",
+        ))
+        self.drive_pipeline("P-002")
+        self.assertEqual(target.read_text(), "v3\n")
+
+        self.assertOk(self.run_auto("rollback", "--to", str(first_applied_index)))
+        self.assertEqual(target.read_text(), "v2\n")
+        st = self.state()
+        self.assertNotIn("P-002", st["proposals"])
+
+
+class TestRetrospectiveBacklog(RepoCase):
+    def test_retro_add_next_and_auto_close_on_apply(self):
+        self.add_node("N1")
+        retro = self.repo / "retro.json"
+        retro.write_text(json.dumps({
+            "observation": "dashboard crashes without snapshots",
+            "class": "defect",
+            "source": "human-meta-review",
+            "evidence": ["IndexError"],
+            "suggested": {
+                "title": "dashboard fallback",
+                "targets": ["N1"],
+                "patch_intent": "patch dashboard",
+                "verification": PASS_CMD,
+            },
+        }))
+        self.assertOk(self.run_auto("retro", "add", "--file", str(retro)))
+        nxt = self.assertOk(self.run_auto("retro", "next")).stdout
+        self.assertIn("R-001", nxt)
+        self.assertIn("dashboard crashes", nxt)
+
+        patch = self.patch_file(
+            [{"op": "set_node_statement", "node": "N1", "statement": "v2"}]
+        )
+        self.assertOk(self.run_auto(
+            "propose", "--title", "convert retro", "--statement", "candidate",
+            "--targets", "N1", "--patch-file", patch, "--verification", PASS_CMD,
+            "--retro", "R-001",
+        ))
+        self.drive_pipeline()
+        st = self.state()
+        self.assertEqual(st["retrospectives"]["R-001"]["status"], "converted")
+        self.assertEqual(st["retrospectives"]["R-001"]["proposal_id"], "P-001")
+        self.assertEqual(st["proposals"]["P-001"]["retrospective_id"], "R-001")
+        nxt = self.assertOk(self.run_auto("retro", "next")).stdout
+        self.assertIn("none open", nxt)
+
+    def test_retro_converted_requires_applied_proposal(self):
+        self.add_node("N1")
+        self.assertOk(self.run_auto(
+            "retro", "add", "--observation", "one finding",
+            "--class", "defect", "--source", "test",
+        ))
+        proc = self.run_auto(
+            "retro", "close", "--id", "R-001",
+            "--disposition", "converted", "--proposal", "P-999",
+        )
+        self.assertBlocked(proc)
 
 
 if __name__ == "__main__":

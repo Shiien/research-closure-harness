@@ -54,6 +54,7 @@ the A/B skills appear in the skill catalog. The model should run:
 ```sh
 python tools/auto_research.py ab-status
 python tools/auto_research.py ab-next
+python tools/auto_research.py retro next
 ```
 
 then choose A (`auto-research-fast`) or B (`auto-research-slow`).
