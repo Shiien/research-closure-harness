@@ -764,5 +764,14 @@ class TestSnapshotIndexCli(RepoCase):
         self.assertEqual(data["entries"], 0)
 
 
+class TestSelfTestJson(RepoCase):
+    def test_self_test_json(self):
+        out = self.assertOk(self.run_auto("self-test", "--command", PASS_CMD, "--json")).stdout
+        data = json.loads(out)
+        self.assertEqual(data["mode"], "self-test")
+        self.assertTrue(data["passed"])
+        self.assertEqual(data["record"]["exit_code"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()

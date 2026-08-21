@@ -1716,7 +1716,14 @@ def cmd_self_test(args: argparse.Namespace) -> int:
     }
     append_event(state, "self_test_passed" if passed else "self_test_failed", state["last_self_test"])
     save_state(state, "self_test")
-    print(f"Self-test: {'PASS' if passed else 'FAIL'} (exit {record.get('exit_code')})")
+    if args.json:
+        print(json.dumps({
+            "mode": "self-test",
+            "passed": passed,
+            "record": record,
+        }, indent=2, sort_keys=True))
+    else:
+        print(f"Self-test: {'PASS' if passed else 'FAIL'} (exit {record.get('exit_code')})")
     return 0 if passed else 1
 
 
@@ -2935,6 +2942,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("self-test", help="run the configured capability self-test")
     sp.add_argument("--command", help="override the configured self-test command")
     sp.add_argument("--timeout", type=int, default=120)
+    sp.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     sp.set_defaults(func=cmd_self_test)
 
     sp = sub.add_parser("snapshot", help="write a manual snapshot")
