@@ -52,3 +52,4 @@
 {"at": "2026-08-22T12:33:36+08:00", "epoch": 5, "role": "B", "event": "epoch_applied", "detail": {"proposal": "P-231", "health": true}}
 {"at": "2026-08-22T12:36:47+08:00", "epoch": 6, "role": "A", "event": "epoch_applied", "detail": {"proposal": "P-232", "health": true}}
 {"at": "2026-08-22T12:40:01+08:00", "epoch": 7, "role": "B", "event": "propose_failed", "detail": {"stdout": "A novelty check: closest prior is P-218 (score 0.72): Add A-ASSERT-CLOSURE: verification assertions must be patch-written verbatim\n", "stderr": "BLOCKED: semantic-novelty guard:\n  patch-op concentration guard: add_node is 82% of the last 20 applied patches; add a file patch or a second op that changes capability\n"}}
+{"at": "2026-08-22T13:04:33+08:00", "epoch": 1, "role": "B", "event": "epoch_applied", "detail": {"proposal": "P-234", "health": true}}
