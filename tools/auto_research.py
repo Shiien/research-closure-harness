@@ -2817,6 +2817,7 @@ def run_proposer_prompt(state: dict[str, Any], role: str) -> str:
         "Use patch_file only if you can emit a complete unified diff in its patch field. "
         "If you cannot emit a complete unified diff, choose a state-only op with all required fields exactly. "
         "Verification must use python3 and must assert at least one proposal-specific intended effect. "
+        "The state file path is always .research/auto_research.json; verification must reference that exact path or run python3 -m unittest discover -s tests. "
         "Do not call tools. Do not use markdown fences. Reply in one short message under 200 words. "
         "Return only one JSON object with action exactly equal to propose, for example:\n"
         '{"action":"propose","title":"...","statement":"...","targets":["N-..."],'
@@ -2901,6 +2902,10 @@ def deterministic_critic_verdict(
         return "challenge", "verification command is missing"
     if "python3" not in command:
         return "challenge", "verification command must use python3"
+    if "auto_research.json" in command and ".research/auto_research.json" not in command:
+        return "challenge", "verification command must reference .research/auto_research.json exactly"
+    if "unittest" not in command and ".research/auto_research.json" not in command:
+        return "challenge", "verification command must run the unittest suite or assert the exact state file"
     patch_strings: list[str] = []
 
     def collect_strings(value: Any) -> None:
