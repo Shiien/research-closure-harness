@@ -43,7 +43,7 @@
       "statement": "tools/auto_research.py implements a deterministic self-evolution substrate: immutable L0, strict patch vocabulary, critic gate, hard verification, invalidation closure and rollback.",
       "layer": "L1",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-20T21:06:16+08:00",
       "updated_at": "2026-08-22T12:00:48+08:00"
@@ -53,7 +53,7 @@
       "statement": "A self-modification is safe to apply only after passing critic review and an exit-0 hard verification command.",
       "layer": "L3",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-20T21:06:16+08:00",
       "updated_at": "2026-08-22T12:00:48+08:00"
@@ -63,7 +63,7 @@
       "statement": "The proposal pipeline (propose -> critique -> verify -> apply) preserves structural invariants, decays trust and deprecates the dependency closure of changed nodes.",
       "layer": "L3",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-20T21:06:16+08:00",
       "updated_at": "2026-08-22T12:00:49+08:00"
@@ -73,7 +73,7 @@
       "statement": "Full unittest suite passes on the auto-research branch.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-20T21:06:16+08:00",
       "updated_at": "2026-08-22T11:42:42+08:00"
@@ -83,7 +83,7 @@
       "statement": "The configured capability self-test exits 0 only when the auto-research graph is structurally valid and the repository unit suite passes.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "created_at": "2026-08-20T22:09:12+08:00",
       "updated_at": "2026-08-22T11:46:09+08:00"
@@ -93,18 +93,18 @@
       "statement": "Make capability self-test validate the self-graph before unit tests",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-001",
       "created_at": "2026-08-20T22:19:33+08:00",
-      "updated_at": "2026-08-21T22:48:42+08:00"
+      "updated_at": "2026-08-22T12:03:09+08:00"
     },
     "B-CRITIC-SPECIFICITY": {
       "type": "assumption",
       "statement": "A B critic verdict must cite the patch operation(s), proposed verification command, or dependency-closure risk; generic approval is insufficient.",
       "layer": "L3",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-20T22:23:39+08:00",
       "updated_at": "2026-08-22T12:00:48+08:00"
@@ -114,18 +114,18 @@
       "statement": "A optimizes B: make critic reasons specific",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-002",
       "created_at": "2026-08-20T22:23:40+08:00",
-      "updated_at": "2026-08-21T22:48:42+08:00"
+      "updated_at": "2026-08-22T12:03:10+08:00"
     },
     "A-PRECHECK": {
       "type": "assumption",
       "statement": "Every A proposal must carry a patch that validates against the current state and an explicit exit-0 verification command. Before hand-off, A cheaply checks both structural patch validity and at least one proposal-specific intended-effect predicate over the recorded patch or a deterministic post-patch simulation; a command that checks only the unchanged current state or generic invariants is insufficient.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "created_at": "2026-08-20T22:23:54+08:00",
       "updated_at": "2026-08-22T11:52:20+08:00"
@@ -135,7 +135,7 @@
       "statement": "B optimizes A: require cheap pre-check before proposal",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-003",
       "created_at": "2026-08-20T22:23:55+08:00",
@@ -146,7 +146,7 @@
       "statement": "B-VERIFY-RECORD enforces a hermeticity rule on recorded verification commands: they must use only the python3 standard library, perform no network access, no package installation, and no writes outside the harness workspace. Any verification command violating this rule is a dependency-closure risk and is rejected before apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "created_at": "2026-08-20T22:24:09+08:00",
       "updated_at": "2026-08-22T11:50:01+08:00"
@@ -156,7 +156,7 @@
       "statement": "A optimizes B: audit hard verification records",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-004",
       "created_at": "2026-08-20T22:24:10+08:00",
@@ -167,7 +167,7 @@
       "statement": "A proposals are local and semantically novel: at most two patch operations and one or two impact-aligned target nodes. Before hand-off, A compares the intended capability with prior applied and rejected proposals, cites the closest match, and rejects changes that differ only by epoch, node identifier, node type, or layer. A opens a corrected replacement only after a field-changing predecessor is rejected and terminal.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "created_at": "2026-08-20T22:24:25+08:00",
       "updated_at": "2026-08-22T11:49:59+08:00"
@@ -177,7 +177,7 @@
       "statement": "B optimizes A: enforce small A proposal scope",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-005",
       "created_at": "2026-08-20T22:24:25+08:00",
@@ -188,17 +188,17 @@
       "statement": "SAME-EPOCH-REVALIDATION-VERIFY: clearing deprecation on this node requires re-running the original verification command against the current graph snapshot in the same epoch as the verdict; a pass recorded in an earlier epoch is never reused to clear deprecation.",
       "layer": "L3",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-20T22:24:40+08:00",
-      "updated_at": "2026-08-21T22:48:42+08:00"
+      "updated_at": "2026-08-22T12:03:09+08:00"
     },
     "MOD-007": {
       "type": "modification",
       "statement": "A optimizes B: raise revalidation threshold to 0.30",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-006",
       "created_at": "2026-08-20T22:24:40+08:00",
@@ -209,17 +209,17 @@
       "statement": "A must cite, for every factual premise, the concrete prior artifact id (proposal id or probe id) and the epoch it derives from; any premise lacking a citation is unverified and must be flagged by B before application.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-20T22:24:55+08:00",
-      "updated_at": "2026-08-21T22:48:40+08:00"
+      "updated_at": "2026-08-22T12:03:08+08:00"
     },
     "MOD-008": {
       "type": "modification",
       "statement": "B optimizes A: fresher evidence via trust_decay 0.85",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-007",
       "created_at": "2026-08-20T22:24:56+08:00",
@@ -230,7 +230,7 @@
       "statement": "B distinguishes target recording, target adequacy, and affected-closure accuracy. Before apply, B checks that declared targets conservatively represent every patch operation actual invalidation impact. After apply, B audits exactly one modification node and modification edges to every still-existing declared target, then checks that proposal affected_nodes equals the union of dependency descendants of patch origins plus targets before the patch and patch origins plus targets plus changed nodes after the patch, excluding M0 and the modification node; target edges prove recording, not adequacy or affected-closure accuracy. For every applied proposal, B also audits lifecycle chronology in the event ledger: exactly one modification_applied event matches modification_node, and before it a verified outcome is preceded by a pass critic verdict, which is preceded by proposal_proposed or proposal_revised. For complete application provenance, every applied proposal has exactly one modification_applied event whose stable payload mirrors proposal id, applied_by_track, modification_node, and affected_nodes, while its event targets conservatively contain every declared proposal target. The referenced modification node mirrors the proposal id and title and remains a validated L4 modification; independently generated application, node, and event timestamps are not compared.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "created_at": "2026-08-20T22:25:11+08:00",
       "updated_at": "2026-08-22T11:35:32+08:00"
@@ -240,7 +240,7 @@
       "statement": "A optimizes B: audit modification closure",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-008",
       "created_at": "2026-08-20T22:25:11+08:00",
@@ -251,7 +251,7 @@
       "statement": "Revise records A's response and reopens critique but does not replace the proposal patch or verification_command. A uses revise only for note-level clarification; when a challenge requires either field to change, A records the limitation and B rejects the unchanged proposal before any corrected candidate is opened.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "created_at": "2026-08-20T22:25:27+08:00",
       "updated_at": "2026-08-22T11:49:02+08:00"
@@ -261,7 +261,7 @@
       "statement": "B optimizes A: require explicit A revise note",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-009",
       "created_at": "2026-08-20T22:25:27+08:00",
@@ -272,17 +272,17 @@
       "statement": "Every self-modification session closes only after the proposal passes specific critic review and proposal-specific non-timeout exit-0 hard verification, the applied modification-node and declared-target closure audit passes, every affected deprecated node is revalidated, and the final self_test ledger record runs the configured structural-validation and unit-suite command with timeout=false and exit_code=0. That final record is node-neutral, stores command, exit_code, timeout, stdout_sha256, stdout_bytes, stderr_tail, and at, and last_self_test mirrors exit_code, stdout_sha256, and at with passed equal to the non-timeout exit-0 predicate. Before B declares this session closed, the newest available auto snapshot must JSON-identically match the current persisted state, pass structural validation, and exactly preserve meta_goal and M0 as the current rollback checkpoint. This is only a current session-closure audit; it does not claim every save snapshots successfully or that snapshot failure blocks persistence. Before closure, B also audits persisted identity indexes: proposal counter equals the maximum P identifier and every proposal id matches its key; verification counter equals ledger length; node counter equals the maximum MOD identifier; and applied proposals and modification nodes form a one-to-one mapping through modification_node and proposal_id. Before closure, no proposal may remain proposed, challenged, passed_critic, verified, or failed_verification. Every rejected proposal must have a terminal reject critic event after any revision, with no later verified outcome or modification_applied event. Before session closure, proposal critic and revision histories must be event-backed across the full proposal set. Every proposal has exactly one more proposal_critiqued event than embedded revisions, and every embedded revision matches one proposal_revised event by note and event order between adjacent critic decisions. A pre-revision critic is either challenge with no intervening verification, or pass followed by exactly one intervening proposal_verified event whose outcome is failed_verification. The final embedded critic mirrors the final proposal_critiqued event on stable fields track, verdict, and critic; timestamp equality is not required because embedded and event timestamps are generated independently. Across the full history, level=self_test verification records and self_test_passed or self_test_failed events form an order-preserving one-to-one sequence. Each event name and payload fields passed, exit_code, stdout_sha256, and at are derived from its paired record, and last_self_test equals the final event payload; the event top-level timestamp is independently generated and is not compared. Every proposal has exactly one proposal_proposed event whose payload exactly mirrors the proposal id, track, and title, and that creation event precedes every proposal-specific critique, revision, verification, and application event. The embedded proposed_at and event top-level timestamp are generated independently and are not compared.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-20T22:25:42+08:00",
-      "updated_at": "2026-08-21T22:48:42+08:00"
+      "updated_at": "2026-08-22T12:03:09+08:00"
     },
     "MOD-011": {
       "type": "modification",
       "statement": "A optimizes B: self-test closure evidence",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-010",
       "created_at": "2026-08-20T22:25:42+08:00",
@@ -293,28 +293,28 @@
       "statement": "Meta-A epoch 11: A hands B a single-node L4 candidate whose claim is rollback reproducibility; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-20T22:39:19+08:00",
-      "updated_at": "2026-08-21T22:48:40+08:00"
+      "updated_at": "2026-08-22T12:03:08+08:00"
     },
     "MOD-012": {
       "type": "modification",
       "statement": "A optimizes B: rollback reproducibility via verify L4 (epoch 11)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-011",
       "created_at": "2026-08-20T22:39:19+08:00",
-      "updated_at": "2026-08-21T22:48:42+08:00"
+      "updated_at": "2026-08-22T12:03:10+08:00"
     },
     "B-OPT-A-012": {
       "type": "assumption",
       "statement": "Meta-B epoch 12: B proposes this assumption node so A's A queue noise control stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "created_at": "2026-08-20T22:39:20+08:00",
       "updated_at": "2026-08-22T11:35:33+08:00"
@@ -324,7 +324,7 @@
       "statement": "B optimizes A: A queue noise control via assumption L1 (epoch 12)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-012",
       "created_at": "2026-08-20T22:39:20+08:00",
@@ -335,7 +335,7 @@
       "statement": "Meta-A epoch 13: local A candidate adding a L2 inference that makes B's trust accounting auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-20T22:39:20+08:00",
       "updated_at": "2026-08-22T11:42:38+08:00"
@@ -345,7 +345,7 @@
       "statement": "A optimizes B: trust accounting via inference L2 (epoch 13)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-013",
       "created_at": "2026-08-20T22:39:21+08:00",
@@ -356,7 +356,7 @@
       "statement": "Meta-B epoch 14: B feeds A a one-node verify candidate requiring A's candidate specificity to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "created_at": "2026-08-20T22:39:21+08:00",
       "updated_at": "2026-08-22T11:46:05+08:00"
@@ -366,7 +366,7 @@
       "statement": "B optimizes A: candidate specificity via verify L3 (epoch 14)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-014",
       "created_at": "2026-08-20T22:39:21+08:00",
@@ -377,7 +377,7 @@
       "statement": "Meta-A epoch 15: A hands B a single-node L4 candidate whose claim is deprecation closure; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "created_at": "2026-08-20T22:39:22+08:00",
       "updated_at": "2026-08-22T11:49:01+08:00"
@@ -387,7 +387,7 @@
       "statement": "A optimizes B: deprecation closure via assumption L4 (epoch 15)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-015",
       "created_at": "2026-08-20T22:39:22+08:00",
@@ -398,7 +398,7 @@
       "statement": "Meta-B epoch 16: B proposes this inference node so A's verification command clarity stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "created_at": "2026-08-20T22:39:22+08:00",
       "updated_at": "2026-08-22T11:50:00+08:00"
@@ -408,7 +408,7 @@
       "statement": "B optimizes A: verification command clarity via inference L1 (epoch 16)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-016",
       "created_at": "2026-08-20T22:39:23+08:00",
@@ -419,7 +419,7 @@
       "statement": "Meta-A epoch 17: local A candidate adding a L2 verify that makes B's B queue discipline auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "created_at": "2026-08-20T22:39:23+08:00",
       "updated_at": "2026-08-22T11:52:19+08:00"
@@ -429,7 +429,7 @@
       "statement": "A optimizes B: B queue discipline via verify L2 (epoch 17)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-017",
       "created_at": "2026-08-20T22:39:23+08:00",
@@ -440,7 +440,7 @@
       "statement": "Meta-B epoch 18: B feeds A a one-node assumption candidate requiring A's trust preservation to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-20T22:39:23+08:00",
       "updated_at": "2026-08-22T12:00:48+08:00"
@@ -450,7 +450,7 @@
       "statement": "B optimizes A: trust preservation via assumption L3 (epoch 18)",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-018",
       "created_at": "2026-08-20T22:39:24+08:00",
@@ -461,28 +461,28 @@
       "statement": "Meta-A epoch 19: A hands B a single-node L4 candidate whose claim is verification timeout hygiene; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-20T22:39:24+08:00",
-      "updated_at": "2026-08-21T22:48:40+08:00"
+      "updated_at": "2026-08-22T12:03:08+08:00"
     },
     "MOD-020": {
       "type": "modification",
       "statement": "A optimizes B: verification timeout hygiene via inference L4 (epoch 19)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-019",
       "created_at": "2026-08-20T22:39:25+08:00",
-      "updated_at": "2026-08-21T22:48:42+08:00"
+      "updated_at": "2026-08-22T12:03:10+08:00"
     },
     "B-OPT-A-020": {
       "type": "verify",
       "statement": "Meta-B epoch 20: B proposes this verify node so A's draft node hygiene stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "created_at": "2026-08-20T22:39:25+08:00",
       "updated_at": "2026-08-22T11:35:33+08:00"
@@ -492,7 +492,7 @@
       "statement": "B optimizes A: draft node hygiene via verify L1 (epoch 20)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-020",
       "created_at": "2026-08-20T22:39:25+08:00",
@@ -503,7 +503,7 @@
       "statement": "Meta-A epoch 21: local A candidate adding a L2 assumption that makes B's snapshot provenance auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-20T22:39:41+08:00",
       "updated_at": "2026-08-22T11:42:38+08:00"
@@ -513,7 +513,7 @@
       "statement": "A optimizes B: snapshot provenance via assumption L2 (epoch 21)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-021",
       "created_at": "2026-08-20T22:39:41+08:00",
@@ -524,7 +524,7 @@
       "statement": "Meta-B epoch 22: B feeds A a one-node inference candidate requiring A's fast-layer hand-off to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "created_at": "2026-08-20T22:39:42+08:00",
       "updated_at": "2026-08-22T11:46:05+08:00"
@@ -534,7 +534,7 @@
       "statement": "B optimizes A: fast-layer hand-off via inference L3 (epoch 22)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-022",
       "created_at": "2026-08-20T22:39:42+08:00",
@@ -545,7 +545,7 @@
       "statement": "Meta-A epoch 23: A hands B a single-node L4 candidate whose claim is apply idempotence; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "created_at": "2026-08-20T22:39:42+08:00",
       "updated_at": "2026-08-22T11:49:01+08:00"
@@ -555,7 +555,7 @@
       "statement": "A optimizes B: apply idempotence via verify L4 (epoch 23)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-023",
       "created_at": "2026-08-20T22:39:43+08:00",
@@ -566,7 +566,7 @@
       "statement": "Meta-B epoch 24: B proposes this assumption node so A's target node focus stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "created_at": "2026-08-20T22:39:43+08:00",
       "updated_at": "2026-08-22T11:50:00+08:00"
@@ -576,7 +576,7 @@
       "statement": "B optimizes A: target node focus via assumption L1 (epoch 24)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-024",
       "created_at": "2026-08-20T22:39:43+08:00",
@@ -587,7 +587,7 @@
       "statement": "Meta-A epoch 25: local A candidate adding a L2 inference that makes B's critic challenge evidence auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "created_at": "2026-08-20T22:39:44+08:00",
       "updated_at": "2026-08-22T11:52:19+08:00"
@@ -597,7 +597,7 @@
       "statement": "A optimizes B: critic challenge evidence via inference L2 (epoch 25)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-025",
       "created_at": "2026-08-20T22:39:44+08:00",
@@ -608,7 +608,7 @@
       "statement": "Meta-B epoch 26: B feeds A a one-node verify candidate requiring A's patch vocabulary compliance to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-20T22:39:45+08:00",
       "updated_at": "2026-08-22T12:00:48+08:00"
@@ -618,7 +618,7 @@
       "statement": "B optimizes A: patch vocabulary compliance via verify L3 (epoch 26)",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-026",
       "created_at": "2026-08-20T22:39:45+08:00",
@@ -629,28 +629,28 @@
       "statement": "Meta-A epoch 27: A hands B a single-node L4 candidate whose claim is stderr evidence retention; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-20T22:39:46+08:00",
-      "updated_at": "2026-08-21T22:48:41+08:00"
+      "updated_at": "2026-08-22T12:03:08+08:00"
     },
     "MOD-028": {
       "type": "modification",
       "statement": "A optimizes B: stderr evidence retention via assumption L4 (epoch 27)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-027",
       "created_at": "2026-08-20T22:39:46+08:00",
-      "updated_at": "2026-08-21T22:48:42+08:00"
+      "updated_at": "2026-08-22T12:03:10+08:00"
     },
     "B-OPT-A-028": {
       "type": "inference",
       "statement": "Meta-B epoch 28: B proposes this inference node so A's A track attribution stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "created_at": "2026-08-20T22:39:47+08:00",
       "updated_at": "2026-08-22T11:35:33+08:00"
@@ -660,7 +660,7 @@
       "statement": "B optimizes A: A track attribution via inference L1 (epoch 28)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-028",
       "created_at": "2026-08-20T22:39:47+08:00",
@@ -671,7 +671,7 @@
       "statement": "Meta-A epoch 29: local A candidate adding a L2 verify that makes B's B track attribution auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-20T22:39:48+08:00",
       "updated_at": "2026-08-22T11:42:38+08:00"
@@ -681,7 +681,7 @@
       "statement": "A optimizes B: B track attribution via verify L2 (epoch 29)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-029",
       "created_at": "2026-08-20T22:39:48+08:00",
@@ -692,7 +692,7 @@
       "statement": "Meta-B epoch 30: B feeds A a one-node assumption candidate requiring A's pre-check discipline to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "created_at": "2026-08-20T22:39:49+08:00",
       "updated_at": "2026-08-22T11:46:06+08:00"
@@ -702,7 +702,7 @@
       "statement": "B optimizes A: pre-check discipline via assumption L3 (epoch 30)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-030",
       "created_at": "2026-08-20T22:39:49+08:00",
@@ -713,7 +713,7 @@
       "statement": "Meta-A epoch 31: A hands B a single-node L4 candidate whose claim is critic specificity; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "created_at": "2026-08-20T22:40:05+08:00",
       "updated_at": "2026-08-22T11:49:01+08:00"
@@ -723,7 +723,7 @@
       "statement": "A optimizes B: critic specificity via inference L4 (epoch 31)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-031",
       "created_at": "2026-08-20T22:40:05+08:00",
@@ -734,7 +734,7 @@
       "statement": "Meta-B epoch 32: B proposes this verify node so A's small patch scope stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "created_at": "2026-08-20T22:40:06+08:00",
       "updated_at": "2026-08-22T11:50:00+08:00"
@@ -744,7 +744,7 @@
       "statement": "B optimizes A: small patch scope via verify L1 (epoch 32)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-032",
       "created_at": "2026-08-20T22:40:06+08:00",
@@ -755,7 +755,7 @@
       "statement": "Meta-A epoch 33: local A candidate adding a L2 assumption that makes B's hard-verification records auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "created_at": "2026-08-20T22:40:07+08:00",
       "updated_at": "2026-08-22T11:52:19+08:00"
@@ -765,7 +765,7 @@
       "statement": "A optimizes B: hard-verification records via assumption L2 (epoch 33)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-033",
       "created_at": "2026-08-20T22:40:07+08:00",
@@ -776,7 +776,7 @@
       "statement": "Meta-B epoch 34: B feeds A a one-node inference candidate requiring A's evidence freshness to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-20T22:40:08+08:00",
       "updated_at": "2026-08-22T12:00:48+08:00"
@@ -786,7 +786,7 @@
       "statement": "B optimizes A: evidence freshness via inference L3 (epoch 34)",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-034",
       "created_at": "2026-08-20T22:40:08+08:00",
@@ -797,28 +797,28 @@
       "statement": "Meta-A epoch 35: A hands B a single-node L4 candidate whose claim is modification closure audit; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-20T22:40:09+08:00",
-      "updated_at": "2026-08-21T22:48:41+08:00"
+      "updated_at": "2026-08-22T12:03:08+08:00"
     },
     "MOD-036": {
       "type": "modification",
       "statement": "A optimizes B: modification closure audit via verify L4 (epoch 35)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-035",
       "created_at": "2026-08-20T22:40:09+08:00",
-      "updated_at": "2026-08-21T22:48:42+08:00"
+      "updated_at": "2026-08-22T12:03:10+08:00"
     },
     "B-OPT-A-036": {
       "type": "assumption",
       "statement": "Meta-B epoch 36: B proposes this assumption node so A's revision loop stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "created_at": "2026-08-20T22:40:10+08:00",
       "updated_at": "2026-08-22T11:35:33+08:00"
@@ -828,7 +828,7 @@
       "statement": "B optimizes A: revision loop via assumption L1 (epoch 36)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-036",
       "created_at": "2026-08-20T22:40:11+08:00",
@@ -839,7 +839,7 @@
       "statement": "Meta-A epoch 37: local A candidate adding a L2 inference that makes B's revalidation gate auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-20T22:40:11+08:00",
       "updated_at": "2026-08-22T11:42:38+08:00"
@@ -849,7 +849,7 @@
       "statement": "A optimizes B: revalidation gate via inference L2 (epoch 37)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-037",
       "created_at": "2026-08-20T22:40:12+08:00",
@@ -860,7 +860,7 @@
       "statement": "Meta-B epoch 38: B feeds A a one-node verify candidate requiring A's proposal locality to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "created_at": "2026-08-20T22:40:13+08:00",
       "updated_at": "2026-08-22T11:46:06+08:00"
@@ -870,7 +870,7 @@
       "statement": "B optimizes A: proposal locality via verify L3 (epoch 38)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-038",
       "created_at": "2026-08-20T22:40:13+08:00",
@@ -881,7 +881,7 @@
       "statement": "Meta-A epoch 39: A hands B a single-node L4 candidate whose claim is self-test closure; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "created_at": "2026-08-20T22:40:14+08:00",
       "updated_at": "2026-08-22T11:49:01+08:00"
@@ -891,7 +891,7 @@
       "statement": "A optimizes B: self-test closure via assumption L4 (epoch 39)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-039",
       "created_at": "2026-08-20T22:40:14+08:00",
@@ -902,7 +902,7 @@
       "statement": "Meta-B epoch 40: B proposes this inference node so A's cheap falsification stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "created_at": "2026-08-20T22:40:15+08:00",
       "updated_at": "2026-08-22T11:50:00+08:00"
@@ -912,7 +912,7 @@
       "statement": "B optimizes A: cheap falsification via inference L1 (epoch 40)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-040",
       "created_at": "2026-08-20T22:40:15+08:00",
@@ -923,7 +923,7 @@
       "statement": "Meta-A epoch 41: local A candidate adding a L2 verify that makes B's rollback reproducibility auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "created_at": "2026-08-20T22:40:31+08:00",
       "updated_at": "2026-08-22T11:52:19+08:00"
@@ -933,7 +933,7 @@
       "statement": "A optimizes B: rollback reproducibility via verify L2 (epoch 41)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-041",
       "created_at": "2026-08-20T22:40:32+08:00",
@@ -944,7 +944,7 @@
       "statement": "Meta-B epoch 42: B feeds A a one-node assumption candidate requiring A's A queue noise control to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-20T22:40:32+08:00",
       "updated_at": "2026-08-22T12:00:48+08:00"
@@ -954,7 +954,7 @@
       "statement": "B optimizes A: A queue noise control via assumption L3 (epoch 42)",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-042",
       "created_at": "2026-08-20T22:40:33+08:00",
@@ -965,28 +965,28 @@
       "statement": "Meta-A epoch 43: A hands B a single-node L4 candidate whose claim is trust accounting; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-20T22:40:34+08:00",
-      "updated_at": "2026-08-21T22:48:41+08:00"
+      "updated_at": "2026-08-22T12:03:08+08:00"
     },
     "MOD-044": {
       "type": "modification",
       "statement": "A optimizes B: trust accounting via inference L4 (epoch 43)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-043",
       "created_at": "2026-08-20T22:40:34+08:00",
-      "updated_at": "2026-08-21T22:48:42+08:00"
+      "updated_at": "2026-08-22T12:03:10+08:00"
     },
     "B-OPT-A-044": {
       "type": "verify",
       "statement": "Meta-B epoch 44: B proposes this verify node so A's candidate specificity stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "created_at": "2026-08-20T22:40:36+08:00",
       "updated_at": "2026-08-22T11:35:33+08:00"
@@ -996,7 +996,7 @@
       "statement": "B optimizes A: candidate specificity via verify L1 (epoch 44)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-044",
       "created_at": "2026-08-20T22:40:36+08:00",
@@ -1007,7 +1007,7 @@
       "statement": "Meta-A epoch 45: local A candidate adding a L2 assumption that makes B's deprecation closure auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-20T22:40:37+08:00",
       "updated_at": "2026-08-22T11:42:38+08:00"
@@ -1017,7 +1017,7 @@
       "statement": "A optimizes B: deprecation closure via assumption L2 (epoch 45)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-045",
       "created_at": "2026-08-20T22:40:37+08:00",
@@ -1028,7 +1028,7 @@
       "statement": "Meta-B epoch 46: B feeds A a one-node inference candidate requiring A's verification command clarity to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "created_at": "2026-08-20T22:40:39+08:00",
       "updated_at": "2026-08-22T11:46:06+08:00"
@@ -1038,7 +1038,7 @@
       "statement": "B optimizes A: verification command clarity via inference L3 (epoch 46)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-046",
       "created_at": "2026-08-20T22:40:39+08:00",
@@ -1049,7 +1049,7 @@
       "statement": "Meta-A epoch 47: A hands B a single-node L4 candidate whose claim is B queue discipline; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "created_at": "2026-08-20T22:40:40+08:00",
       "updated_at": "2026-08-22T11:49:01+08:00"
@@ -1059,7 +1059,7 @@
       "statement": "A optimizes B: B queue discipline via verify L4 (epoch 47)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-047",
       "created_at": "2026-08-20T22:40:40+08:00",
@@ -1070,7 +1070,7 @@
       "statement": "Meta-B epoch 48: B proposes this assumption node so A's trust preservation stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "created_at": "2026-08-20T22:40:41+08:00",
       "updated_at": "2026-08-22T11:50:00+08:00"
@@ -1080,7 +1080,7 @@
       "statement": "B optimizes A: trust preservation via assumption L1 (epoch 48)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-048",
       "created_at": "2026-08-20T22:40:42+08:00",
@@ -1091,7 +1091,7 @@
       "statement": "Meta-A epoch 49: local A candidate adding a L2 inference that makes B's verification timeout hygiene auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "created_at": "2026-08-20T22:40:43+08:00",
       "updated_at": "2026-08-22T11:52:19+08:00"
@@ -1101,7 +1101,7 @@
       "statement": "A optimizes B: verification timeout hygiene via inference L2 (epoch 49)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-049",
       "created_at": "2026-08-20T22:40:43+08:00",
@@ -1112,7 +1112,7 @@
       "statement": "Meta-B epoch 50: B feeds A a one-node verify candidate requiring A's draft node hygiene to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-20T22:40:44+08:00",
       "updated_at": "2026-08-22T12:00:48+08:00"
@@ -1122,7 +1122,7 @@
       "statement": "B optimizes A: draft node hygiene via verify L3 (epoch 50)",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-050",
       "created_at": "2026-08-20T22:40:44+08:00",
@@ -1133,28 +1133,28 @@
       "statement": "Meta-A epoch 51: A hands B a single-node L4 candidate whose claim is snapshot provenance; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-20T22:41:01+08:00",
-      "updated_at": "2026-08-21T22:48:41+08:00"
+      "updated_at": "2026-08-22T12:03:09+08:00"
     },
     "MOD-052": {
       "type": "modification",
       "statement": "A optimizes B: snapshot provenance via assumption L4 (epoch 51)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-051",
       "created_at": "2026-08-20T22:41:02+08:00",
-      "updated_at": "2026-08-21T22:48:42+08:00"
+      "updated_at": "2026-08-22T12:03:10+08:00"
     },
     "B-OPT-A-052": {
       "type": "inference",
       "statement": "Meta-B epoch 52: B proposes this inference node so A's fast-layer hand-off stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "created_at": "2026-08-20T22:41:03+08:00",
       "updated_at": "2026-08-22T11:35:33+08:00"
@@ -1164,7 +1164,7 @@
       "statement": "B optimizes A: fast-layer hand-off via inference L1 (epoch 52)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-052",
       "created_at": "2026-08-20T22:41:03+08:00",
@@ -1175,7 +1175,7 @@
       "statement": "Meta-A epoch 53: local A candidate adding a L2 verify that makes B's apply idempotence auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-20T22:41:05+08:00",
       "updated_at": "2026-08-22T11:42:38+08:00"
@@ -1185,7 +1185,7 @@
       "statement": "A optimizes B: apply idempotence via verify L2 (epoch 53)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-053",
       "created_at": "2026-08-20T22:41:05+08:00",
@@ -1196,7 +1196,7 @@
       "statement": "Meta-B epoch 54: B feeds A a one-node assumption candidate requiring A's target node focus to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "created_at": "2026-08-20T22:41:06+08:00",
       "updated_at": "2026-08-22T11:46:06+08:00"
@@ -1206,7 +1206,7 @@
       "statement": "B optimizes A: target node focus via assumption L3 (epoch 54)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-054",
       "created_at": "2026-08-20T22:41:07+08:00",
@@ -1217,7 +1217,7 @@
       "statement": "Meta-A epoch 55: A hands B a single-node L4 candidate whose claim is critic challenge evidence; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "created_at": "2026-08-20T22:41:08+08:00",
       "updated_at": "2026-08-22T11:49:01+08:00"
@@ -1227,7 +1227,7 @@
       "statement": "A optimizes B: critic challenge evidence via inference L4 (epoch 55)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-055",
       "created_at": "2026-08-20T22:41:08+08:00",
@@ -1238,7 +1238,7 @@
       "statement": "Meta-B epoch 56: B proposes this verify node so A's patch vocabulary compliance stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "created_at": "2026-08-20T22:41:10+08:00",
       "updated_at": "2026-08-22T11:50:00+08:00"
@@ -1248,7 +1248,7 @@
       "statement": "B optimizes A: patch vocabulary compliance via verify L1 (epoch 56)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-056",
       "created_at": "2026-08-20T22:41:10+08:00",
@@ -1259,7 +1259,7 @@
       "statement": "Meta-A epoch 57: local A candidate adding a L2 assumption that makes B's stderr evidence retention auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "created_at": "2026-08-20T22:41:11+08:00",
       "updated_at": "2026-08-22T11:52:19+08:00"
@@ -1269,7 +1269,7 @@
       "statement": "A optimizes B: stderr evidence retention via assumption L2 (epoch 57)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-057",
       "created_at": "2026-08-20T22:41:12+08:00",
@@ -1280,7 +1280,7 @@
       "statement": "Meta-B epoch 58: B feeds A a one-node inference candidate requiring A's A track attribution to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-20T22:41:13+08:00",
       "updated_at": "2026-08-22T12:00:48+08:00"
@@ -1290,7 +1290,7 @@
       "statement": "B optimizes A: A track attribution via inference L3 (epoch 58)",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-058",
       "created_at": "2026-08-20T22:41:13+08:00",
@@ -1301,28 +1301,28 @@
       "statement": "Meta-A epoch 59: A hands B a single-node L4 candidate whose claim is B track attribution; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-20T22:41:15+08:00",
-      "updated_at": "2026-08-21T22:48:41+08:00"
+      "updated_at": "2026-08-22T12:03:09+08:00"
     },
     "MOD-060": {
       "type": "modification",
       "statement": "A optimizes B: B track attribution via verify L4 (epoch 59)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-059",
       "created_at": "2026-08-20T22:41:15+08:00",
-      "updated_at": "2026-08-21T22:48:42+08:00"
+      "updated_at": "2026-08-22T12:03:10+08:00"
     },
     "B-OPT-A-060": {
       "type": "assumption",
       "statement": "Meta-B epoch 60: B proposes this assumption node so A's pre-check discipline stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "created_at": "2026-08-20T22:41:17+08:00",
       "updated_at": "2026-08-22T11:35:33+08:00"
@@ -1332,7 +1332,7 @@
       "statement": "B optimizes A: pre-check discipline via assumption L1 (epoch 60)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-060",
       "created_at": "2026-08-20T22:41:18+08:00",
@@ -1343,7 +1343,7 @@
       "statement": "Meta-A epoch 61: local A candidate adding a L2 inference that makes B's critic specificity auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-20T22:41:34+08:00",
       "updated_at": "2026-08-22T11:42:39+08:00"
@@ -1353,7 +1353,7 @@
       "statement": "A optimizes B: critic specificity via inference L2 (epoch 61)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-061",
       "created_at": "2026-08-20T22:41:35+08:00",
@@ -1364,7 +1364,7 @@
       "statement": "Meta-B epoch 62: B feeds A a one-node verify candidate requiring A's small patch scope to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "created_at": "2026-08-20T22:41:37+08:00",
       "updated_at": "2026-08-22T11:46:06+08:00"
@@ -1374,7 +1374,7 @@
       "statement": "B optimizes A: small patch scope via verify L3 (epoch 62)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-062",
       "created_at": "2026-08-20T22:41:37+08:00",
@@ -1385,7 +1385,7 @@
       "statement": "Meta-A epoch 63: A hands B a single-node L4 candidate whose claim is hard-verification records; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "created_at": "2026-08-20T22:41:38+08:00",
       "updated_at": "2026-08-22T11:49:01+08:00"
@@ -1395,7 +1395,7 @@
       "statement": "A optimizes B: hard-verification records via assumption L4 (epoch 63)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-063",
       "created_at": "2026-08-20T22:41:39+08:00",
@@ -1406,7 +1406,7 @@
       "statement": "Meta-B epoch 64: B proposes this inference node so A's evidence freshness stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "created_at": "2026-08-20T22:41:40+08:00",
       "updated_at": "2026-08-22T11:50:00+08:00"
@@ -1416,7 +1416,7 @@
       "statement": "B optimizes A: evidence freshness via inference L1 (epoch 64)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-064",
       "created_at": "2026-08-20T22:41:41+08:00",
@@ -1427,7 +1427,7 @@
       "statement": "Meta-A epoch 65: local A candidate adding a L2 verify that makes B's modification closure audit auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "created_at": "2026-08-20T22:41:42+08:00",
       "updated_at": "2026-08-22T11:52:20+08:00"
@@ -1437,7 +1437,7 @@
       "statement": "A optimizes B: modification closure audit via verify L2 (epoch 65)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-065",
       "created_at": "2026-08-20T22:41:43+08:00",
@@ -1448,7 +1448,7 @@
       "statement": "Meta-B epoch 66: B feeds A a one-node assumption candidate requiring A's revision loop to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-20T22:41:44+08:00",
       "updated_at": "2026-08-22T12:00:48+08:00"
@@ -1458,7 +1458,7 @@
       "statement": "B optimizes A: revision loop via assumption L3 (epoch 66)",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-066",
       "created_at": "2026-08-20T22:41:44+08:00",
@@ -1469,28 +1469,28 @@
       "statement": "Meta-A epoch 67: A hands B a single-node L4 candidate whose claim is revalidation gate; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-20T22:41:46+08:00",
-      "updated_at": "2026-08-21T22:48:41+08:00"
+      "updated_at": "2026-08-22T12:03:09+08:00"
     },
     "MOD-068": {
       "type": "modification",
       "statement": "A optimizes B: revalidation gate via inference L4 (epoch 67)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-067",
       "created_at": "2026-08-20T22:41:47+08:00",
-      "updated_at": "2026-08-21T22:48:43+08:00"
+      "updated_at": "2026-08-22T12:03:10+08:00"
     },
     "B-OPT-A-068": {
       "type": "verify",
       "statement": "Meta-B epoch 68: B proposes this verify node so A's proposal locality stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "created_at": "2026-08-20T22:41:49+08:00",
       "updated_at": "2026-08-22T11:35:33+08:00"
@@ -1500,7 +1500,7 @@
       "statement": "B optimizes A: proposal locality via verify L1 (epoch 68)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-068",
       "created_at": "2026-08-20T22:41:49+08:00",
@@ -1511,7 +1511,7 @@
       "statement": "Meta-A epoch 69: local A candidate adding a L2 assumption that makes B's self-test closure auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-20T22:41:51+08:00",
       "updated_at": "2026-08-22T11:42:39+08:00"
@@ -1521,7 +1521,7 @@
       "statement": "A optimizes B: self-test closure via assumption L2 (epoch 69)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-069",
       "created_at": "2026-08-20T22:41:51+08:00",
@@ -1532,7 +1532,7 @@
       "statement": "Meta-B epoch 70: B feeds A a one-node inference candidate requiring A's cheap falsification to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "created_at": "2026-08-20T22:41:53+08:00",
       "updated_at": "2026-08-22T11:46:06+08:00"
@@ -1542,7 +1542,7 @@
       "statement": "B optimizes A: cheap falsification via inference L3 (epoch 70)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-070",
       "created_at": "2026-08-20T22:41:54+08:00",
@@ -1553,7 +1553,7 @@
       "statement": "Meta-A epoch 71: A hands B a single-node L4 candidate whose claim is rollback reproducibility; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "created_at": "2026-08-20T22:42:11+08:00",
       "updated_at": "2026-08-22T11:49:02+08:00"
@@ -1563,7 +1563,7 @@
       "statement": "A optimizes B: rollback reproducibility via verify L4 (epoch 71)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-071",
       "created_at": "2026-08-20T22:42:11+08:00",
@@ -1574,7 +1574,7 @@
       "statement": "Meta-B epoch 72: B proposes this assumption node so A's A queue noise control stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "created_at": "2026-08-20T22:42:13+08:00",
       "updated_at": "2026-08-22T11:50:00+08:00"
@@ -1584,7 +1584,7 @@
       "statement": "B optimizes A: A queue noise control via assumption L1 (epoch 72)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-072",
       "created_at": "2026-08-20T22:42:13+08:00",
@@ -1595,7 +1595,7 @@
       "statement": "Meta-A epoch 73: local A candidate adding a L2 inference that makes B's trust accounting auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "created_at": "2026-08-20T22:42:15+08:00",
       "updated_at": "2026-08-22T11:52:20+08:00"
@@ -1605,7 +1605,7 @@
       "statement": "A optimizes B: trust accounting via inference L2 (epoch 73)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-073",
       "created_at": "2026-08-20T22:42:15+08:00",
@@ -1616,7 +1616,7 @@
       "statement": "Meta-B epoch 74: B feeds A a one-node verify candidate requiring A's candidate specificity to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-20T22:42:17+08:00",
       "updated_at": "2026-08-22T12:00:49+08:00"
@@ -1626,7 +1626,7 @@
       "statement": "B optimizes A: candidate specificity via verify L3 (epoch 74)",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-074",
       "created_at": "2026-08-20T22:42:17+08:00",
@@ -1637,28 +1637,28 @@
       "statement": "Meta-A epoch 75: A hands B a single-node L4 candidate whose claim is deprecation closure; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-20T22:42:20+08:00",
-      "updated_at": "2026-08-21T22:48:41+08:00"
+      "updated_at": "2026-08-22T12:03:09+08:00"
     },
     "MOD-076": {
       "type": "modification",
       "statement": "A optimizes B: deprecation closure via assumption L4 (epoch 75)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-075",
       "created_at": "2026-08-20T22:42:20+08:00",
-      "updated_at": "2026-08-21T22:48:43+08:00"
+      "updated_at": "2026-08-22T12:03:10+08:00"
     },
     "B-OPT-A-076": {
       "type": "inference",
       "statement": "Meta-B epoch 76: B proposes this inference node so A's verification command clarity stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "created_at": "2026-08-20T22:42:22+08:00",
       "updated_at": "2026-08-22T11:35:33+08:00"
@@ -1668,7 +1668,7 @@
       "statement": "B optimizes A: verification command clarity via inference L1 (epoch 76)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-076",
       "created_at": "2026-08-20T22:42:23+08:00",
@@ -1679,7 +1679,7 @@
       "statement": "Meta-A epoch 77: local A candidate adding a L2 verify that makes B's B queue discipline auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-20T22:42:25+08:00",
       "updated_at": "2026-08-22T11:42:39+08:00"
@@ -1689,7 +1689,7 @@
       "statement": "A optimizes B: B queue discipline via verify L2 (epoch 77)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-077",
       "created_at": "2026-08-20T22:42:25+08:00",
@@ -1700,7 +1700,7 @@
       "statement": "Meta-B epoch 78: B feeds A a one-node assumption candidate requiring A's trust preservation to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "created_at": "2026-08-20T22:42:27+08:00",
       "updated_at": "2026-08-22T11:46:06+08:00"
@@ -1710,7 +1710,7 @@
       "statement": "B optimizes A: trust preservation via assumption L3 (epoch 78)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-078",
       "created_at": "2026-08-20T22:42:28+08:00",
@@ -1721,7 +1721,7 @@
       "statement": "Meta-A epoch 79: A hands B a single-node L4 candidate whose claim is verification timeout hygiene; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "created_at": "2026-08-20T22:42:30+08:00",
       "updated_at": "2026-08-22T11:49:02+08:00"
@@ -1731,7 +1731,7 @@
       "statement": "A optimizes B: verification timeout hygiene via inference L4 (epoch 79)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-079",
       "created_at": "2026-08-20T22:42:30+08:00",
@@ -1742,7 +1742,7 @@
       "statement": "Meta-B epoch 80: B proposes this verify node so A's draft node hygiene stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "created_at": "2026-08-20T22:42:32+08:00",
       "updated_at": "2026-08-22T11:50:00+08:00"
@@ -1752,7 +1752,7 @@
       "statement": "B optimizes A: draft node hygiene via verify L1 (epoch 80)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-080",
       "created_at": "2026-08-20T22:42:33+08:00",
@@ -1763,7 +1763,7 @@
       "statement": "Meta-A epoch 81: local A candidate adding a L2 assumption that makes B's snapshot provenance auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "created_at": "2026-08-20T22:42:50+08:00",
       "updated_at": "2026-08-22T11:52:20+08:00"
@@ -1773,7 +1773,7 @@
       "statement": "A optimizes B: snapshot provenance via assumption L2 (epoch 81)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-081",
       "created_at": "2026-08-20T22:42:50+08:00",
@@ -1784,7 +1784,7 @@
       "statement": "Meta-B epoch 82: B feeds A a one-node inference candidate requiring A's fast-layer hand-off to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-20T22:42:52+08:00",
       "updated_at": "2026-08-22T12:00:49+08:00"
@@ -1794,7 +1794,7 @@
       "statement": "B optimizes A: fast-layer hand-off via inference L3 (epoch 82)",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-082",
       "created_at": "2026-08-20T22:42:53+08:00",
@@ -1805,28 +1805,28 @@
       "statement": "Meta-A epoch 83: A hands B a single-node L4 candidate whose claim is apply idempotence; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-20T22:42:55+08:00",
-      "updated_at": "2026-08-21T22:48:41+08:00"
+      "updated_at": "2026-08-22T12:03:09+08:00"
     },
     "MOD-084": {
       "type": "modification",
       "statement": "A optimizes B: apply idempotence via verify L4 (epoch 83)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-083",
       "created_at": "2026-08-20T22:42:56+08:00",
-      "updated_at": "2026-08-21T22:48:43+08:00"
+      "updated_at": "2026-08-22T12:03:11+08:00"
     },
     "B-OPT-A-084": {
       "type": "assumption",
       "statement": "Meta-B epoch 84: B proposes this assumption node so A's target node focus stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "created_at": "2026-08-20T22:42:58+08:00",
       "updated_at": "2026-08-22T11:35:33+08:00"
@@ -1836,7 +1836,7 @@
       "statement": "B optimizes A: target node focus via assumption L1 (epoch 84)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-084",
       "created_at": "2026-08-20T22:42:59+08:00",
@@ -1847,7 +1847,7 @@
       "statement": "Meta-A epoch 85: local A candidate adding a L2 inference that makes B's critic challenge evidence auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-20T22:43:01+08:00",
       "updated_at": "2026-08-22T11:42:39+08:00"
@@ -1857,7 +1857,7 @@
       "statement": "A optimizes B: critic challenge evidence via inference L2 (epoch 85)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-085",
       "created_at": "2026-08-20T22:43:01+08:00",
@@ -1868,7 +1868,7 @@
       "statement": "Meta-B epoch 86: B feeds A a one-node verify candidate requiring A's patch vocabulary compliance to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "created_at": "2026-08-20T22:43:04+08:00",
       "updated_at": "2026-08-22T11:46:06+08:00"
@@ -1878,7 +1878,7 @@
       "statement": "B optimizes A: patch vocabulary compliance via verify L3 (epoch 86)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-086",
       "created_at": "2026-08-20T22:43:04+08:00",
@@ -1889,7 +1889,7 @@
       "statement": "Meta-A epoch 87: A hands B a single-node L4 candidate whose claim is stderr evidence retention; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "created_at": "2026-08-20T22:43:06+08:00",
       "updated_at": "2026-08-22T11:49:02+08:00"
@@ -1899,7 +1899,7 @@
       "statement": "A optimizes B: stderr evidence retention via assumption L4 (epoch 87)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-087",
       "created_at": "2026-08-20T22:43:07+08:00",
@@ -1910,7 +1910,7 @@
       "statement": "Meta-B epoch 88: B proposes this inference node so A's A track attribution stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "created_at": "2026-08-20T22:43:09+08:00",
       "updated_at": "2026-08-22T11:50:00+08:00"
@@ -1920,7 +1920,7 @@
       "statement": "B optimizes A: A track attribution via inference L1 (epoch 88)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-088",
       "created_at": "2026-08-20T22:43:10+08:00",
@@ -1931,7 +1931,7 @@
       "statement": "Meta-A epoch 89: local A candidate adding a L2 verify that makes B's B track attribution auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "created_at": "2026-08-20T22:43:12+08:00",
       "updated_at": "2026-08-22T11:52:20+08:00"
@@ -1941,7 +1941,7 @@
       "statement": "A optimizes B: B track attribution via verify L2 (epoch 89)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-089",
       "created_at": "2026-08-20T22:43:12+08:00",
@@ -1952,7 +1952,7 @@
       "statement": "Meta-B epoch 90: B feeds A a one-node assumption candidate requiring A's pre-check discipline to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-20T22:43:15+08:00",
       "updated_at": "2026-08-22T12:00:49+08:00"
@@ -1962,7 +1962,7 @@
       "statement": "B optimizes A: pre-check discipline via assumption L3 (epoch 90)",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-090",
       "created_at": "2026-08-20T22:43:15+08:00",
@@ -1973,28 +1973,28 @@
       "statement": "Meta-A epoch 91: A hands B a single-node L4 candidate whose claim is critic specificity; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-20T22:43:33+08:00",
-      "updated_at": "2026-08-21T22:48:41+08:00"
+      "updated_at": "2026-08-22T12:03:09+08:00"
     },
     "MOD-092": {
       "type": "modification",
       "statement": "A optimizes B: critic specificity via inference L4 (epoch 91)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-091",
       "created_at": "2026-08-20T22:43:34+08:00",
-      "updated_at": "2026-08-21T22:48:43+08:00"
+      "updated_at": "2026-08-22T12:03:11+08:00"
     },
     "B-OPT-A-092": {
       "type": "verify",
       "statement": "Meta-B epoch 92: B proposes this verify node so A's small patch scope stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "created_at": "2026-08-20T22:43:36+08:00",
       "updated_at": "2026-08-22T11:35:33+08:00"
@@ -2004,7 +2004,7 @@
       "statement": "B optimizes A: small patch scope via verify L1 (epoch 92)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-092",
       "created_at": "2026-08-20T22:43:37+08:00",
@@ -2015,7 +2015,7 @@
       "statement": "Meta-A epoch 93: local A candidate adding a L2 assumption that makes B's hard-verification records auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-20T22:43:39+08:00",
       "updated_at": "2026-08-22T11:42:39+08:00"
@@ -2025,7 +2025,7 @@
       "statement": "A optimizes B: hard-verification records via assumption L2 (epoch 93)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-093",
       "created_at": "2026-08-20T22:43:40+08:00",
@@ -2036,7 +2036,7 @@
       "statement": "Meta-B epoch 94: B feeds A a one-node inference candidate requiring A's evidence freshness to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "created_at": "2026-08-20T22:43:42+08:00",
       "updated_at": "2026-08-22T11:46:06+08:00"
@@ -2046,7 +2046,7 @@
       "statement": "B optimizes A: evidence freshness via inference L3 (epoch 94)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-094",
       "created_at": "2026-08-20T22:43:43+08:00",
@@ -2057,7 +2057,7 @@
       "statement": "Meta-A epoch 95: A hands B a single-node L4 candidate whose claim is modification closure audit; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "created_at": "2026-08-20T22:43:45+08:00",
       "updated_at": "2026-08-22T11:49:02+08:00"
@@ -2067,7 +2067,7 @@
       "statement": "A optimizes B: modification closure audit via verify L4 (epoch 95)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-095",
       "created_at": "2026-08-20T22:43:46+08:00",
@@ -2078,7 +2078,7 @@
       "statement": "Meta-B epoch 96: B proposes this assumption node so A's revision loop stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "created_at": "2026-08-20T22:43:48+08:00",
       "updated_at": "2026-08-22T11:50:01+08:00"
@@ -2088,7 +2088,7 @@
       "statement": "B optimizes A: revision loop via assumption L1 (epoch 96)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-096",
       "created_at": "2026-08-20T22:43:49+08:00",
@@ -2099,7 +2099,7 @@
       "statement": "Meta-A epoch 97: local A candidate adding a L2 inference that makes B's revalidation gate auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "created_at": "2026-08-20T22:43:51+08:00",
       "updated_at": "2026-08-22T11:52:20+08:00"
@@ -2109,7 +2109,7 @@
       "statement": "A optimizes B: revalidation gate via inference L2 (epoch 97)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-097",
       "created_at": "2026-08-20T22:43:52+08:00",
@@ -2120,7 +2120,7 @@
       "statement": "Meta-B epoch 98: B feeds A a one-node verify candidate requiring A's proposal locality to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-20T22:43:54+08:00",
       "updated_at": "2026-08-22T12:00:49+08:00"
@@ -2130,7 +2130,7 @@
       "statement": "B optimizes A: proposal locality via verify L3 (epoch 98)",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-098",
       "created_at": "2026-08-20T22:43:55+08:00",
@@ -2141,28 +2141,28 @@
       "statement": "Meta-A epoch 99: A hands B a single-node L4 candidate whose claim is self-test closure; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-20T22:43:58+08:00",
-      "updated_at": "2026-08-21T22:48:41+08:00"
+      "updated_at": "2026-08-22T12:03:09+08:00"
     },
     "MOD-100": {
       "type": "modification",
       "statement": "A optimizes B: self-test closure via assumption L4 (epoch 99)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-099",
       "created_at": "2026-08-20T22:43:58+08:00",
-      "updated_at": "2026-08-21T22:48:43+08:00"
+      "updated_at": "2026-08-22T12:03:11+08:00"
     },
     "B-OPT-A-100": {
       "type": "inference",
       "statement": "Meta-B epoch 100: B proposes this inference node so A's cheap falsification stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "created_at": "2026-08-20T22:44:01+08:00",
       "updated_at": "2026-08-22T11:35:34+08:00"
@@ -2172,7 +2172,7 @@
       "statement": "B optimizes A: cheap falsification via inference L1 (epoch 100)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-100",
       "created_at": "2026-08-20T22:44:02+08:00",
@@ -2183,7 +2183,7 @@
       "statement": "Meta-A epoch 101: local A candidate adding a L2 verify that makes B's rollback reproducibility auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-20T22:44:20+08:00",
       "updated_at": "2026-08-22T11:42:39+08:00"
@@ -2193,7 +2193,7 @@
       "statement": "A optimizes B: rollback reproducibility via verify L2 (epoch 101)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-101",
       "created_at": "2026-08-20T22:44:21+08:00",
@@ -2204,7 +2204,7 @@
       "statement": "Meta-B epoch 102: B feeds A a one-node assumption candidate requiring A's A queue noise control to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "created_at": "2026-08-20T22:44:24+08:00",
       "updated_at": "2026-08-22T11:46:06+08:00"
@@ -2214,7 +2214,7 @@
       "statement": "B optimizes A: A queue noise control via assumption L3 (epoch 102)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-102",
       "created_at": "2026-08-20T22:44:24+08:00",
@@ -2225,7 +2225,7 @@
       "statement": "Meta-A epoch 103: A hands B a single-node L4 candidate whose claim is trust accounting; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "created_at": "2026-08-20T22:44:27+08:00",
       "updated_at": "2026-08-22T11:49:02+08:00"
@@ -2235,7 +2235,7 @@
       "statement": "A optimizes B: trust accounting via inference L4 (epoch 103)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-103",
       "created_at": "2026-08-20T22:44:27+08:00",
@@ -2246,7 +2246,7 @@
       "statement": "Meta-B epoch 104: B proposes this verify node so A's candidate specificity stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "created_at": "2026-08-20T22:44:30+08:00",
       "updated_at": "2026-08-22T11:50:01+08:00"
@@ -2256,7 +2256,7 @@
       "statement": "B optimizes A: candidate specificity via verify L1 (epoch 104)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-104",
       "created_at": "2026-08-20T22:44:31+08:00",
@@ -2267,7 +2267,7 @@
       "statement": "Meta-A epoch 105: local A candidate adding a L2 assumption that makes B's deprecation closure auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "created_at": "2026-08-20T22:44:34+08:00",
       "updated_at": "2026-08-22T11:52:20+08:00"
@@ -2277,7 +2277,7 @@
       "statement": "A optimizes B: deprecation closure via assumption L2 (epoch 105)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-105",
       "created_at": "2026-08-20T22:44:34+08:00",
@@ -2288,7 +2288,7 @@
       "statement": "Meta-B epoch 106: B feeds A a one-node inference candidate requiring A's verification command clarity to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-20T22:44:37+08:00",
       "updated_at": "2026-08-22T12:00:49+08:00"
@@ -2298,7 +2298,7 @@
       "statement": "B optimizes A: verification command clarity via inference L3 (epoch 106)",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-106",
       "created_at": "2026-08-20T22:44:37+08:00",
@@ -2309,28 +2309,28 @@
       "statement": "Meta-A epoch 107: A hands B a single-node L4 candidate whose claim is B queue discipline; B owns critique, verify, and apply.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-20T22:44:41+08:00",
-      "updated_at": "2026-08-21T22:48:41+08:00"
+      "updated_at": "2026-08-22T12:03:09+08:00"
     },
     "MOD-108": {
       "type": "modification",
       "statement": "A optimizes B: B queue discipline via verify L4 (epoch 107)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-107",
       "created_at": "2026-08-20T22:44:41+08:00",
-      "updated_at": "2026-08-21T22:48:43+08:00"
+      "updated_at": "2026-08-22T12:03:11+08:00"
     },
     "B-OPT-A-108": {
       "type": "assumption",
       "statement": "Meta-B epoch 108: B proposes this assumption node so A's trust preservation stays bounded and evidence-backed.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "created_at": "2026-08-20T22:44:45+08:00",
       "updated_at": "2026-08-22T11:35:34+08:00"
@@ -2340,7 +2340,7 @@
       "statement": "B optimizes A: trust preservation via assumption L1 (epoch 108)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-108",
       "created_at": "2026-08-20T22:44:45+08:00",
@@ -2351,7 +2351,7 @@
       "statement": "Meta-A epoch 109: local A candidate adding a L2 inference that makes B's verification timeout hygiene auditable.",
       "layer": "L2",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-20T22:44:48+08:00",
       "updated_at": "2026-08-22T11:42:39+08:00"
@@ -2361,7 +2361,7 @@
       "statement": "A optimizes B: verification timeout hygiene via inference L2 (epoch 109)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-109",
       "created_at": "2026-08-20T22:44:49+08:00",
@@ -2372,7 +2372,7 @@
       "statement": "Meta-B epoch 110: B feeds A a one-node verify candidate requiring A's draft node hygiene to remain reproducible.",
       "layer": "L3",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "created_at": "2026-08-20T22:44:52+08:00",
       "updated_at": "2026-08-22T11:46:06+08:00"
@@ -2382,7 +2382,7 @@
       "statement": "B optimizes A: draft node hygiene via verify L3 (epoch 110)",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-110",
       "created_at": "2026-08-20T22:44:52+08:00",
@@ -2393,7 +2393,7 @@
       "statement": "Stop epoch-only proposal recycling with semantic novelty gate",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-111",
       "created_at": "2026-08-21T10:18:50+08:00",
@@ -2404,7 +2404,7 @@
       "statement": "Require proposal-specific post-patch effect predicates",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-112",
       "created_at": "2026-08-21T10:25:11+08:00",
@@ -2415,7 +2415,7 @@
       "statement": "Route unfixable revisions to rejection before replacement",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-114",
       "created_at": "2026-08-21T10:38:54+08:00",
@@ -2426,7 +2426,7 @@
       "statement": "Treat proposal targets as invalidation-impact claims",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-115",
       "created_at": "2026-08-21T10:44:22+08:00",
@@ -2437,18 +2437,18 @@
       "statement": "Correct global trust-decay scope with full-state evidence",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-117",
       "created_at": "2026-08-21T10:55:44+08:00",
-      "updated_at": "2026-08-21T22:48:43+08:00"
+      "updated_at": "2026-08-22T12:03:11+08:00"
     },
     "MOD-117": {
       "type": "modification",
       "statement": "Link global decay evidence to the revalidation gate",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-118",
       "created_at": "2026-08-21T11:01:33+08:00",
@@ -2459,7 +2459,7 @@
       "statement": "Link unit-suite evidence to capability self-test verification",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-119",
       "created_at": "2026-08-21T11:06:11+08:00",
@@ -2470,7 +2470,7 @@
       "statement": "Propagate configured self-test changes to session closure",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-120",
       "created_at": "2026-08-21T11:11:01+08:00",
@@ -2481,7 +2481,7 @@
       "statement": "Bind rejected-candidate memory to the revision boundary",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-121",
       "created_at": "2026-08-21T11:16:33+08:00",
@@ -2492,7 +2492,7 @@
       "statement": "Propagate A target-scope changes into B closure audit",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-122",
       "created_at": "2026-08-21T11:22:30+08:00",
@@ -2503,7 +2503,7 @@
       "statement": "Carry A effect predicates into B records with dry-apply evidence",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-124",
       "created_at": "2026-08-21T12:53:20+08:00",
@@ -2514,7 +2514,7 @@
       "statement": "Make hard-verification evidence depend on critic specificity",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-125",
       "created_at": "2026-08-21T12:59:51+08:00",
@@ -2525,18 +2525,18 @@
       "statement": "Require proposal hard evidence before session self-test closure",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-126",
       "created_at": "2026-08-21T13:04:14+08:00",
-      "updated_at": "2026-08-21T22:48:43+08:00"
+      "updated_at": "2026-08-22T12:03:11+08:00"
     },
     "MOD-125": {
       "type": "modification",
       "statement": "Require post-apply closure audit before session closure",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-127",
       "created_at": "2026-08-21T13:08:26+08:00",
@@ -2547,7 +2547,7 @@
       "statement": "Restore affected evidence before session closure",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-128",
       "created_at": "2026-08-21T13:13:06+08:00",
@@ -2558,7 +2558,7 @@
       "statement": "Synchronize session closure with all required evidence",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-129",
       "created_at": "2026-08-21T13:17:53+08:00",
@@ -2569,7 +2569,7 @@
       "statement": "Audit recorded affected nodes against immediate closure",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-130",
       "created_at": "2026-08-21T13:23:01+08:00",
@@ -2580,7 +2580,7 @@
       "statement": "Separate proposal and node hard-verification ledger contracts",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-132",
       "created_at": "2026-08-21T13:35:07+08:00",
@@ -2591,7 +2591,7 @@
       "statement": "Bind final session closure to the self-test ledger record",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-133",
       "created_at": "2026-08-21T13:41:28+08:00",
@@ -2602,7 +2602,7 @@
       "statement": "Require a matching current checkpoint before session closure",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-135",
       "created_at": "2026-08-21T13:52:55+08:00",
@@ -2613,18 +2613,18 @@
       "statement": "Audit persisted identity indexes before session closure",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-136",
       "created_at": "2026-08-21T13:58:36+08:00",
-      "updated_at": "2026-08-21T22:48:43+08:00"
+      "updated_at": "2026-08-22T12:03:11+08:00"
     },
     "MOD-133": {
       "type": "modification",
       "statement": "Audit applied-proposal lifecycle chronology",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-137",
       "created_at": "2026-08-21T14:04:30+08:00",
@@ -2635,7 +2635,7 @@
       "statement": "Require a terminal proposal queue before session closure",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-138",
       "created_at": "2026-08-21T14:10:28+08:00",
@@ -2646,7 +2646,7 @@
       "statement": "Clear all stale evidence before session closure",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-139",
       "created_at": "2026-08-21T14:16:03+08:00",
@@ -2657,7 +2657,7 @@
       "statement": "Bind successful revalidation events to ledger evidence",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-140",
       "created_at": "2026-08-21T14:23:45+08:00",
@@ -2668,7 +2668,7 @@
       "statement": "Audit both legal revision branches in event history",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-142",
       "created_at": "2026-08-21T14:38:17+08:00",
@@ -2679,7 +2679,7 @@
       "statement": "Bind proposal verification events to hard records",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-143",
       "created_at": "2026-08-21T14:45:05+08:00",
@@ -2690,7 +2690,7 @@
       "statement": "Bind full self-test history to its event ledger",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-144",
       "created_at": "2026-08-21T14:50:56+08:00",
@@ -2701,18 +2701,18 @@
       "statement": "Bind proposal creation objects to creation events",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-145",
       "created_at": "2026-08-21T14:55:48+08:00",
-      "updated_at": "2026-08-21T22:48:43+08:00"
+      "updated_at": "2026-08-22T12:03:11+08:00"
     },
     "MOD-141": {
       "type": "modification",
       "statement": "Complete application event provenance",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-146",
       "created_at": "2026-08-21T15:01:04+08:00",
@@ -2723,7 +2723,7 @@
       "statement": "Repair auto-research dashboard replay fallback",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-147",
       "created_at": "2026-08-21T17:17:29+08:00",
@@ -2735,7 +2735,7 @@
       "statement": "The auto-research epoch dashboard renders from the current state even when snapshot history is missing, stale, or incomplete, and degrades epoch frames to a current-state fallback instead of crashing.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-21T17:17:29+08:00",
       "updated_at": "2026-08-22T11:42:41+08:00"
@@ -2745,7 +2745,7 @@
       "statement": "Snapshot journal growth is bounded by a hash index that deduplicates identical states and a retention policy that keeps the last N snapshots plus milestone labels; rollback and dashboard replay degrade safely when older non-milestone snapshots are pruned.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "created_at": "2026-08-21T17:23:00+08:00",
       "updated_at": "2026-08-22T11:46:09+08:00"
@@ -2755,7 +2755,7 @@
       "statement": "Bound snapshot journal with hash-index dedup and retention prune",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-148",
       "created_at": "2026-08-21T17:23:27+08:00",
@@ -2766,7 +2766,7 @@
       "statement": "The harness exposes health and watch commands that check structural validity, queue age, self-test freshness, event freshness, draft/deprecated closure, reject streaks, A/B track balance, patch-op concentration, snapshot and state size, and retrospective backlog age; health exits non-zero on critical findings.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "created_at": "2026-08-21T17:27:13+08:00",
       "updated_at": "2026-08-22T11:49:02+08:00"
@@ -2776,7 +2776,7 @@
       "statement": "Add health and watch commands with warning/critical severity split",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-150",
       "created_at": "2026-08-21T17:29:50+08:00",
@@ -2787,7 +2787,7 @@
       "statement": "The launch command preflights structural validity and health, selects the A/B role from the open queue, detects the requested harness executable and dsh preset, prints an exact launch command and session prompt, and records each real launch in the event log.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "created_at": "2026-08-21T17:32:15+08:00",
       "updated_at": "2026-08-22T11:50:01+08:00"
@@ -2797,7 +2797,7 @@
       "statement": "Add launch preflight command for dsh, Claude, Codex, and manual",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-151",
       "created_at": "2026-08-21T17:32:44+08:00",
@@ -2808,7 +2808,7 @@
       "statement": "Novelty contract: a proposal that reproduces the semantic content (title, ops, targets) of a proposal already rejected earlier in the same epoch is non-novel; the critic must refuse it without re-litigating the prior rejection, and the proposer must either revise the rejected line or file a distinct proposal naming the added semantic element.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-21T17:40:32+08:00",
       "updated_at": "2026-08-22T11:42:42+08:00"
@@ -2818,7 +2818,7 @@
       "statement": "Make semantic-novelty and patch-op concentration executable guards",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-152",
       "created_at": "2026-08-21T17:41:01+08:00",
@@ -2829,7 +2829,7 @@
       "statement": "A session starts from one compact a-brief command that rebuilds the snapshot index and reports open proposals, open retrospectives, draft/deprecated nodes, patch vocabulary, protected paths, and the last five proposals.",
       "layer": "L1",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-21T17:54:19+08:00",
       "updated_at": "2026-08-22T12:00:48+08:00"
@@ -2839,7 +2839,7 @@
       "statement": "Give A a compact a-brief with sandbox-safe snapshot index rebuild",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-154",
       "created_at": "2026-08-21T17:57:23+08:00",
@@ -2850,28 +2850,28 @@
       "statement": "A can run a read-only a-check before propose: it evaluates patch validity, semantic novelty, retro linkage, file paths, and the projected invalidation closure without mutating state, and returns non-zero when the candidate would be blocked.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-21T17:59:33+08:00",
-      "updated_at": "2026-08-21T22:48:40+08:00"
+      "updated_at": "2026-08-22T12:03:08+08:00"
     },
     "MOD-148": {
       "type": "modification",
       "statement": "Give A a read-only a-check preflight before propose",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-155",
       "created_at": "2026-08-21T18:00:03+08:00",
-      "updated_at": "2026-08-21T22:48:43+08:00"
+      "updated_at": "2026-08-22T12:03:11+08:00"
     },
     "EVENTS-MONITOR": {
       "type": "verify",
       "statement": "The event log supports tail and since filtering in text and JSON modes so monitors can sample recent events without parsing the full history.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "created_at": "2026-08-21T18:06:46+08:00",
       "updated_at": "2026-08-22T11:35:34+08:00"
@@ -2881,7 +2881,7 @@
       "statement": "Add tail and since filters to events",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-156",
       "created_at": "2026-08-21T18:07:26+08:00",
@@ -2892,7 +2892,7 @@
       "statement": "ab-status and ab-next emit machine-readable JSON with queues, draft/deprecated nodes, retrospectives, and next A/B actions for monitors and future runners.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-21T18:12:26+08:00",
       "updated_at": "2026-08-22T11:42:39+08:00"
@@ -2902,7 +2902,7 @@
       "statement": "Add JSON output to ab-status and ab-next",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-157",
       "created_at": "2026-08-21T18:12:57+08:00",
@@ -2913,7 +2913,7 @@
       "statement": "status emits a machine-readable JSON summary of graph shape, node status distribution, proposals, retrospectives, file backups, and last self-test.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "created_at": "2026-08-21T18:14:45+08:00",
       "updated_at": "2026-08-22T11:46:09+08:00"
@@ -2923,7 +2923,7 @@
       "statement": "Add JSON output to status",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-158",
       "created_at": "2026-08-21T18:15:16+08:00",
@@ -2934,7 +2934,7 @@
       "statement": "proposal-show prints one proposal in full, including patch, critic verdict, verification record, retrospective link, and modification provenance, in text or JSON.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "created_at": "2026-08-21T18:17:01+08:00",
       "updated_at": "2026-08-22T11:49:04+08:00"
@@ -2944,7 +2944,7 @@
       "statement": "Add proposal-show inspection command",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-159",
       "created_at": "2026-08-21T18:17:33+08:00",
@@ -2955,7 +2955,7 @@
       "statement": "verification-stats summarizes total, passed, failed, timeouts, by-level counts, and the trailing self-test streak from the hard-verification ledger.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "created_at": "2026-08-21T18:19:19+08:00",
       "updated_at": "2026-08-22T11:50:03+08:00"
@@ -2965,7 +2965,7 @@
       "statement": "Add verification-stats ledger summary",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-160",
       "created_at": "2026-08-21T18:19:51+08:00",
@@ -2976,7 +2976,7 @@
       "statement": "retro import accepts a JSON array and adds all retrospective items in one validated mutation, event, and snapshot, reducing journal churn for batch reviews.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "created_at": "2026-08-21T18:21:41+08:00",
       "updated_at": "2026-08-22T11:52:22+08:00"
@@ -2986,7 +2986,7 @@
       "statement": "Add batch retro import",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-161",
       "created_at": "2026-08-21T18:22:13+08:00",
@@ -2997,7 +2997,7 @@
       "statement": "snapshot-reindex explicitly rebuilds the snapshot hash index, and file-backup-stats reports patch_file rollback backup entries, file count, and bytes in text or JSON.",
       "layer": "L1",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-21T18:24:02+08:00",
       "updated_at": "2026-08-22T12:00:51+08:00"
@@ -3007,7 +3007,7 @@
       "statement": "Add snapshot-reindex and file-backup-stats",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-162",
       "created_at": "2026-08-21T18:24:34+08:00",
@@ -3018,28 +3018,28 @@
       "statement": "self-test emits a JSON record with passed status, exit code, stdout hash, timeout, and stderr tail for monitoring and runner gate integration.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "created_at": "2026-08-21T18:26:13+08:00",
-      "updated_at": "2026-08-21T22:48:44+08:00"
+      "updated_at": "2026-08-22T12:03:12+08:00"
     },
     "MOD-156": {
       "type": "modification",
       "statement": "Add JSON output to self-test with corrected smoke command",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-164",
       "created_at": "2026-08-21T18:27:45+08:00",
-      "updated_at": "2026-08-21T22:48:44+08:00"
+      "updated_at": "2026-08-22T12:03:11+08:00"
     },
     "ROLLBACK-PREVIEW": {
       "type": "verify",
       "statement": "rollback --dry-run previews the target snapshot, state proposal delta, file-backup entries that would be undone, and touched files without restoring or recording an event.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "created_at": "2026-08-21T18:29:27+08:00",
       "updated_at": "2026-08-22T11:35:36+08:00"
@@ -3049,7 +3049,7 @@
       "statement": "Add sandbox-safe dry-run preview to rollback",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-166",
       "created_at": "2026-08-21T18:31:30+08:00",
@@ -3060,7 +3060,7 @@
       "statement": "watch emits one machine-readable health JSON report per check for continuous monitoring pipelines and runner integration.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-21T18:33:11+08:00",
       "updated_at": "2026-08-22T11:42:42+08:00"
@@ -3070,7 +3070,7 @@
       "statement": "Add JSON output to watch",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-167",
       "created_at": "2026-08-21T18:33:43+08:00",
@@ -3081,7 +3081,7 @@
       "statement": "Launch prompts for A and B are stored in state, validated, printed by launch, and modifiable through the set_launch_prompt patch op, making the launch protocol itself a legitimate auto-research modification target.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "created_at": "2026-08-21T18:42:47+08:00",
       "updated_at": "2026-08-22T11:49:02+08:00"
@@ -3091,7 +3091,7 @@
       "statement": "Make launch prompts modifiable research state",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-168",
       "created_at": "2026-08-21T18:43:22+08:00",
@@ -3102,7 +3102,7 @@
       "statement": "run executes supervised A/B epochs: it builds role prompts from launch_prompts, invokes headless proposer and critic commands, performs propose/critique/verify/apply, revalidates, self-tests, applies health gates, writes auto_run.jsonl, and optionally commits each epoch.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "created_at": "2026-08-21T18:55:00+08:00",
       "updated_at": "2026-08-22T11:52:22+08:00"
@@ -3112,7 +3112,7 @@
       "statement": "Add supervised run scheduler for A/B epochs",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-169",
       "created_at": "2026-08-21T18:55:34+08:00",
@@ -3123,7 +3123,7 @@
       "statement": "Compact runner agent prompts",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-170",
       "created_at": "2026-08-21T19:09:18+08:00",
@@ -3134,7 +3134,7 @@
       "statement": "Make runner prompts tool-free and schema-strict",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-171",
       "created_at": "2026-08-21T19:24:57+08:00",
@@ -3145,7 +3145,7 @@
       "statement": "verify applies every proposal patch to an isolated copied state before running the verification command; state-only and file patches observe their intended post-patch state. runner terminates challenged or verification-failed proposals via revise then reject so later epochs always start with a terminal queue.",
       "layer": "L1",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-21T20:05:00+08:00",
       "updated_at": "2026-08-22T12:00:51+08:00"
@@ -3155,7 +3155,7 @@
       "statement": "Fix verify dry-run semantics and runner failure recovery",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-175",
       "created_at": "2026-08-21T20:05:37+08:00",
@@ -3166,18 +3166,18 @@
       "statement": "Encode exit-0 authority contract on B-VERIFY-RECORD",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-178",
       "created_at": "2026-08-21T20:10:15+08:00",
-      "updated_at": "2026-08-21T22:48:44+08:00"
+      "updated_at": "2026-08-22T12:03:11+08:00"
     },
     "MOD-165": {
       "type": "modification",
       "statement": "Encode pilot gates into A and B launch prompts",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-181",
       "created_at": "2026-08-21T20:59:58+08:00",
@@ -3188,7 +3188,7 @@
       "statement": "Encode rejected-proposal resubmission as non-novel on NOVELTY-GUARD",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-182",
       "created_at": "2026-08-21T21:27:21+08:00",
@@ -3199,7 +3199,7 @@
       "statement": "Define pilot-failure disposition for the 100-epoch gate in A launch prompt",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-185",
       "created_at": "2026-08-21T21:32:31+08:00",
@@ -3210,7 +3210,7 @@
       "statement": "Add negative examples to A and B launch prompts",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-187",
       "created_at": "2026-08-21T21:42:51+08:00",
@@ -3221,7 +3221,7 @@
       "statement": "Require hermetic stdlib-only verification commands on B-VERIFY-RECORD",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-189",
       "created_at": "2026-08-21T21:45:48+08:00",
@@ -3232,7 +3232,7 @@
       "statement": "Runner prompts expose a curated target whitelist, headless agents run in a clean working directory, agent timeouts retry instead of aborting the run, and proposer/critic output is limited to 200 words.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "created_at": "2026-08-21T22:39:22+08:00",
       "updated_at": "2026-08-22T11:52:22+08:00"
@@ -3242,7 +3242,7 @@
       "statement": "Engineer runner prompts for headless agents with 9k prompt bound",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-193",
       "created_at": "2026-08-21T22:40:56+08:00",
@@ -3253,7 +3253,7 @@
       "statement": "Require same-epoch re-verification before clearing deprecation on B-REVALIDATE-GATE",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-194",
       "created_at": "2026-08-21T22:42:48+08:00",
@@ -3264,18 +3264,18 @@
       "statement": "Require evidence provenance citations in A proposals",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3205,
+      "trust": 1.0,
       "immutable": false,
       "proposal_id": "P-197",
       "created_at": "2026-08-21T22:48:40+08:00",
-      "updated_at": "2026-08-21T22:48:40+08:00"
+      "updated_at": "2026-08-22T12:03:12+08:00"
     },
     "DETERMINISTIC-RUNNER-CRITIC": {
       "type": "verify",
       "statement": "run uses a deterministic critic by default: patch validity, post-patch target existence, novelty against prior proposals, python3 verification, and at least one proposal-specific patch-written word in the verification command. LLM critic remains available with --llm-critic.",
       "layer": "L1",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "created_at": "2026-08-22T11:34:54+08:00",
       "updated_at": "2026-08-22T11:42:39+08:00"
@@ -3285,7 +3285,7 @@
       "statement": "Add deterministic runner critic",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.3771,
+      "trust": 0.3205,
       "immutable": false,
       "proposal_id": "P-204",
       "created_at": "2026-08-22T11:35:32+08:00",
@@ -3296,7 +3296,7 @@
       "statement": "Guard verification state path in deterministic critic",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.4437,
+      "trust": 0.3771,
       "immutable": false,
       "proposal_id": "P-208",
       "created_at": "2026-08-22T11:42:38+08:00",
@@ -3307,7 +3307,7 @@
       "statement": "Require B verification to be side-effect-free on state file",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "proposal_id": "P-212",
       "created_at": "2026-08-22T11:46:05+08:00",
@@ -3319,7 +3319,7 @@
       "statement": "B-track verification commands must be side-effect-free with respect to .research/auto_research.json: they must not open the state file in any write or append mode, and any verification command that would mutate the state file is rejected before execution.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.522,
+      "trust": 0.4437,
       "immutable": false,
       "created_at": "2026-08-22T11:46:05+08:00",
       "updated_at": "2026-08-22T11:46:08+08:00"
@@ -3329,7 +3329,7 @@
       "statement": "Require A verification commands to be re-entrant",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "proposal_id": "P-214",
       "created_at": "2026-08-22T11:49:01+08:00",
@@ -3341,7 +3341,7 @@
       "statement": "A proposals SHALL ship a re-entrant verification command: running the exact verification twice after application must both exit 0 with no pre-run mutation; a verification that passes only once fails A-CHECK. Marker: A-VERIFY-REENTRANT-4f9c2",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.6141,
+      "trust": 0.522,
       "immutable": false,
       "created_at": "2026-08-22T11:49:01+08:00",
       "updated_at": "2026-08-22T11:49:04+08:00"
@@ -3351,7 +3351,7 @@
       "statement": "Add B-CITATION-CLOSURE: cited semantic-delta ids must exist in graph",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "proposal_id": "P-215",
       "created_at": "2026-08-22T11:49:59+08:00",
@@ -3363,7 +3363,7 @@
       "statement": "Every B proposal citing a semantic-delta must reference an existing graph node id; verification asserts the cited id is present among state-file nodes.",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.7225,
+      "trust": 0.6141,
       "immutable": false,
       "created_at": "2026-08-22T11:49:59+08:00",
       "updated_at": "2026-08-22T11:49:59+08:00"
@@ -3373,7 +3373,7 @@
       "statement": "Teach proposer exact node dict shape",
       "layer": "L4",
       "status": "validated",
-      "trust": 0.85,
+      "trust": 0.7225,
       "immutable": false,
       "proposal_id": "P-216",
       "created_at": "2026-08-22T11:52:19+08:00",
@@ -3384,7 +3384,7 @@
       "statement": "Add B-VERIFY-DETERMINISM: recorded verifications must be repeatable",
       "layer": "L4",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "proposal_id": "P-217",
       "created_at": "2026-08-22T12:00:47+08:00",
@@ -3396,10 +3396,32 @@
       "statement": "Every recorded B verification command must be deterministic over a fixed state: two runs against the same persisted state yield the same exit code and stdout. Commands whose result depends on wall-clock time, randomness, or file modification times are rejected as dependency-closure risks before apply.",
       "layer": "L3",
       "status": "validated",
-      "trust": 1.0,
+      "trust": 0.85,
       "immutable": false,
       "created_at": "2026-08-22T12:00:47+08:00",
       "updated_at": "2026-08-22T12:00:49+08:00"
+    },
+    "MOD-180": {
+      "type": "modification",
+      "statement": "Add A-ASSERT-CLOSURE: verification assertions must be patch-written verbatim",
+      "layer": "L4",
+      "status": "validated",
+      "trust": 1.0,
+      "immutable": false,
+      "proposal_id": "P-218",
+      "created_at": "2026-08-22T12:03:08+08:00",
+      "updated_at": "2026-08-22T12:03:08+08:00"
+    },
+    "A-ASSERT-CLOSURE": {
+      "id": "A-ASSERT-CLOSURE",
+      "type": "assumption",
+      "statement": "A-ASSERT-CLOSURE: every string asserted by an A proposal verification command must appear verbatim in text written by that proposal patch; otherwise the critic satisfiability check fails.",
+      "layer": "L4",
+      "status": "validated",
+      "trust": 1.0,
+      "immutable": false,
+      "created_at": "2026-08-22T12:03:08+08:00",
+      "updated_at": "2026-08-22T12:03:08+08:00"
     }
   },
   "edges": [
@@ -4991,6 +5013,11 @@
     {
       "from": "MOD-179",
       "to": "B-VERIFY-DETERMINISM",
+      "kind": "modification"
+    },
+    {
+      "from": "MOD-180",
+      "to": "A-ASSERT-CLOSURE",
       "kind": "modification"
     }
   ],
@@ -14216,6 +14243,54 @@
       "modification_node": "MOD-179",
       "affected_nodes": [
         "B-VERIFY-DETERMINISM"
+      ]
+    },
+    "P-218": {
+      "id": "P-218",
+      "track": "A",
+      "title": "Add A-ASSERT-CLOSURE: verification assertions must be patch-written verbatim",
+      "statement": "Codify the critic satisfiability invariant as an auditable A-side assumption: any string a proposal verification asserts must appear verbatim in patch-written text, otherwise A-CHECK rejects. Safe because it is additive (new L4 node only); falsified if the node does not exist with this exact statement.",
+      "targets": [
+        "A-ASSERT-CLOSURE"
+      ],
+      "patch": [
+        {
+          "op": "add_node",
+          "node": {
+            "id": "A-ASSERT-CLOSURE",
+            "type": "assumption",
+            "statement": "A-ASSERT-CLOSURE: every string asserted by an A proposal verification command must appear verbatim in text written by that proposal patch; otherwise the critic satisfiability check fails.",
+            "layer": "L4",
+            "status": "draft"
+          }
+        }
+      ],
+      "verification_command": "python3 -c \"import json; d=json.load(open('.research/auto_research.json')); assert d['nodes']['A-ASSERT-CLOSURE']['statement']=='A-ASSERT-CLOSURE: every string asserted by an A proposal verification command must appear verbatim in text written by that proposal patch; otherwise the critic satisfiability check fails.'\"",
+      "retrospective_id": null,
+      "status": "applied",
+      "critic": {
+        "track": "B",
+        "verdict": "pass",
+        "critic": "auto-runner-critic",
+        "reason": "deterministic critic: patch valid, targets exist after patch, novelty pass, and verification asserts patch-written content",
+        "at": "2026-08-22T12:03:07+08:00"
+      },
+      "verification": {
+        "track": "B",
+        "command": "python3 -c \"import json; d=json.load(open('.research/auto_research.json')); assert d['nodes']['A-ASSERT-CLOSURE']['statement']=='A-ASSERT-CLOSURE: every string asserted by an A proposal verification command must appear verbatim in text written by that proposal patch; otherwise the critic satisfiability check fails.'\"",
+        "exit_code": 0,
+        "timeout": false,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "at": "2026-08-22T12:03:08+08:00",
+        "sandbox": "temporary-copy"
+      },
+      "revisions": [],
+      "proposed_at": "2026-08-22T12:03:07+08:00",
+      "applied_at": "2026-08-22T12:03:08+08:00",
+      "applied_by_track": "B",
+      "modification_node": "MOD-180",
+      "affected_nodes": [
+        "A-ASSERT-CLOSURE"
       ]
     }
   },
@@ -57253,13 +57328,415 @@
       "level": "self_test",
       "command": "python3 tools/auto_research.py validate && python3 -m unittest discover -s tests",
       "node": null
+    },
+    {
+      "exit_code": 0,
+      "timeout": false,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "stderr_tail": "",
+      "at": "2026-08-22T12:03:08+08:00",
+      "sandbox": "temporary-copy",
+      "track": "B",
+      "proposal": "P-218",
+      "level": "hard",
+      "command": "python3 -c \"import json; d=json.load(open('.research/auto_research.json')); assert d['nodes']['A-ASSERT-CLOSURE']['statement']=='A-ASSERT-CLOSURE: every string asserted by an A proposal verification command must appear verbatim in text written by that proposal patch; otherwise the critic satisfiability check fails.'\""
+    },
+    {
+      "track": "B",
+      "node": "A-ASSERT-CLOSURE",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:08+08:00"
+    },
+    {
+      "track": "B",
+      "node": "A-CHECK",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:08+08:00"
+    },
+    {
+      "track": "B",
+      "node": "A-EVIDENCE-FRESHNESS",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:08+08:00"
+    },
+    {
+      "track": "B",
+      "node": "A-OPT-B-011",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:08+08:00"
+    },
+    {
+      "track": "B",
+      "node": "A-OPT-B-019",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:08+08:00"
+    },
+    {
+      "track": "B",
+      "node": "A-OPT-B-027",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:08+08:00"
+    },
+    {
+      "track": "B",
+      "node": "A-OPT-B-035",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:08+08:00"
+    },
+    {
+      "track": "B",
+      "node": "A-OPT-B-043",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:08+08:00"
+    },
+    {
+      "track": "B",
+      "node": "A-OPT-B-051",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:09+08:00"
+    },
+    {
+      "track": "B",
+      "node": "A-OPT-B-059",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:09+08:00"
+    },
+    {
+      "track": "B",
+      "node": "A-OPT-B-067",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:09+08:00"
+    },
+    {
+      "track": "B",
+      "node": "A-OPT-B-075",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:09+08:00"
+    },
+    {
+      "track": "B",
+      "node": "A-OPT-B-083",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:09+08:00"
+    },
+    {
+      "track": "B",
+      "node": "A-OPT-B-091",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:09+08:00"
+    },
+    {
+      "track": "B",
+      "node": "A-OPT-B-099",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:09+08:00"
+    },
+    {
+      "track": "B",
+      "node": "A-OPT-B-107",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:09+08:00"
+    },
+    {
+      "track": "B",
+      "node": "B-REVALIDATE-GATE",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:09+08:00"
+    },
+    {
+      "track": "B",
+      "node": "B-SELF-TEST-CLOSURE",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:09+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-002",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:09+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-003",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:10+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-012",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:10+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-020",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:10+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-028",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:10+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-036",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:10+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-044",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:10+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-052",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:10+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-060",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:10+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-068",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:10+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-076",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:10+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-084",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:11+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-092",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:11+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-100",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:11+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-108",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:11+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-116",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:11+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-124",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:11+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-132",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:11+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-140",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:11+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-148",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:11+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-156",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:11+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-164",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:11+08:00"
+    },
+    {
+      "track": "B",
+      "node": "MOD-172",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:12+08:00"
+    },
+    {
+      "track": "B",
+      "node": "SELF-TEST-JSON",
+      "level": "syntax",
+      "command": null,
+      "exit_code": 0,
+      "stdout_sha256": "bd3311f1dd6dcc8e13dcfbfd6bcfb43c7f8658992ddc0f6a82eb0814d661a06f",
+      "at": "2026-08-22T12:03:12+08:00"
+    },
+    {
+      "exit_code": 0,
+      "timeout": false,
+      "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
+      "stdout_bytes": 49,
+      "stderr_tail": "......................................................................................................................................................................\n----------------------------------------------------------------------\nRan 166 tests in 25.895s\n\nOK\n",
+      "at": "2026-08-22T12:03:38+08:00",
+      "level": "self_test",
+      "command": "python3 tools/auto_research.py validate && python3 -m unittest discover -s tests",
+      "node": null
     }
   ],
   "last_self_test": {
     "passed": true,
     "exit_code": 0,
     "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
-    "at": "2026-08-22T12:01:17+08:00"
+    "at": "2026-08-22T12:03:38+08:00"
   },
   "events": [
     {
@@ -105256,12 +105733,445 @@
         "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
         "at": "2026-08-22T12:01:17+08:00"
       }
+    },
+    {
+      "at": "2026-08-22T12:03:07+08:00",
+      "event": "proposal_proposed",
+      "payload": {
+        "track": "A",
+        "proposal": "P-218",
+        "title": "Add A-ASSERT-CLOSURE: verification assertions must be patch-written verbatim",
+        "retrospective": null
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:07+08:00",
+      "event": "proposal_critiqued",
+      "payload": {
+        "track": "B",
+        "proposal": "P-218",
+        "verdict": "pass",
+        "critic": "auto-runner-critic"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:08+08:00",
+      "event": "proposal_verified",
+      "payload": {
+        "track": "B",
+        "proposal": "P-218",
+        "outcome": "verified",
+        "sandbox": "temporary-copy"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:08+08:00",
+      "event": "modification_applied",
+      "payload": {
+        "track": "B",
+        "proposal": "P-218",
+        "modification_node": "MOD-180",
+        "targets": [
+          "A-ASSERT-CLOSURE"
+        ],
+        "affected_nodes": [
+          "A-ASSERT-CLOSURE"
+        ]
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:08+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "A-ASSERT-CLOSURE",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:08+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "A-CHECK",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:08+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "A-EVIDENCE-FRESHNESS",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:08+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "A-OPT-B-011",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:08+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "A-OPT-B-019",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:08+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "A-OPT-B-027",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:08+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "A-OPT-B-035",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:08+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "A-OPT-B-043",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:09+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "A-OPT-B-051",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:09+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "A-OPT-B-059",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:09+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "A-OPT-B-067",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:09+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "A-OPT-B-075",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:09+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "A-OPT-B-083",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:09+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "A-OPT-B-091",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:09+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "A-OPT-B-099",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:09+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "A-OPT-B-107",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:09+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "B-REVALIDATE-GATE",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:09+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "B-SELF-TEST-CLOSURE",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:09+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-002",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:10+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-003",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:10+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-012",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:10+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-020",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:10+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-028",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:10+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-036",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:10+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-044",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:10+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-052",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:10+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-060",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:10+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-068",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:10+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-076",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:11+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-084",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:11+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-092",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:11+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-100",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:11+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-108",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:11+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-116",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:11+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-124",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:11+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-132",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:11+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-140",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:11+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-148",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:11+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-156",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:11+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-164",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:12+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "MOD-172",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:12+08:00",
+      "event": "node_revalidated",
+      "payload": {
+        "track": "B",
+        "node": "SELF-TEST-JSON",
+        "level": "syntax"
+      }
+    },
+    {
+      "at": "2026-08-22T12:03:38+08:00",
+      "event": "self_test_passed",
+      "payload": {
+        "passed": true,
+        "exit_code": 0,
+        "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
+        "at": "2026-08-22T12:03:38+08:00"
+      }
     }
   ],
   "counters": {
-    "node": 179,
-    "proposal": 217,
-    "verification": 4150,
+    "node": 180,
+    "proposal": 218,
+    "verification": 4194,
     "retrospective": 30
   },
   "tracks": {
