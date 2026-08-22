@@ -83,3 +83,4 @@
 {"at": "2026-08-22T14:18:29+08:00", "epoch": 29, "role": "A", "event": "epoch_applied", "detail": {"proposal": "P-262", "health": true}}
 {"at": "2026-08-22T14:20:10+08:00", "epoch": 30, "role": "B", "event": "epoch_applied", "detail": {"proposal": "P-263", "health": true}}
 {"at": "2026-08-22T14:21:46+08:00", "epoch": 31, "role": "A", "event": "epoch_applied", "detail": {"proposal": "P-264", "health": true}}
+{"at": "2026-08-22T14:23:06+08:00", "epoch": 32, "role": "B", "event": "epoch_applied", "detail": {"proposal": "P-265", "health": true}}
