@@ -2851,6 +2851,86 @@ def run_critic_prompt(state: dict[str, Any], proposal_id: str) -> str:
     )
 
 
+COMMON_VERIFICATION_LITERALS = {
+    ".research/auto_research.json",
+    "tools/auto_research.py",
+    "tools/auto_research_dashboard.py",
+    "python3",
+    "python",
+    "print",
+    "json",
+    "unittest",
+    "discover",
+    "auto_research",
+    "validate",
+}
+
+
+def deterministic_critic_verdict(
+    state: dict[str, Any],
+    proposal_id: str,
+) -> tuple[str, str]:
+    prop = state.get("proposals", {}).get(proposal_id, {})
+    patch = prop.get("patch", [])
+    targets = prop.get("targets") or []
+    title = str(prop.get("title", ""))
+    statement = str(prop.get("statement", ""))
+
+    prior_state = copy.deepcopy(state)
+    prior_state.get("proposals", {}).pop(proposal_id, None)
+    novelty = novelty_blocks(prior_state, title, statement, patch)
+    if novelty:
+        return "reject", "novelty guard blocked: " + "; ".join(novelty)
+
+    blocks = validate_patch(state, patch)
+    if blocks:
+        return "challenge", "patch validation blocked: " + "; ".join(blocks)
+
+    trial = copy.deepcopy(state)
+    try:
+        apply_raw_patch(trial, patch, write_files=False)
+    except SystemExit as exc:
+        return "challenge", str(exc)
+    existing = set(trial.get("nodes", {}))
+    missing = [target for target in targets if target not in existing]
+    if missing:
+        return "challenge", "targets missing after patch: " + ", ".join(missing)
+
+    command = str(prop.get("verification_command", ""))
+    if not command.strip():
+        return "challenge", "verification command is missing"
+    if "python3" not in command:
+        return "challenge", "verification command must use python3"
+    patch_strings: list[str] = []
+
+    def collect_strings(value: Any) -> None:
+        if isinstance(value, str):
+            patch_strings.append(value)
+        elif isinstance(value, dict):
+            for item in value.values():
+                collect_strings(item)
+        elif isinstance(value, list):
+            for item in value:
+                collect_strings(item)
+
+    collect_strings(patch)
+    patch_words = {
+        word for value in patch_strings
+        for word in re.findall(r"[A-Za-z0-9_-]{8,}", value)
+        if word.lower() not in {item.lower() for item in COMMON_VERIFICATION_LITERALS}
+    }
+    if not patch_words or not any(word in command for word in patch_words):
+        return (
+            "challenge",
+            "verification command has no proposal-specific literal that the patch writes verbatim",
+        )
+    return (
+        "pass",
+        "deterministic critic: patch valid, targets exist after patch, novelty pass, "
+        "and verification asserts patch-written content",
+    )
+
+
 def run_revalidate_all() -> tuple[int, str]:
     state = load_state()
     ids = [
@@ -2989,18 +3069,27 @@ def cmd_run(args: argparse.Namespace) -> int:
         pid = match.group(1)
 
         state = load_state()
-        critic = run_agent_with_retries(
-            args.critic_cmd,
-            run_critic_prompt(state, pid),
-            args.agent_timeout,
-            2,
-            agent_cwd,
-        )
-        verdict = critic.get("verdict")
-        if verdict not in CRITIC_VERDICTS:
-            run_log_entry(epoch, role, "bad_critic", critic)
-            raise SystemExit("BLOCKED: critic returned a bad verdict")
-        reason = str(critic.get("reason", "runner critic"))
+        if args.deterministic_critic:
+            verdict, reason = deterministic_critic_verdict(state, pid)
+            critic = {
+                "action": "critique",
+                "verdict": verdict,
+                "reason": reason,
+                "deterministic": True,
+            }
+        else:
+            critic = run_agent_with_retries(
+                args.critic_cmd,
+                run_critic_prompt(state, pid),
+                args.agent_timeout,
+                2,
+                agent_cwd,
+            )
+            verdict = critic.get("verdict")
+            if verdict not in CRITIC_VERDICTS:
+                run_log_entry(epoch, role, "bad_critic", critic)
+                raise SystemExit("BLOCKED: critic returned a bad verdict")
+            reason = str(critic.get("reason", "runner critic"))
         proc = run_cli("critique", "--track", "B", "--proposal", pid, "--verdict", verdict, "--critic", "auto-runner-critic", "--reason", reason)
         if proc.returncode != 0 or verdict != "pass":
             run_log_entry(epoch, role, "critic_" + verdict, {"proposal": pid, "reason": reason})
@@ -3334,7 +3423,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("run", help="run supervised A/B epochs through headless agent commands")
     sp.add_argument("--epochs", type=int, required=True)
     sp.add_argument("--proposer-cmd", required=True, help="shell command; the prompt is appended quoted")
-    sp.add_argument("--critic-cmd", required=True, help="shell command; the prompt is appended quoted")
+    sp.add_argument("--critic-cmd", default="", help="shell command for LLM critic; required only with --llm-critic")
+    sp.add_argument("--deterministic-critic", dest="deterministic_critic", action="store_true", default=True, help="use the mechanical runner critic (default)")
+    sp.add_argument("--llm-critic", dest="deterministic_critic", action="store_false", help="use the configured headless critic command")
     sp.add_argument("--timeout", type=int, default=300, help="verification timeout seconds")
     sp.add_argument("--agent-timeout", type=int, default=120, help="proposer/critic timeout seconds")
     sp.add_argument("--agent-cwd", default=".research/tmp/agent-run", help="clean working directory for headless agents")

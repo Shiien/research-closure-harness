@@ -869,7 +869,7 @@ print("runner-prompt-whitelist-ok")
         out = self.assertOk(self.run_auto(
             "run", "--epochs", "1", "--proposer-cmd", f"python3 {proposer}",
             "--critic-cmd", f"python3 {critic}", "--timeout", "60",
-            "--no-alternate",
+            "--no-alternate", "--llm-critic",
         )).stdout
         self.assertIn("EPOCH 1/1", out)
         st = self.state()
@@ -899,6 +899,45 @@ class TestVerifyDryRunSemantics(RepoCase):
         self.assertOk(self.run_auto("verify", "--proposal", "P-001"))
         self.assertEqual(self.state()["proposals"]["P-001"]["status"], "verified")
         self.assertOk(self.run_auto("apply", "--proposal", "P-001"))
+
+
+class TestDeterministicRunnerCritic(RepoCase):
+    def test_deterministic_critic_passes_verbatim_assertion(self):
+        self.add_node("N1", "before", "L4", ntype="assumption", status="validated")
+        st = self.state()
+        st["self_test_command"] = "python3 -c \"print('ok')\""
+        (self.repo / ".research" / "auto_research.json").write_text(json.dumps(st, indent=2) + "\n")
+        self.assertOk(self.run_auto("self-test"))
+        tmp = self.repo / ".research" / "tmp"
+        tmp.mkdir(parents=True, exist_ok=True)
+        proposer = tmp / "det_proposer.py"
+        payload = {
+            "action": "propose",
+            "title": "deterministic critic pass",
+            "statement": "visible marker",
+            "targets": ["N1"],
+            "patch": [{
+                "op": "set_node_statement",
+                "node": "N1",
+                "statement": "visible-verification-marker",
+            }],
+            "verification": (
+                "python3 -c \"import pathlib; p=pathlib.Path('.research/auto_research.json').read_text(); "
+                "assert 'visible-verification-marker' in p\""
+            ),
+            "retro": None,
+        }
+        proposer.write_text(
+            "import json\n"
+            "payload = " + repr(payload) + "\n"
+            "print(json.dumps(payload))\n"
+        )
+        out = self.assertOk(self.run_auto(
+            "run", "--epochs", "1", "--proposer-cmd", f"python3 {proposer}",
+            "--timeout", "60", "--no-alternate", "--deterministic-critic",
+        )).stdout
+        self.assertIn("EPOCH 1/1", out)
+        self.assertEqual(self.state()["proposals"]["P-001"]["status"], "applied")
 
 
 if __name__ == "__main__":
