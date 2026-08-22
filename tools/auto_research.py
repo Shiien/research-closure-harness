@@ -2800,12 +2800,34 @@ def run_proposer_prompt(state: dict[str, Any], role: str) -> str:
             "ops": [op.get("op") for op in prop.get("patch", [])],
             "paths": [op.get("path") for op in prop.get("patch", []) if op.get("op") == "patch_file"],
         })
+    all_proposals = sorted(
+        state.get("proposals", {}).items(),
+        key=lambda item: int(item[0][2:]) if item[0].startswith("P-") and item[0][2:].isdigit() else 0,
+    )
+    recent_applied = [
+        prop for _, prop in all_proposals
+        if prop.get("status") == "applied"
+    ][-20:]
+    op_counts: dict[str, int] = {}
+    for prop in recent_applied:
+        for op in prop.get("patch", []):
+            name = op.get("op", "?")
+            op_counts[name] = op_counts.get(name, 0) + 1
+    top_op = max(op_counts, key=op_counts.get) if op_counts else None
+    top_ratio = (op_counts[top_op] / sum(op_counts.values())) if top_op else 0.0
+    concentration_hint = ""
+    if top_ratio > 0.8:
+        concentration_hint = (
+            f"Patch-op concentration guard is near: {top_op} is {top_ratio:.0%} of the last 20 applied patches. "
+            f"Do not propose {top_op} alone; use patch_file or at least two different op kinds.\n"
+        )
     return (
         f"You are auto-research role {role}. Propose exactly one small, local, semantically novel self-modification.\n"
         "Launch prompts:\n" + "\n".join(f"- {p}" for p in state.get("launch_prompts", {}).get(role, [])) + "\n"
         f"Open retrospectives: {open_retros or 'none'}.\n"
         f"Recent proposals: {json.dumps(recent, default=str)}.\n"
         f"Patch vocabulary: {sorted(PATCH_OPS)}.\n"
+        f"{concentration_hint}"
         f"Existing graph nodes you may target: {[nid for nid in RUNNER_TARGET_WHITELIST if nid in state.get('nodes', {})]}.\n"
         "Valid patch examples:\n"
         '{"op":"set_node_statement","node":"<existing-id>","statement":"..."}\n'
