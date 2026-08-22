@@ -14106,8 +14106,14 @@
       ],
       "verification_command": "python3 -c \"import json; s=json.dumps(json.load(open('auto_research.json'))); assert 'B-NOVELTY-DELTA' in s and 'explicit semantic delta' in s\"",
       "retrospective_id": null,
-      "status": "proposed",
-      "critic": null,
+      "status": "rejected",
+      "critic": {
+        "track": "B",
+        "verdict": "reject",
+        "critic": "bootstrap-b",
+        "reason": "Stale runner proposal from a previous pilot; terminating before restarting the run with deepseek-v4-pro.",
+        "at": "2026-08-22T12:24:51+08:00"
+      },
       "verification": null,
       "revisions": [
         {
@@ -113301,6 +113307,16 @@
         "exit_code": 0,
         "stdout_sha256": "de65bfe7b7287d480315dd1dea5b506985e613374ac3ce29b9a2fd5bfd66ad07",
         "at": "2026-08-22T12:24:03+08:00"
+      }
+    },
+    {
+      "at": "2026-08-22T12:24:51+08:00",
+      "event": "proposal_critiqued",
+      "payload": {
+        "track": "B",
+        "proposal": "P-209",
+        "verdict": "reject",
+        "critic": "bootstrap-b"
       }
     }
   ],
