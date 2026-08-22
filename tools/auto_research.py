@@ -2818,6 +2818,8 @@ def run_proposer_prompt(state: dict[str, Any], role: str) -> str:
         "If you cannot emit a complete unified diff, choose a state-only op with all required fields exactly. "
         "Verification must use python3 and must assert at least one proposal-specific intended effect. "
         "The state file path is always .research/auto_research.json; verification must reference that exact path or run python3 -m unittest discover -s tests. "
+        "State nodes are a dict mapping node id to node object: access d['nodes']['N-...']['statement'], never iterate d['nodes'] as a list. "
+        "Example verification: python3 -c \"import json; d=json.load(open('.research/auto_research.json')); assert d['nodes']['N-TARGET']['statement']=='WRITTEN-TEXT'\". "
         "Do not call tools. Do not use markdown fences. Reply in one short message under 200 words. "
         "Return only one JSON object with action exactly equal to propose, for example:\n"
         '{"action":"propose","title":"...","statement":"...","targets":["N-..."],'
