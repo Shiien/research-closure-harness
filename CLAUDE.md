@@ -7,14 +7,15 @@ runs the **A/B Self-Evolved Research Harness**.
 
 At the start of every session, before task selection:
 
-1. Run `python tools/auto_research.py ab-status`.
-2. Run `python tools/auto_research.py ab-next`.
-3. Run `python tools/auto_research.py retro next`; if an open retrospective exists, A must convert it before opening a new epoch.
-4. Read `.research/auto_research.json`.
+1. Run `python tools/auto_research.py a-brief` and read the immutable FINAL GOAL first.
+2. Run `python tools/auto_research.py ab-status`.
+3. Run `python tools/auto_research.py ab-next`.
+4. Run `python tools/auto_research.py retro next`; if an open retrospective exists, A must convert it before opening a new epoch.
+5. Read `.research/auto_research.json`.
 5. Declare your role:
    - `A (fast)`: use the `/auto-research-fast` skill; draft and propose candidates.
    - `B (slow)`: use the `/auto-research-slow` skill; critique, verify, apply, revalidate.
-6. If the session is ordinary PhD research work, also run the closure commands below.
+7. If the session is ordinary PhD research work, also run the closure commands below.
 
 A proposes, B criticises, B hard-verifies, B applies, then B feeds the result
 back to A. `M0` is immutable and soft judgment never replaces hard verification.

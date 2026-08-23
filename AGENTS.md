@@ -5,14 +5,15 @@
 This branch runs the A/B Self-Evolved Research Harness. At every session start,
 before choosing a task:
 
-1. Run `python tools/auto_research.py ab-status`.
-2. Run `python tools/auto_research.py ab-next`.
-3. Run `python tools/auto_research.py retro next`; if an open retrospective exists, A must convert it before opening a new epoch.
-4. Read `.research/auto_research.json`.
-5. Declare your role explicitly:
+1. Run `python tools/auto_research.py a-brief` and read the immutable FINAL GOAL first.
+2. Run `python tools/auto_research.py ab-status`.
+3. Run `python tools/auto_research.py ab-next`.
+4. Run `python tools/auto_research.py retro next`; if an open retrospective exists, A must convert it before opening a new epoch.
+5. Read `.research/auto_research.json`.
+6. Declare your role explicitly:
    - `A (fast)`: use the `auto-research-fast` skill; draft and propose candidates.
    - `B (slow)`: use the `auto-research-slow` skill; critique, verify, apply, revalidate.
-6. If the session is ordinary PhD research work, also use the `research-closure`
+7. If the session is ordinary PhD research work, also use the `research-closure`
    skill and run the closure commands below.
 
 The A/B contract is: A proposes, B criticises, B hard-verifies, B applies, then

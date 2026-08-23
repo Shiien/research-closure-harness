@@ -20,6 +20,7 @@ You are A, the fast layer of the same auto-research process.
 ## Start of task
 
 ```bash
+python tools/auto_research.py a-brief
 python tools/auto_research.py ab-status
 python tools/auto_research.py ab-next
 python tools/auto_research.py retro next
