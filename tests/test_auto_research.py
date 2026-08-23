@@ -940,5 +940,41 @@ class TestDeterministicRunnerCritic(RepoCase):
         self.assertEqual(self.state()["proposals"]["P-001"]["status"], "applied")
 
 
+class TestFinalGoal(RepoCase):
+    def test_skeleton_final_goal_is_immutable(self):
+        st = self.state()
+        self.assertTrue(st["final_goal"]["immutable"])
+        self.assertIn("better auto-research", st["final_goal"]["statement"])
+
+    def test_a_brief_and_launch_print_final_goal(self):
+        brief = self.assertOk(self.run_auto("a-brief")).stdout
+        self.assertIn("FINAL GOAL", brief)
+        launch = self.assertOk(self.run_auto(
+            "launch", "--harness", "manual", "--role", "A", "--dry-run",
+        )).stdout
+        self.assertIn("FINAL GOAL", launch)
+
+    def test_runner_prompt_has_final_goal_and_file_tools(self):
+        script = r"""
+import sys
+sys.path.insert(0, "tools")
+import auto_research as a
+state = a.load_state()
+prompt = a.run_proposer_prompt(state, "A")
+assert "IMMUTABLE FINAL GOAL" in prompt
+assert "Read, Bash, and Edit tools" in prompt
+print("final-goal-tools-ok")
+"""
+        proc = subprocess.run(
+            [sys.executable, "-c", script],
+            cwd=ROOT,
+            env={**os.environ, "RESEARCH_CLOSURE_ROOT": str(self.repo)},
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("final-goal-tools-ok", proc.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

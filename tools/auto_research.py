@@ -63,6 +63,20 @@ TRACK_ROLES = {
 
 META_GOAL_ID = "M0"
 META_GOAL_STATEMENT = "Improve this system's own auto-research capability."
+FINAL_GOAL = {
+    "statement": (
+        "Complete a better auto-research system: an engine that can read and modify "
+        "its own source files, verify changes with reproducible tests, monitor its "
+        "own behavior, and improve its auto-research capability over time."
+    ),
+    "criteria": [
+        "Prefer executable engine changes (patch_file) over declarative policy nodes.",
+        "Every applied change must pass the full test suite and self-test.",
+        "The system must remain able to launch, verify, apply, and monitor itself.",
+        "Do not weaken M0, hard verification, or the final goal itself.",
+    ],
+    "immutable": True,
+}
 
 RETROSPECTIVE_CLASSES = (
     "defect",
@@ -184,6 +198,7 @@ def skeleton(goal: str = META_GOAL_STATEMENT) -> dict[str, Any]:
         "snapshot_retention": copy.deepcopy(DEFAULT_SNAPSHOT_RETENTION),
         "health_limits": copy.deepcopy(DEFAULT_HEALTH_LIMITS),
         "launch_prompts": copy.deepcopy(DEFAULT_LAUNCH_PROMPTS),
+        "final_goal": copy.deepcopy(FINAL_GOAL),
         "tracks": TRACK_ROLES,
         "nodes": {
             META_GOAL_ID: {
@@ -234,6 +249,7 @@ def load_state(path: Path | None = None) -> dict[str, Any]:
         ("snapshot_retention", copy.deepcopy(DEFAULT_SNAPSHOT_RETENTION)),
         ("health_limits", copy.deepcopy(DEFAULT_HEALTH_LIMITS)),
         ("launch_prompts", copy.deepcopy(DEFAULT_LAUNCH_PROMPTS)),
+        ("final_goal", copy.deepcopy(FINAL_GOAL)),
     ):
         state.setdefault(key, default)
     return state
@@ -442,6 +458,15 @@ def validate(state: dict[str, Any]) -> tuple[list[str], list[str]]:
         blocks.append(f"meta_goal.id must be {META_GOAL_ID}")
     if not meta.get("immutable", False):
         blocks.append("meta_goal must be immutable")
+
+    final_goal = state.get("final_goal", {})
+    if not isinstance(final_goal, dict):
+        blocks.append("final_goal must be an object")
+    else:
+        if not isinstance(final_goal.get("statement", ""), str) or not final_goal["statement"].strip():
+            blocks.append("final_goal needs a non-empty statement")
+        if final_goal.get("immutable") is not True:
+            blocks.append("final_goal must be immutable")
 
     nodes = state.get("nodes", {})
     if META_GOAL_ID not in nodes:
@@ -2488,6 +2513,8 @@ def cmd_launch(args: argparse.Namespace) -> int:
     report = build_health_report(state)
     blocks, warnings = validate(state)
     print("AUTO-RESEARCH LAUNCH PREFLIGHT")
+    final_goal = state.get("final_goal", {})
+    print(f"  FINAL GOAL       : {final_goal.get('statement')}")
     print(f"  structural valid : {'PASS' if not blocks else 'BLOCKED'}")
     for block in blocks[:5]:
         print(f"    - {block}")
@@ -2578,6 +2605,8 @@ def cmd_a_brief(_: argparse.Namespace) -> int:
     deprecated = sorted(nid for nid, n in nodes.items() if n.get("status") == "deprecated")
 
     print("A BRIEF")
+    final_goal = state.get("final_goal", {})
+    print(f"  FINAL GOAL      : {final_goal.get('statement')}")
     print(f"  open proposals    : {open_props or 'none'}")
     print(f"  open retrospectives: {open_retros or 'none'}")
     print(f"  draft nodes       : {drafts or 'none'}")
@@ -2821,7 +2850,11 @@ def run_proposer_prompt(state: dict[str, Any], role: str) -> str:
             f"Patch-op concentration guard is near: {top_op} is {top_ratio:.0%} of the last 20 applied patches. "
             f"Do not propose {top_op} alone; use patch_file or at least two different op kinds.\n"
         )
+    final_goal = state.get("final_goal", copy.deepcopy(FINAL_GOAL))
     return (
+        "IMMUTABLE FINAL GOAL / TERMINAL REWARD:\n"
+        + final_goal.get("statement", "") + "\n"
+        + "Criteria: " + "; ".join(final_goal.get("criteria", [])) + "\n"
         f"You are auto-research role {role}. Propose exactly one small, local, semantically novel self-modification.\n"
         "Launch prompts:\n" + "\n".join(f"- {p}" for p in state.get("launch_prompts", {}).get(role, [])) + "\n"
         f"Open retrospectives: {open_retros or 'none'}.\n"
@@ -2842,7 +2875,12 @@ def run_proposer_prompt(state: dict[str, Any], role: str) -> str:
         "The state file path is always .research/auto_research.json; verification must reference that exact path or run python3 -m unittest discover -s tests. "
         "State nodes are a dict mapping node id to node object: access d['nodes']['N-...']['statement'], never iterate d['nodes'] as a list. "
         "Example verification: python3 -c \"import json; d=json.load(open('.research/auto_research.json')); assert d['nodes']['N-TARGET']['statement']=='WRITTEN-TEXT'\". "
-        "Do not call tools. Do not use markdown fences. Reply in one short message under 200 words. "
+        "You have explicit file access and may use Read, Bash, and Edit tools. "
+        "Prefer executable engine changes: inspect the target file, write a candidate under .research/tmp/candidates/, "
+        "run python3 tools/auto_research.py patch-make --target <file> --candidate <candidate> --out <patch.json>, "
+        "and return a patch_file op containing the exact generated diff. "
+        "Do not edit tracked engine files directly; only produce proposal JSON. "
+        "Do not use markdown fences. Reply in one short message under 300 words. "
         "Return only one JSON object with action exactly equal to propose, for example:\n"
         '{"action":"propose","title":"...","statement":"...","targets":["N-..."],'
         '"patch":[{"op":"set_node_statement","node":"N-...","statement":"..."}],'
@@ -2866,9 +2904,14 @@ def run_critic_prompt(state: dict[str, Any], proposal_id: str) -> str:
         "patch_chars": len(patch_text),
         "verification_command": prop.get("verification_command"),
     }
+    final_goal = state.get("final_goal", copy.deepcopy(FINAL_GOAL))
     return (
+        "IMMUTABLE FINAL GOAL / TERMINAL REWARD:\n"
+        + final_goal.get("statement", "") + "\n"
+        + "Criteria: " + "; ".join(final_goal.get("criteria", [])) + "\n"
         "You are auto-research role B. Criticise this proposal specifically. "
-        "Do not call tools. Do not use markdown fences. Reply in one short message under 200 words. "
+        "You have explicit file access and may use Read, Bash, and Edit tools to inspect the patch. "
+        "Do not use markdown fences. Reply in one short message under 300 words. "
         "Return only one JSON object with action exactly equal to critique and verdict one of pass, challenge, or reject, for example:\n"
         '{"action":"critique","verdict":"pass","reason":"specific reason naming patch ops, verification command, or closure risk"}.\n'
         "Launch prompts:\n" + "\n".join(f"- {p}" for p in state.get("launch_prompts", {}).get(role, [])) + "\n"
@@ -3457,7 +3500,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--llm-critic", dest="deterministic_critic", action="store_false", help="use the configured headless critic command")
     sp.add_argument("--timeout", type=int, default=300, help="verification timeout seconds")
     sp.add_argument("--agent-timeout", type=int, default=120, help="proposer/critic timeout seconds")
-    sp.add_argument("--agent-cwd", default=".research/tmp/agent-run", help="clean working directory for headless agents")
+    sp.add_argument("--agent-cwd", default=".", help="agent working directory (default: repository root for file access)")
     sp.add_argument("--alternate", action="store_true", help="alternate A/B proposer role by last applied proposal")
     sp.add_argument("--no-alternate", dest="alternate", action="store_false", help="always use A proposer")
     sp.add_argument("--stop-on-reject", action="store_true", help="stop the run when a proposal is rejected")
