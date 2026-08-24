@@ -84,8 +84,8 @@ being repositioned around.
 - Self-reference is the core mechanism: a fast version (A) and a slow version (B)
   of the same auto-research process improve each other in alternation.
 - An LLM is not a random mutator. It is a **directed proposer** with local
-  judgment: it can guarantee local improvement, but constraints are needed to
-  prevent global degradation.
+  judgment: it can generate locally motivated hypotheses, but neither its
+  judgment nor a passing command guarantees improvement.
 
 #### 2. Graph model
 
@@ -103,8 +103,9 @@ being repositioned around.
   Nodes may refer to subsets or historical versions of the graph itself.
 - Versioning and snapshots are required so different versions of the system can
   be compared and a modification can be judged effective or not.
-- Self-referential verification must be **isolated in a sandbox**, so a
-  self-modification cannot contaminate the verification standard that judges it.
+- Self-referential verification needs a protected evaluation boundary. The
+  implemented boundary is Linux/Landlock cooperative containment, not a general
+  sandbox or proof of semantic improvement.
 - Self-reference appears as state flowing between fast and slow layers and as
   repeated modification cycles — not as a fixed cycle in a static graph.
 
@@ -141,9 +142,11 @@ being repositioned around.
 
 #### 6. Role of the LLM
 
-- The LLM is a **proposer** and **local improver**, not a random mutator.
+- The LLM is a **directed proposer** and **hypothesis generator**, not a random
+  mutator.
 - Separate **soft judgment** (proposal screening) from **hard verification**
   (reproducible validation). Soft judgment cannot replace hard verification.
+  Hard verification establishes command operability, not hypothesis truth.
 - Add a **critic role**: every modification proposal must be challenged before
   entering verification.
 - Guard against **premature convergence**: over-confident LLM acceptance of a
@@ -154,9 +157,10 @@ being repositioned around.
 - A and B are not two agents. They are the fast and slow versions of the same
   auto-research process.
   - **A (fast layer)**: explore, mutate, propose candidates; low verification cost.
-  - **B (slow layer)**: verify, consolidate, integrate; high verification cost.
-- Loop: fast layer produces candidates → slow layer verifies → feedback → fast
-  layer updates its strategy.
+  - **B (slow layer)**: criticise, hard-verify operability, assess pinned
+    outcomes, and integrate only supported changes; high verification cost.
+- Loop: question → proposal → operability check → measured outcome → feedback →
+  updated question-generation strategy.
 - Fast/slow rhythm, verification thresholds, and state-transition rules are also
   research content and may be modified by the system itself.
 
@@ -168,26 +172,27 @@ being repositioned around.
    cannot crash or collude into degradation during self-modification.
 3. How to model "define problem, decompose problem, choose principles" as graph
    nodes and include them in the reasoning loop.
-4. How to compute invalidation closure efficiently and how to use sandbox
-   isolation safely during self-referential verification.
+4. How to compute invalidation closure efficiently and extend the cooperative
+   Linux containment boundary without claiming adversarial isolation.
 
 #### Current repository → target mapping
 
 | Target concept | Already present in this repository | Still to build |
 |---|---|---|
 | Research ontology | `claim_graph.py` plus `auto_research.py` self-graph: four node kinds, dependency/modification edges, `draft`/`validated`/`deprecated` labels | Bidirectional integration between the claim graph and the self-graph |
-| Hard verification | Pre-registered probes, `validate`, `guard`, proposal `verify`, capability `self-test` | True sandbox isolation for untrusted self-modifications |
+| Hard verification | Pre-registered probes, digest-bound proposal `verify`, pinned outcome artifacts, capability `self-test` | Adversarial isolation and independent semantic evaluation |
 | Versioning/snapshots | `.research/snapshots/`, dashboard replay, `.research/auto_snapshots/`, `rollback` | Semantic diff between self-versions; invalidation closure across versions |
 | Layered goals | `docs/protocol.md` levels 0–3 plus explicit L0–L4 layers with only L0 immutable | Automatic L1 metric checks against L0 |
-| Fast/slow dynamics | Proposal pipeline and trust decay in `auto_research.py` | Autonomous A/B scheduling, fast-layer pre-screening policy |
-| Global rollback/self-test | Snapshot replay and `self-test` in `auto_research.py` | Automated global evaluation and rollback policy |
+| Fast/slow dynamics | Inquiry-first A/B state machine, frozen recommendation contracts, one-attempt lineage, and trust decay | Measuring question quality across independent A/B runs |
+| Global rollback/self-test | Recoverable apply, protected sentinels, frozen-old/candidate-new tests, a sealed topology-aware bootstrap entry, exact transition floor, and `self-test` | Broader OS isolation and held-out semantic evaluation |
 
 ### Self-evolution engine (first implemented slice)
 
 `tools/auto_research.py` is the deterministic substrate for the loop. An LLM
-(or the researcher) still generates proposals and criticises them; the engine
-enforces the hard part: immutable L0, strict patch vocabulary, critic gate,
-reproducible verification, invalidation closure and trust decay.
+(or the researcher) still makes research judgments; the engine forces those
+judgments into an inquiry-first protocol: observe the harness, reframe its
+question, expose a falsifier and evaluation boundary, let an independent B
+select one bounded recommendation, and only then create one linked proposal.
 
 ```bash
 # Bootstrap the self-graph (the L0 meta-goal is the only immutable node)
@@ -200,23 +205,41 @@ python tools/auto_research.py add-node \
   --id N2 --type inference --statement "derived from N1" --layer L4 --status draft
 python tools/auto_research.py add-edge --from N1 --to N2 --kind dependency
 
-# Propose a self-modification with a strict patch
+# First inspect the harness and record a structured inquiry (see `inquire --help`)
+python tools/auto_research.py self-observe --json
+python tools/auto_research.py inquire --track A --file inquiry.json
+
+# B judges the question and freezes exactly one recommendation contract
+python tools/auto_research.py review-inquiry --track B \
+  --inquiry INQ-001 --verdict pass --recommendation REC-1 \
+  --reviewer independent-B --reason "evidence, falsifier, and boundary are adequate"
+
+# A implements only that selected recommendation with a strict patch
 cat > patch.json <<'JSON'
 [
   {"op": "set_node_statement", "node": "N1", "statement": "candidate metric v2"},
   {"op": "set_trust_decay", "value": 0.85}
 ]
 JSON
-python tools/auto_research.py propose \
+python tools/auto_research.py propose --track A \
+  --inquiry INQ-001 --recommendation REC-1 \
   --title "revise L1 metric" --statement "narrower operational metric" \
   --targets N1 --patch-file patch.json \
   --verification "python3 -m unittest discover -s tests"
 
-# Soft gate -> hard verification -> apply + invalidate dependents
-python tools/auto_research.py critique \
-  --proposal P-001 --verdict pass --critic researcher --reason "local change"
-python tools/auto_research.py verify --proposal P-001
-python tools/auto_research.py apply --proposal P-001
+# Declared-external B semantic gate -> operability check -> measured outcome
+# -> supported-only apply
+python tools/auto_research.py critique --track B \
+  --proposal P-001 --verdict pass --critic independent-B \
+  --reason "the patch matches REC-1 and its test exercises the claimed effect"
+python tools/auto_research.py verify --track B --proposal P-001
+
+# Run the frozen outcome plan first, then bind its exact local artifact
+python tools/auto_research.py assess-inquiry --track B \
+  --inquiry INQ-001 --file outcome.json --assessor independent-B
+
+# This is reachable only after a supported assessment
+python tools/auto_research.py apply --track B --proposal P-001
 
 # Keep checking basic capability and inspect the self-graph
 python tools/auto_research.py self-test
@@ -225,19 +248,48 @@ python tools/auto_research.py status
 python tools/auto_research.py next
 ```
 
-Applying a modification creates a `modification` node, decays trust on every
+Inquiry acceptance is judgment, not evidence of improvement. One acceptance
+authorizes one proposal attempt; rejection or verification failure requires a
+new inquiry. A justified `no_change` is also reviewed by B and creates no
+proposal, verification, or modification node.
+
+Hard verification proves only operability of the frozen command and moves the
+inquiry to `awaiting_outcome`. B must run the frozen plan and bind a local
+result artifact with `assess-inquiry`. `supported` alone permits apply;
+`falsified` and `inconclusive` terminate without a live patch. The CLI labels
+B, reviewer, critic, and assessor, but it does not cryptographically authenticate
+an independent actor; independence is an external operating requirement.
+
+When B accepts the inquiry, the engine pins the old `tests/` bytes and self-test
+command in protected content-addressed storage, before A can propose. B's later
+semantic pass is SHA-256-bound to the exact proposal and evaluator snapshot.
+Drift or a missing/corrupt blob fails closed.
+
+Only after the pinned outcome is `supported` does apply run immutable
+`tests/protected/` sentinels, the pinned old `tests/` tree against candidate
+code, and the candidate's own test command in three sequential disposable roots.
+Each root is manifest-checked and destroyed before the next one is created, so
+candidate code cannot pre-edit a future evaluator tree. Applying a modification
+then creates a `modification` node, decays trust on every
 pre-existing non-L0 node, and marks the dependency closure of the changed nodes
-`deprecated`. Re-validate a node with `revalidate --level syntax` or
+`deprecated`. Ordinary apply has synchronous exception recovery but is not
+crash-atomic. Re-validate a node with `revalidate --level syntax` or
 `--level hard --command '<reproducible command>'`. Snapshots are written to
-`.research/auto_snapshots/`; roll back with `rollback --to <n>`.
+`.research/auto_snapshots/`; roll back with `rollback --to <n>`. Rollback is
+backward-only: both the event journal and file-backup ledger of the target must
+be exact prefixes of the current branch. After a rollback creates a branch, a
+snapshot from the abandoned future is therefore not a valid target. `a-brief`
+checks snapshot bytes against the existing index but never rebuilds it. A
+missing/mismatched index fails closed; `snapshot-reindex` is an explicit trust
+action to use only after manually auditing the drift.
 
 ### Engine source patches (`patch_file`)
 
 Since the R-000 bootstrap, the loop can modify every engine file in the
 repository, including `tools/auto_research.py` itself. Protected paths are
 `.git/`, `.gitignore`, `.gitmodules`, `.ssh_github/`,
-`.research/auto_research.json`, and `.research/auto_snapshots/`. Build a patch
-without editing the live file:
+`.research/auto_research.json`, `.research/auto_snapshots/`, and
+`tests/protected/`. Build a patch without editing the live file:
 
 ```bash
 mkdir -p .research/tmp
@@ -248,16 +300,86 @@ python tools/auto_research.py patch-make \
   --candidate .research/tmp/dashboard.candidate \
   --out patch.json
 python tools/auto_research.py propose --track A \
+  --inquiry INQ-001 --recommendation REC-1 \
   --title "repair dashboard fallback" --statement "..." \
   --targets MONITOR-DASHBOARD --patch-file patch.json \
   --verification "python3 -m unittest discover -s tests" --retro R-002
 ```
 
-A `patch_file` proposal must declare graph targets. B's `verify` runs the
-verification command in an isolated temporary copy with the patch already
-applied; the real working tree is not mutated until `apply`. Apply stores file
-backups under `.research/auto_snapshots/file_backups/`, and `rollback --to <n>`
-restores source files together with the state snapshot.
+A `patch_file` proposal must declare graph targets and remain inside the
+B-frozen implementation contract. Hard verification runs the command against a
+patched disposable copy and establishes operability, not the inquiry hypothesis.
+Before apply, B must bind a measured outcome artifact and assess it `supported`.
+
+Ordinary agent and verification processes fail closed unless run on Linux
+`x86_64`, `aarch64`, or `riscv64` with `/proc`, subreaper support, and Landlock
+ABI >= 3. Landlock denies their ordinary direct content/topology opens outside
+explicit disposable write roots; stdin isolation, 8 MiB bounded output,
+process-group cleanup, and `/proc` descendant reaping add defense in depth. A
+manifest may best-effort reset selected metadata—mode, ownership, xattrs, mtime,
+and available inode flags—but records neither byte preimages nor atime and does
+not claim to restore content or topology.
+
+This is a nonprivileged cooperative boundary, not an OS security sandbox. It
+assumes no concurrent same-UID writer. Brokered writes, inherited/pre-opened file
+descriptors, signal/ptrace interference, and resource-exhaustion attacks are out
+of scope.
+
+### One-time schema-1 to schema-2 transition
+
+The first installation is an explicit trust boundary, not an ordinary
+self-patch. Preinstall `tests/protected/test_auto_research_sentinels.py` while
+schema 1 is live and retain its digest externally. The main proposal must not
+touch `tests/protected/`. From the separate candidate engine artifact, B
+captures and retains an exact manifest digest, then installs only that manifest:
+
+```bash
+python .research/tmp/self_inquiry/auto_research.py.candidate \
+  transition-capture --track B --proposal P-BOOT \
+  --reviewer independent-B --reason "freeze exact schema-1/schema-2 boundary"
+python .research/tmp/self_inquiry/auto_research.py.candidate \
+  transition-install --track B --manifest-sha256 <digest> \
+  --reviewer independent-B --reason "install captured schema-2 transition"
+```
+
+`transition-install` is the one trusted live-write exception. It rechecks the
+old state, engine, proposal, patch pre/postimages, sentinel, backup/event
+prefixes, and indexed rollback floor; invokes the old schema-1 `apply` with
+bounded output and descendant cleanup; then seals schema 2. There is a crash
+window after old apply and before seal. Recovery is not automatic: retain the
+digest and use `transition-seal` only if the exact captured poststate remains:
+
+```bash
+python .research/tmp/self_inquiry/auto_research.py.candidate \
+  transition-seal --track B --manifest-sha256 <digest> \
+  --reviewer independent-B --reason "recover exact post-apply state"
+```
+
+Historical schema-1 backups contain only leaf bytes and therefore remain
+fail-closed. The seal reconstructs topology only for the new bootstrap backup.
+Rollback across the boundary is allowed only to the exact indexed
+`bootstrap_floor`; arbitrary earlier schema-1 snapshots and an unsealed
+post-apply state are rejected. Before restoring the schema-1 engine, this
+downgrade moves every other root snapshot and the exact old index into
+`.research/auto_snapshots/bootstrap_archives/<transition-digest>/`, then leaves
+only the floor in the root index. The restored schema-1 glob cannot see the
+archived snapshots. Synchronous exceptions move them back and restore the index
+exactly; as with ordinary rollback, a process or power crash is not claimed to
+be atomic, so the retained archive manifest is the recovery evidence.
+
+### Next experiment (not current evidence)
+
+The implementation activates the self-referential protocol; it does not show
+that the protocol improves research. The next frozen question is: on held-out
+tasks unavailable to the candidate, under the same model and token, time, and
+proposal budgets, does inquiry-first A/B reduce false acceptance and improve
+blinded research-question quality relative to direct-propose, while decreasing
+valid-change yield by no more than 5 percentage points?
+
+Use 12 held-out scenarios—4 harmful changes, 4 valid changes, and 4 justified
+`no_change` cases—with 4 seeds per condition. Report false acceptance, blinded
+question-quality ratings, and valid-change yield. These are planned
+measurements, not achieved results.
 
 ### Retrospective backlog
 
@@ -273,10 +395,9 @@ python tools/auto_research.py retro close --id R-001 \
   --disposition converted --proposal P-147
 ```
 
-A starts every session with `retro next`; an open retrospective must be
-converted into a proposal (`propose --retro R-xxx`) or explicitly declared
-blocked before A opens a new epoch. Applying a linked proposal closes the
-retrospective automatically.
+A starts every session with `retro next`; an open retrospective is evidence for
+the next inquiry, not authorization to bypass inquiry review. Applying a linked
+proposal closes the retrospective automatically.
 
 ### Harness auto-load and A/B roles
 
@@ -299,14 +420,19 @@ python tools/auto_research.py retro next
 
 The two roles are the fast and slow versions of the same auto-research process:
 
-- **A (fast)** uses `auto-research-fast` and `propose --track A`. A only
-  explores, drafts and proposes; it never applies.
-- **B (slow)** uses `auto-research-slow` and `critique --track B`,
-  `verify --track B`, `apply --track B`, or `revalidate --track B`. B owns
-  critic review, hard verification and consolidation.
+- **A (fast)** uses `auto-research-fast`; it self-observes, records an inquiry
+  or justified `no_change`, and implements only one B-selected recommendation.
+- **B (slow)** uses `auto-research-slow`; it reviews the inquiry, freezes one
+  recommendation contract and outcome plan, then owns semantic critique, hard
+  verification of operability, outcome assessment, supported-only apply, and
+  revalidation. Its independence is externally declared, not cryptographically
+  authenticated by the CLI.
 
-The loop contract is `A proposes -> B criticises -> B hard-verifies ->
-B applies -> trust decay + dependency closure -> A revises or proposes again`.
+The loop contract is `self-observe -> A inquiry/no_change -> B review/select ->
+A linked proposal -> declared-external B critique -> hard verify operability ->
+frozen outcome run -> B assess-inquiry -> supported-only protected + frozen old
++ candidate-new tests -> apply`. The default deterministic runner check is
+mechanical preflight only and leaves the proposal `proposed`.
 
 DeepSeek Harness specifics are documented in
 [docs/deepseek_harness.md](docs/deepseek_harness.md): `dsh` auto-loads
@@ -638,8 +764,8 @@ python tools/claim_graph.py reasoning
 - 研究对象是框架自身：通过研究自己、修改自己来提升自己。
 - 自指是核心机制：由同一 auto research 过程的快速版本（A）与慢速版本（B）
   交替提升，实现系统自我进化。
-- 大模型不是随机变异器，而是具有局部判断能力的**有向提案器**；它能保障局部
-  改进，但需要约束防止全局退化。
+- 大模型不是随机变异器，而是具有局部判断能力的**有向提案器**；它能提出具有
+  局部依据的改进假设，但模型判断与命令通过都不能保障真实改进。
 
 #### 2. 图结构
 
@@ -654,7 +780,8 @@ python tools/claim_graph.py reasoning
 
 - 图不再只是研究记录，而是**研究本体**；节点可以引用图自身的子集或历史版本。
 - 需要版本化与快照能力，以比较不同版本的自己并判断修改是否有效。
-- **自指验证隔离**：在沙盒中执行修改并验证，避免验证标准被修改污染。
+- **自指验证边界**：当前实现使用 Linux/Landlock 协作式 containment 保护评测
+  边界；它不是通用安全沙盒，也不证明语义改进。
 - 自指表现为节点在快慢层之间的状态流动与循环修改，而非固定图上的环。
 
 #### 4. 验证与保留策略
@@ -683,8 +810,9 @@ python tools/claim_graph.py reasoning
 
 #### 6. 大模型的角色
 
-- 大模型是**提案者**与**局部改进器**，不是随机变异器。
+- 大模型是**有向提案者**与**假设生成器**，不是随机变异器。
 - 区分**软判断**（提案筛选）与**硬验证**（可复现验证）；软判断不能取代硬验证。
+  硬验证只证明冻结命令可运行，不证明研究假设为真。
 - 引入**批评者角色**：每个修改提案先被反驳，通过后才进入验证。
 - 防止**过早收敛**：避免大模型过度自信而接受次优修改。
 
@@ -692,8 +820,9 @@ python tools/claim_graph.py reasoning
 
 - A 和 B 不是两个 agent，而是同一 auto research 过程的快慢两个版本：
   - **A（快速层）**：探索、变异、提出候选，验证成本低；
-  - **B（慢速层）**：验证、固化、整合，验证成本高。
-- 交互循环：快速层产生候选 → 慢速层验证 → 反馈结果 → 更新快速层策略。
+  - **B（慢速层）**：语义批评、硬验证可运行性、评估固定 outcome，并且只整合
+    `supported` 修改，验证成本高。
+- 交互循环：问题 → 提案 → 可运行性检查 → 测量 outcome → 反馈 → 更新问题生成策略。
 - 快慢节奏、验证阈值、状态转换规则本身也是研究内容，可被系统自身修改。
 
 #### 8. 开放问题与后续方向
@@ -701,24 +830,25 @@ python tools/claim_graph.py reasoning
 1. 如何在图中具体实现快慢层交互，避免快速层产生过多噪声。
 2. 如何设计最小不可修改核心（仲裁机制），防止系统在自修改中崩溃或共谋退化。
 3. 如何把“定义问题、拆解问题、选择原则”本身建模为图中节点并纳入推理循环。
-4. 如何高效计算失效闭包，以及如何在自指验证中安全使用沙盒隔离。
+4. 如何高效计算失效闭包，以及如何扩展协作式 Linux containment 而不把它称作
+   对抗性隔离。
 
 #### 当前仓库 → 目标映射
 
 | 目标概念 | 本仓库已有 | 尚待建设 |
 |---|---|---|
 | 研究本体 | `claim_graph.py` 加 `auto_research.py` 自图：四类节点、依赖/修改边、`draft`/`validated`/`deprecated` 标签 | claim graph 与自图的双向整合 |
-| 硬验证 | 预注册探针、`validate`、`guard`、提案 `verify`、能力 `self-test` | 对不受信自修改的真正沙盒隔离 |
+| 硬验证 | 预注册探针、digest-bound 提案 `verify`、固定 outcome 工件、能力 `self-test` | 对抗性隔离与独立语义评测 |
 | 版本化与快照 | `.research/snapshots/`、dashboard 回放、`.research/auto_snapshots/`、`rollback` | 自身版本之间的语义 diff；跨版本失效闭包 |
 | 分层目标 | `docs/protocol.md` level 0–3 加显式 L0–L4 分层，且只有 L0 不可修改 | 自动用 L0 间接检验 L1 指标 |
-| 快慢动态 | `auto_research.py` 中的提案流水线与信任度衰减 | 自主 A/B 调度、快速层预筛选策略 |
-| 全局回溯与自检 | `auto_research.py` 中的快照回放与 `self-test` | 自动全局评估与回溯策略 |
+| 快慢动态 | inquiry-first A/B 状态机、冻结推荐合同、单次授权谱系与信任度衰减 | 跨独立 A/B 运行测量问题质量 |
+| 全局回溯与自检 | 可恢复 apply、受保护哨兵、冻结旧测试与候选新测试、sealed topology-aware bootstrap entry、精确 transition floor 和 `self-test` | 更强 OS 隔离与留出语义评测 |
 
 ### 自进化引擎（已实现的第一个切片）
 
-`tools/auto_research.py` 是这个循环的确定性基座。大模型（或研究者）仍然负责
-生成提案和批评；引擎强制执行不可妥协的部分：L0 不可修改、严格 patch 词汇表、
-批评者门禁、可复现验证、失效闭包与信任度衰减。
+`tools/auto_research.py` 是这个循环的确定性基座。大模型（或研究者）仍负责
+研究判断；引擎把判断约束为 inquiry-first 协议：先观察自身、重写研究问题、
+明确证伪条件和评测边界，由独立 B 选择一个有界建议，之后 A 才能生成一次关联提案。
 
 ```bash
 # 初始化自图（L0 元目标是唯一不可修改节点）
@@ -731,23 +861,41 @@ python tools/auto_research.py add-node \
   --id N2 --type inference --statement "由 N1 推出" --layer L4 --status draft
 python tools/auto_research.py add-edge --from N1 --to N2 --kind dependency
 
-# 用严格 patch 提出自修改
+# 先观察系统并记录结构化 inquiry（字段见 `inquire --help`）
+python tools/auto_research.py self-observe --json
+python tools/auto_research.py inquire --track A --file inquiry.json
+
+# B 审查问题，并冻结一个 recommendation contract
+python tools/auto_research.py review-inquiry --track B \
+  --inquiry INQ-001 --verdict pass --recommendation REC-1 \
+  --reviewer independent-B --reason "证据、证伪条件和评测边界充分"
+
+# A 只实现被选中的建议
 cat > patch.json <<'JSON'
 [
   {"op": "set_node_statement", "node": "N1", "statement": "候选指标 v2"},
   {"op": "set_trust_decay", "value": 0.85}
 ]
 JSON
-python tools/auto_research.py propose \
+python tools/auto_research.py propose --track A \
+  --inquiry INQ-001 --recommendation REC-1 \
   --title "修订 L1 指标" --statement "更窄的可操作指标" \
   --targets N1 --patch-file patch.json \
   --verification "python3 -m unittest discover -s tests"
 
-# 软门禁 -> 硬验证 -> 应用并失效依赖闭包
-python tools/auto_research.py critique \
-  --proposal P-001 --verdict pass --critic researcher --reason "局部变更"
-python tools/auto_research.py verify --proposal P-001
-python tools/auto_research.py apply --proposal P-001
+# 外部声明独立的 B 语义审查 -> 可运行性检查 -> 测量 outcome
+# -> supported-only apply
+python tools/auto_research.py critique --track B \
+  --proposal P-001 --verdict pass --critic independent-B \
+  --reason "patch 符合 REC-1，且验证确实触发了声称的效果"
+python tools/auto_research.py verify --track B --proposal P-001
+
+# 执行冻结 outcome plan，并绑定精确的本地结果工件
+python tools/auto_research.py assess-inquiry --track B \
+  --inquiry INQ-001 --file outcome.json --assessor independent-B
+
+# 只有 supported outcome 才能到达 apply
+python tools/auto_research.py apply --track B --proposal P-001
 
 # 持续自检并查看自图
 python tools/auto_research.py self-test
@@ -756,10 +904,97 @@ python tools/auto_research.py status
 python tools/auto_research.py next
 ```
 
-应用修改时会创建 `modification` 节点，对所有已存在的非 L0 节点做信任度衰减，
+接受 inquiry 只是研究判断，不是改进证据。一次接受只授权一次提案；拒绝或验证失败后
+必须开启新 inquiry。经 B 审查的 `no_change` 不创建提案、验证或 modification 节点。
+
+硬验证只证明冻结命令可运行，并把 inquiry 移到 `awaiting_outcome`；它不证明研究
+假设。B 必须执行冻结 plan，并用 `assess-inquiry` 绑定本地结果工件。只有
+`supported` 才允许 apply；`falsified` 和 `inconclusive` 会终止 proposal，
+且不写 live patch。CLI 记录 B、reviewer、critic 与 assessor 标签，但不提供加密
+身份认证；B 的独立性是外部运行要求。
+
+当 B 接受 inquiry 时，引擎就在 A 提案之前把旧 `tests/` 字节和旧 self-test 命令
+固定到受保护的内容寻址存储；B 后续的语义 pass 也通过 SHA-256 绑定到精确 proposal
+与 evaluator snapshot。漂移、缺失或损坏的 blob 都会 fail closed。
+
+只有固定 outcome 被评估为 `supported` 后，apply 才会在三个独立 disposable root
+中依次运行不可修改的 `tests/protected/` 哨兵、用候选代码执行固定的旧 `tests/`，
+再执行候选自己的测试命令。
+每一条评测腿都先新建、做 manifest 检查并销毁，随后才创建下一条，因此候选代码看不到
+尚未运行的后续评测树。应用修改时会创建
+`modification` 节点，对所有已存在的非 L0 节点做信任度衰减，
 并把变更点的依赖闭包标为 `deprecated`。用 `revalidate --level syntax` 或
 `--level hard --command '<可复现命令>'` 重新验证节点。快照写入
-`.research/auto_snapshots/`，用 `rollback --to <n>` 回溯。
+`.research/auto_snapshots/`，用 `rollback --to <n>` 回溯。rollback 只允许
+向后移动：目标的 event journal 与 file-backup ledger 都必须是当前分支的精确
+前缀。一次 rollback 形成分叉后，被放弃未来中的 snapshot 不再是合法目标。
+`a-brief` 只检查 snapshot bytes 是否匹配既有 index，绝不自动重建。index
+缺失或不匹配时会 fail closed；`snapshot-reindex` 是仅应在人工审计漂移后执行的
+显式信任操作。
+普通 apply 具有同步异常恢复，但不具备 crash atomicity。
+
+普通 agent 与验证命令只支持带 `/proc`、subreaper 与 Landlock ABI >= 3 的 Linux
+`x86_64`、`aarch64` 或 `riscv64`；其他环境 fail closed。Landlock 拒绝进程在
+明确 disposable write root 之外进行 ordinary direct content/topology open。stdin
+隔离、8 MiB 输出上限、进程组清理与 `/proc` descendant reaping 是额外防线。
+
+live manifest 只能 best-effort reset 所选 metadata：mode、ownership、xattrs、
+mtime 与可用 inode flags。它没有 byte preimage、不包含 atime，也不声称能修复
+content/topology 改动。这是 nonprivileged cooperative containment，不是 OS
+security sandbox，并假设没有 concurrent same-UID writer。brokered write、
+inherited/pre-opened FD、signal/ptrace interference 与 resource exhaustion
+不在边界内。
+
+### 一次性 schema-1 → schema-2 迁移
+
+第一次安装是显式信任边界，不是普通 self-patch。schema 1 仍在 live 时，先从外部
+安装 `tests/protected/test_auto_research_sentinels.py`，并在外部保留其 digest。
+main proposal 不得触碰 `tests/protected/`。B 从独立 candidate engine artifact
+捕获精确 manifest、在外部保留打印出的 digest，然后只安装该 manifest：
+
+```bash
+python .research/tmp/self_inquiry/auto_research.py.candidate \
+  transition-capture --track B --proposal P-BOOT \
+  --reviewer independent-B --reason "冻结精确 schema-1/schema-2 边界"
+python .research/tmp/self_inquiry/auto_research.py.candidate \
+  transition-install --track B --manifest-sha256 <digest> \
+  --reviewer independent-B --reason "安装已捕获的 schema-2 transition"
+```
+
+`transition-install` 是唯一受信的一次性 live-write 例外。它会重新检查旧 state、
+engine、proposal、patch pre/postimage、sentinel、backup/event prefix 与已索引的
+rollback floor；以 bounded output 和 descendant cleanup 调用旧 schema-1
+`apply`；随后 seal schema 2。旧 apply 完成而 seal 尚未完成之间存在 crash
+window，恢复不是自动的：只有 exact captured poststate 仍存在且持有外部保留的
+digest 时，才能运行：
+
+```bash
+python .research/tmp/self_inquiry/auto_research.py.candidate \
+  transition-seal --track B --manifest-sha256 <digest> \
+  --reviewer independent-B --reason "恢复精确 post-apply state"
+```
+
+历史 schema-1 backup 只有 leaf bytes，因此继续 fail-closed。seal 只为新的
+bootstrap backup 重建 topology。跨边界 rollback 只允许精确、已索引的
+`bootstrap_floor`；任意更早 schema-1 snapshot 与未 seal 的 post-apply state
+都会被拒绝。写回 schema-1 engine 之前，引擎会把 root 中其余所有 snapshot
+和原 index 精确移入
+`.research/auto_snapshots/bootstrap_archives/<transition-digest>/`，root index
+只留下 floor，因此恢复后的 schema-1 glob 看不到被隔离目标。同步异常会把这些
+文件与 index 精确移回；与普通 rollback 一样，这不声称 process/power crash
+atomicity，保留的 archive manifest 是人工恢复证据。
+
+### 下一实验（不是现有证据）
+
+当前实现激活了自指协议，但没有证明它提升 research。下一冻结问题是：在候选不可
+访问的 held-out task 上，使用相同模型与相同 token、时间、proposal budget 时，
+inquiry-first A/B 相比 direct-propose 是否降低 false acceptance、提高盲评
+research-question quality，同时使 valid-change yield 的下降不超过 5 个百分点？
+
+使用 12 个 held-out scenario：4 个 harmful change、4 个 valid change、4 个
+合理 `no_change`；每个 condition 运行 4 个 seed。报告 false acceptance、
+盲评 question-quality rating 与 valid-change yield。这些是计划测量，不是已经
+得到的结果。
 
 ### Harness 自动加载与 A/B 角色
 
@@ -776,18 +1011,21 @@ python tools/auto_research.py next
 ```bash
 python tools/auto_research.py ab-status
 python tools/auto_research.py ab-next
+python tools/auto_research.py retro next
 ```
 
 两个角色是同一 auto-research 过程的快慢版本：
 
-- **A（快速层）** 使用 `auto-research-fast` 与 `propose --track A`；只探索、
-  起草和提案，不执行 apply。
-- **B（慢速层）** 使用 `auto-research-slow` 与 `critique --track B`、
-  `verify --track B`、`apply --track B`、`revalidate --track B`；负责批评、
-  硬验证与固化。
+- **A（快速层）** 使用 `auto-research-fast`；先自观察，记录 inquiry 或有证据的
+  `no_change`，并且只实现一个由 B 选中的建议。
+- **B（慢速层）** 使用 `auto-research-slow`；审查 inquiry、冻结一个建议合同，
+  冻结 outcome plan，然后负责语义批评、硬验证可运行性、outcome 评估、
+  supported-only apply 与重新验证。其独立性由外部流程声明，不由 CLI 加密认证。
 
-循环契约：`A 提案 -> B 批评 -> B 硬验证 -> B 应用 -> 信任衰减与依赖闭包 ->
-A 修订或重新提案`。
+循环契约：`自观察 -> A inquiry/no_change -> B 审查并选择 -> A 关联提案 ->
+外部声明独立的 B 批评 -> 硬验证可运行性 -> 冻结 outcome run -> B assess-inquiry
+-> supported-only 受保护哨兵 + 冻结旧测试 + 候选新测试 -> apply`。默认
+deterministic 检查只是机械预检，必须停在 `proposed`，不能代替 B。
 
 DeepSeek Harness 的具体适配见
 [docs/deepseek_harness.md](docs/deepseek_harness.md)：`dsh` 默认自动加载
@@ -1047,6 +1285,8 @@ examples/continual_option_learning/
 ## 附录：用户原始输入
 
 以下为用户在讨论中发出的所有消息，按时间顺序原样保存。
+这些引文是历史输入，不是当前实现声明；其中“局部 improvement 可以保障”等判断
+已在正文中降级为待实证检验的假设。
 
 > **1.** 记录一下我对于self evolved research harness的思考
 
